@@ -1,0 +1,26 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
+
+FIREBASE_CLIENT_EMAIL = os.getenv(
+    "FIREBASE_CLIENT_EMAIL"
+)
+
+FIREBASE_PRIVATE_KEY = os.getenv(
+    "FIREBASE_PRIVATE_KEY"
+)
+
+CLOUDINARY_CLOUD_NAME = os.getenv(
+    "CLOUDINARY_CLOUD_NAME"
+)
+
+CLOUDINARY_API_KEY = os.getenv(
+    "CLOUDINARY_API_KEY"
+)
+
+CLOUDINARY_API_SECRET = os.getenv(
+    "CLOUDINARY_API_SECRET"
+)
