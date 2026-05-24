@@ -18,7 +18,7 @@ from app.dependencies.auth import (
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("")
 def listar_productos():
 
     docs = (
@@ -52,7 +52,7 @@ def obtener_producto(producto_id: str):
         **doc.to_dict()
     }
 
-@router.post("/")
+@router.post("")
 def crear_producto(
     producto: ProductoCreate,
     user=Depends(verificar_admin)
