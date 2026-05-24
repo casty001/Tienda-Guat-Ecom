@@ -259,7 +259,7 @@ if (mostrarDesktop) {
   return <DesktopGenericLanding />
 }
   return (
-    <main className="bg-white min-h-screen">
+    <main className="bg-[#121212] min-h-screen">
 
       {/* CONTADOR */}
 
@@ -350,11 +350,11 @@ if (mostrarDesktop) {
       {/* BOTON */}
 
       <button
-        onClick={irFormulario}
-        className="bg-red-600 w-full py-5 text-white font-bold text-xl"
-      >
-        {textoBoton}
-      </button>
+  onClick={irFormulario}
+  className="bg-red-600 w-[90%] mx-auto block py-5 text-white font-bold text-xl rounded-lg btn-wobble btn-hover"
+>
+  COMPRAR AHORA Y PAGAR AL RECIBIR
+</button> 
 
       {/* BOTON */}
 {producto.mostrarInfoCompra && (
@@ -455,11 +455,11 @@ if (mostrarDesktop) {
   </section>
 )}
       <button
-        onClick={irFormulario}
-        className="bg-red-600 w-full py-5 text-white font-bold text-xl"
-      >
-        {textoBoton}
-      </button>
+  onClick={irFormulario}
+  className="bg-red-600 w-[90%] mx-auto block py-5 text-white font-bold text-xl rounded-lg btn-wobble btn-hover"
+>
+  COMPRAR AHORA Y PAGAR AL RECIBIR
+</button>
 
       {/* LANDING 2 */}
 
@@ -477,11 +477,11 @@ if (mostrarDesktop) {
       {/* BOTON */}
 
       <button
-        onClick={irFormulario}
-        className="bg-red-600 w-full py-5 text-white font-bold text-xl"
-      >
-        {textoBoton}
-      </button>
+  onClick={irFormulario}
+  className="bg-red-600 w-[90%] mx-auto block py-5 text-white font-bold text-xl rounded-lg btn-wobble btn-hover"
+>
+  COMPRAR AHORA Y PAGAR AL RECIBIR
+</button>
 
       {/* LANDING 3 */}
 
@@ -499,11 +499,11 @@ if (mostrarDesktop) {
       {/* BOTON */}
 
       <button
-        onClick={irFormulario}
-        className="bg-red-600 w-full py-5 text-white font-bold text-xl"
-      >
-        {textoBoton}
-      </button>
+  onClick={irFormulario}
+  className="bg-red-600 w-[90%] mx-auto block py-5 text-white font-bold text-xl rounded-lg btn-wobble btn-hover"
+>
+  COMPRAR AHORA Y PAGAR AL RECIBIR
+</button>
 
       {/* LANDING 4 */}
 
@@ -520,9 +520,9 @@ if (mostrarDesktop) {
 
       {/* FAQ */}
 
-      <section className="bg-gray-100 p-6">
+      <section className="bg-[#121212]p-6">
 
-        <h2 className="text-3xl font-bold text-center mb-6">
+        <h2 className="bg-[#121212] text-3xl font-bold text-center mb-6">
           Preguntas frecuentes
         </h2>
 
@@ -530,11 +530,11 @@ if (mostrarDesktop) {
 
           <div className="bg-white rounded-xl p-4">
 
-            <h3 className="font-bold">
+            <h3 className="text-[#121212] font-bold">
               ¿El pago es contraentrega?
             </h3>
 
-            <p>
+            <p className="text-[#121212]">
               Sí, pagas cuando recibes
               el producto en casa.
             </p>
@@ -543,11 +543,11 @@ if (mostrarDesktop) {
 
           <div className="bg-white rounded-xl p-4">
 
-            <h3 className="font-bold">
+            <h3 className="text-[#121212] font-bold">
               ¿Cuánto tarda el envío?
             </h3>
 
-            <p>
+            <p className="text-[#121212]">
               Entre 2 y 5 días hábiles.
             </p>
 
@@ -555,11 +555,11 @@ if (mostrarDesktop) {
 
           <div className="bg-white rounded-xl p-4">
 
-            <h3 className="font-bold">
+            <h3 className="text-[#121212] font-bold">
               ¿Cómo hago el pedido?
             </h3>
 
-            <p>
+            <p className="text-[#121212]">
               Llena el formulario y
               nuestro equipo te
               contactará.
@@ -570,13 +570,7 @@ if (mostrarDesktop) {
         </div>
       </section>
 
-      {/* FORM */}
-
-      <section
-        ref={formRef}
-        className="bg-white p-6"
-      >
-      </section>
+      
       <FloatingOrderModal
   open={modalOpen}
   onClose={() => setModalOpen(false)}

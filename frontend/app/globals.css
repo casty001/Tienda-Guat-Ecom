@@ -24,3 +24,37 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/* Efecto de latido profesional */
+.btn-pulse {
+  animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* Efecto hover suave */
+.btn-hover {
+  transition: all 0.3s ease;
+}
+.btn-wobble {
+  /* 4s hace que el movimiento sea mucho más elegante y cadencioso */
+  animation: wobble-cadence 5s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes wobble-cadence {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  2% { transform: rotate(-2deg) scale(1.01); }
+  4% { transform: rotate(2deg) scale(1.01); }
+  6% { transform: rotate(-2deg) scale(1.01); }
+  8% { transform: rotate(0deg) scale(1); }
+  /* La pausa aquí es lo que le da la "cadencia" al efecto */
+}
+.btn-hover:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.1);
+}

@@ -41,7 +41,7 @@ export default function FloatingOrderModal({
         </div>
 
         {producto.imagen && (
-          <img src={producto.imagen} className="w-full" />
+          <img src={"/selecciona-tu-oferta.webp"} className="w-full" />
         )}
 
         <div className="p-4">
@@ -91,29 +91,27 @@ export default function FloatingOrderModal({
             {/* Inputs con texto negro */}
             <input
               name="nombre"
-              placeholder="Nombre completo"
+placeholder="Ej: Mateo Rodriguez Castaño"
               className="border p-3 rounded-lg text-gray-900 placeholder-gray-400"
               required
             />
 
             <input
               name="telefono"
-              placeholder="Número de WhatsApp y llamadas"
+placeholder="304458627"
               className="border p-3 rounded-lg text-gray-900 placeholder-gray-400"
               required
             />
 
             <input
               name="direccion"
-              placeholder="Dirección"
-              className="border p-3 rounded-lg text-gray-900 placeholder-gray-400"
+placeholder="Ej: Calle 62a #55-66"              className="border p-3 rounded-lg text-gray-900 placeholder-gray-400"
               required
             />
 
             <input
               name="referencia"
-              placeholder="Datos adicionales: torre, apto, barrio"
-              className="border p-3 rounded-lg text-gray-900 placeholder-gray-400"
+placeholder="Ej: Torre B, Apto 201"              className="border p-3 rounded-lg text-gray-900 placeholder-gray-400"
             />
 
             <select
