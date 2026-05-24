@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import Link from "next/link";
 import AdminGuard from "@/components/AdminGuard";
+import { onAuthStateChanged } from "firebase/auth"
+import { useRouter } from "next/navigation"
+import { auth } from "@/lib/firebase";
 
 export default function AdminProductosPage() {
+  const router = useRouter()
   const [productos, setProductos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [imagenSubiendo, setImagenSubiendo] = useState(false);
@@ -17,18 +21,32 @@ export default function AdminProductosPage() {
   const [landing3, setLanding3] = useState("");
   const [landing4, setLanding4] = useState("");
 
-  useEffect(() => {
-    cargarProductos();
-  }, []);
+useEffect(() => {
+  const unsub = onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      router.replace("/login")
+      return
+    }
+
+    cargarProductos()
+  })
+
+  return () => unsub()
+}, [router])
 
   async function cargarProductos() {
     try {
       const res = await api.get("/productos");
       setProductos(res.data);
-    } catch (error) {
-      console.error(error);
-      alert("Error cargando productos");
-    }
+    } catch (error: any) {
+  console.error(error)
+
+  if (error.response?.status === 401) {
+    return
+  }
+
+  alert("Error cargando productos")
+}
   }
 
   async function subirImagen(
@@ -53,7 +71,7 @@ export default function AdminProductosPage() {
       setter(res.data.url);
     } catch (error) {
       console.error(error);
-      alert("Error subiendo imagen");
+      alert("❌ Error subiendo imagen");
     } finally {
       setImagenSubiendo(false);
     }
@@ -67,10 +85,7 @@ export default function AdminProductosPage() {
     setLanding3(producto.imagenesLanding?.imagen3 || "");
     setLanding4(producto.imagenesLanding?.imagen4 || "");
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function limpiarFormulario(form?: HTMLFormElement) {
@@ -94,519 +109,373 @@ export default function AdminProductosPage() {
     const nombre = String(form.get("nombre") || "").trim();
 
     if (!nombre) {
-      alert("Falta el nombre del producto");
+      alert("❌ Falta el nombre del producto");
       setLoading(false);
       return;
     }
 
     if (!imagenPrincipal) {
-      alert("Falta la imagen principal");
+      alert("❌ Falta la imagen principal");
       setLoading(false);
       return;
     }
 
     const data = {
-  nombre,
-
-  precio:
-    Number(form.get("precio") || 0),
-
-  precioAntes:
-    Number(form.get("precioAntes") || 0),
-
-  imagen: imagenPrincipal,
-
-  imagenesLanding: {
-    imagen1: landing1,
-    imagen2: landing2,
-    imagen3: landing3,
-    imagen4: landing4,
-  },
-
-  mostrarContador:
-    form.get("mostrarContador") === "on",
-
-  minutosContador:
-    Number(
-      form.get("minutosContador") || 28
-    ),
-
-  mostrarEstrellas:
-    form.get("mostrarEstrellas") === "on",
-
-  textoEstrellas:
-    String(
-      form.get("textoEstrellas") || ""
-    ),
-
-  textoBoton:
-    String(
-      form.get("textoBoton") ||
-      "COMPRAR AHORA Y PAGAR AL RECIBIR"
-    ),
-
-  mostrarInfoCompra:
-    form.get("mostrarInfoCompra") === "on",
-
-  textoDescuento:
-    String(
-      form.get("textoDescuento") ||
-      "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"
-    ),
-
-  queIncluye:
-    String(
-      form.get("queIncluye") || ""
-    ),
-
-  informacionEnvio:
-    String(
-      form.get("informacionEnvio") || ""
-    ),
-
-  devolucionesReembolsos:
-    String(
-      form.get("devolucionesReembolsos") || ""
-    ),
-
-  activo: true,
-};
+      nombre,
+      precio: Number(form.get("precio") || 0),
+      precioAntes: Number(form.get("precioAntes") || 0),
+      imagen: imagenPrincipal,
+      imagenesLanding: {
+        imagen1: landing1,
+        imagen2: landing2,
+        imagen3: landing3,
+        imagen4: landing4,
+      },
+      mostrarContador: form.get("mostrarContador") === "on",
+      minutosContador: Number(form.get("minutosContador") || 28),
+      mostrarEstrellas: form.get("mostrarEstrellas") === "on",
+      textoEstrellas: String(form.get("textoEstrellas") || ""),
+      textoBoton: String(form.get("textoBoton") || "COMPRAR AHORA Y PAGAR AL RECIBIR"),
+      mostrarInfoCompra: form.get("mostrarInfoCompra") === "on",
+      textoDescuento: String(form.get("textoDescuento") || "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"),
+      queIncluye: String(form.get("queIncluye") || ""),
+      informacionEnvio: String(form.get("informacionEnvio") || ""),
+      devolucionesReembolsos: String(form.get("devolucionesReembolsos") || ""),
+      activo: true,
+    };
 
     try {
       if (editando) {
         await api.patch(`/productos/${editando.id}`, data);
-        alert("Producto actualizado");
+        alert("✅ Producto actualizado");
       } else {
         await api.post("/productos", data);
-        alert("Producto creado");
+        alert("✅ Producto creado");
       }
 
       limpiarFormulario(e.currentTarget);
       await cargarProductos();
     } catch (error) {
       console.error(error);
-      alert("Error guardando producto");
+      alert("❌ Error guardando producto");
     } finally {
       setLoading(false);
     }
   }
 
   async function eliminarProducto(id: string) {
-    if (!confirm("¿Eliminar este producto?")) return;
+    if (!confirm("⚠️ ¿Eliminar este producto?")) return;
 
     try {
       await api.delete(`/productos/${id}`);
       await cargarProductos();
+      alert("✅ Producto eliminado");
     } catch (error) {
       console.error(error);
-      alert("Error eliminando producto");
+      alert("❌ Error eliminando producto");
     }
   }
 
   return (
-  <AdminGuard>
-    <main className="max-w-5xl mx-auto p-10">
+    <AdminGuard>
+      <main className="min-h-screen bg-gray-900">
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          
+          {/* Header simplificado */}
+          <div className="bg-gray-800 rounded-xl p-4 mb-6">
+            <div className="flex justify-between items-center flex-wrap gap-3">
+              <div>
+                <h1 className="text-2xl font-bold text-white">📦 Productos</h1>
+                <p className="text-gray-400 text-sm mt-0.5">Gestionar productos</p>
+              </div>
 
-      <div className="flex justify-between items-center mb-8">
+              <Link
+                href="/admin/pedidos"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
+              >
+                📋 Pedidos
+              </Link>
+            </div>
+          </div>
 
-        <h1 className="text-4xl font-bold">
-          Productos
-        </h1>
-
-        <Link
-          href="/admin/pedidos"
-          className="bg-black text-white px-5 py-3 rounded-xl"
-        >
-          Pedidos
-        </Link>
-
-      </div>
-
-      <form
-        onSubmit={guardarProducto}
-        className="flex flex-col gap-4 mb-10"
-      >
-
-        <input
-          name="nombre"
-          placeholder="Nombre del producto"
-          defaultValue={editando?.nombre || ""}
-          className="border p-3 rounded-xl"
-          required
-        />
-
-        <input
-          name="precio"
-          type="number"
-          placeholder="Precio"
-          defaultValue={editando?.precio || ""}
-          className="border p-3 rounded-xl"
-          required
-        />
-
-        <input
-          name="precioAntes"
-          type="number"
-          placeholder="Precio antes"
-          defaultValue={editando?.precioAntes || ""}
-          className="border p-3 rounded-xl"
-        />
-
-        {/* CONFIG LANDING */}
-
-        <div className="border rounded-xl p-5 flex flex-col gap-4">
-
-          <h2 className="text-2xl font-bold">
-            Configuración Landing
-          </h2>
-<div className="border rounded-xl p-5 flex flex-col gap-4">
-
-  <h2 className="text-2xl font-bold">
-    Contenedor precio / envío / reembolsos
-  </h2>
-
-  <label className="flex gap-2 items-center">
-
-    <input
-      type="checkbox"
-      name="mostrarInfoCompra"
-      defaultChecked={
-        editando?.mostrarInfoCompra ?? true
-      }
-    />
-
-    Mostrar contenedor compra
-
-  </label>
-
-  <input
-    name="textoDescuento"
-    placeholder="POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"
-    defaultValue={
-      editando?.textoDescuento ||
-      "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"
-    }
-    className="border p-3 rounded-xl"
-  />
-
-  <textarea
-    name="queIncluye"
-    placeholder="¿Qué incluye?"
-    defaultValue={
-      editando?.queIncluye || ""
-    }
-    className="border p-3 rounded-xl min-h-24"
-  />
-
-  <textarea
-    name="informacionEnvio"
-    placeholder="Información de envío"
-    defaultValue={
-      editando?.informacionEnvio || ""
-    }
-    className="border p-3 rounded-xl min-h-24"
-  />
-
-  <textarea
-    name="devolucionesReembolsos"
-    placeholder="Devoluciones y reembolsos"
-    defaultValue={
-      editando?.devolucionesReembolsos || ""
-    }
-    className="border p-3 rounded-xl min-h-24"
-  />
-
-</div>
-          <label className="flex gap-2 items-center">
-
+          {/* Formulario - Simplificado pero funcional */}
+          <form onSubmit={guardarProducto} className="bg-gray-800 rounded-xl p-6 mb-8 space-y-4">
+            
+            {/* Nombre y precios */}
             <input
-              type="checkbox"
-              name="mostrarContador"
-              defaultChecked={
-                editando?.mostrarContador ?? true
-              }
+              name="nombre"
+              placeholder="📝 Nombre del producto"
+              defaultValue={editando?.nombre || ""}
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+              required
             />
 
-            Mostrar contador
-          </label>
-
-          <input
-            name="minutosContador"
-            type="number"
-            placeholder="Minutos contador"
-            defaultValue={
-              editando?.minutosContador || 28
-            }
-            className="border p-3 rounded-xl"
-          />
-
-          <label className="flex gap-2 items-center">
-
-            <input
-              type="checkbox"
-              name="mostrarEstrellas"
-              defaultChecked={
-                editando?.mostrarEstrellas ?? true
-              }
-            />
-
-            Mostrar barra estrellas
-          </label>
-
-          <input
-            name="textoEstrellas"
-            placeholder="+100.000 Colombianos arreglaron sus uñas"
-            defaultValue={
-              editando?.textoEstrellas || ""
-            }
-            className="border p-3 rounded-xl"
-          />
-
-          <input
-            name="textoBoton"
-            placeholder="Texto botón"
-            defaultValue={
-              editando?.textoBoton ||
-              "COMPRAR AHORA Y PAGAR AL RECIBIR"
-            }
-            className="border p-3 rounded-xl"
-          />
-
-        </div>
-
-        {/* IMAGEN PRINCIPAL */}
-
-        <div className="border rounded-xl p-4">
-
-          <h2 className="font-bold text-xl mb-3">
-            Imagen principal
-          </h2>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              subirImagen(
-                e,
-                setImagenPrincipal
-              )
-            }
-          />
-
-          {imagenPrincipal && (
-            <img
-              src={imagenPrincipal}
-              alt="Imagen principal"
-              className="w-32 h-32 object-cover rounded-xl mt-3"
-            />
-          )}
-
-        </div>
-
-        {/* LANDING 1 */}
-
-        <div className="border rounded-xl p-4">
-
-          <h2 className="font-bold text-xl mb-3">
-            Imagen landing 1
-          </h2>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              subirImagen(e, setLanding1)
-            }
-          />
-
-          {landing1 && (
-            <img
-              src={landing1}
-              alt="Landing 1"
-              className="w-32 h-32 object-cover rounded-xl mt-3"
-            />
-          )}
-
-        </div>
-
-        {/* LANDING 2 */}
-
-        <div className="border rounded-xl p-4">
-
-          <h2 className="font-bold text-xl mb-3">
-            Imagen landing 2
-          </h2>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              subirImagen(e, setLanding2)
-            }
-          />
-
-          {landing2 && (
-            <img
-              src={landing2}
-              alt="Landing 2"
-              className="w-32 h-32 object-cover rounded-xl mt-3"
-            />
-          )}
-
-        </div>
-
-        {/* LANDING 3 */}
-
-        <div className="border rounded-xl p-4">
-
-          <h2 className="font-bold text-xl mb-3">
-            Imagen landing 3
-          </h2>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              subirImagen(e, setLanding3)
-            }
-          />
-
-          {landing3 && (
-            <img
-              src={landing3}
-              alt="Landing 3"
-              className="w-32 h-32 object-cover rounded-xl mt-3"
-            />
-          )}
-
-        </div>
-
-        {/* LANDING 4 */}
-
-        <div className="border rounded-xl p-4">
-
-          <h2 className="font-bold text-xl mb-3">
-            Imagen landing 4
-          </h2>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              subirImagen(e, setLanding4)
-            }
-          />
-
-          {landing4 && (
-            <img
-              src={landing4}
-              alt="Landing 4"
-              className="w-32 h-32 object-cover rounded-xl mt-3"
-            />
-          )}
-
-        </div>
-
-        {imagenSubiendo && (
-          <p className="font-semibold text-blue-600">
-            Subiendo imagen...
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={
-            loading || imagenSubiendo
-          }
-          className="bg-black text-white p-4 rounded-xl font-bold disabled:opacity-50"
-        >
-          {loading
-            ? "Guardando..."
-            : editando
-            ? "Actualizar producto"
-            : "Crear producto"}
-        </button>
-
-        {editando && (
-          <button
-            type="button"
-            onClick={() =>
-              limpiarFormulario()
-            }
-            className="border p-4 rounded-xl font-bold"
-          >
-            Cancelar edición
-          </button>
-        )}
-
-      </form>
-
-      <div className="grid grid-cols-1 gap-4">
-
-        {productos.map((producto) => (
-
-          <div
-            key={producto.id}
-            className="border rounded-xl p-4 flex gap-4 items-center justify-between"
-          >
-
-            <div className="flex gap-4 items-center">
-
-              <img
-                src={producto.imagen}
-                alt={producto.nombre}
-                className="w-24 h-24 object-cover rounded-xl"
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                name="precio"
+                type="number"
+                placeholder="💰 Precio"
+                defaultValue={editando?.precio || ""}
+                className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                required
               />
 
-              <div>
+              <input
+                name="precioAntes"
+                type="number"
+                placeholder="🏷️ Precio antes"
+                defaultValue={editando?.precioAntes || ""}
+                className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+              />
+            </div>
 
-                <h2 className="text-xl font-bold">
-                  {producto.nombre}
-                </h2>
+            {/* Configuración Landing */}
+            <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+              <h2 className="text-lg font-bold text-white">⚙️ Configuración Landing</h2>
 
-                <p>
-                  Precio: $
-                  {producto.precio}
-                </p>
+              {/* Contenedor precio/envío */}
+              <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+                <h3 className="text-md font-semibold text-gray-300">📦 Contenedor compra</h3>
+                
+                <label className="flex gap-2 items-center text-gray-300">
+                  <input
+                    type="checkbox"
+                    name="mostrarInfoCompra"
+                    defaultChecked={editando?.mostrarInfoCompra ?? true}
+                    className="w-4 h-4"
+                  />
+                  Mostrar contenedor compra
+                </label>
 
-                <p>
-                  Antes: $
-                  {producto.precioAntes || 0}
-                </p>
+                <input
+                  name="textoDescuento"
+                  placeholder="🎯 Texto descuento"
+                  defaultValue={editando?.textoDescuento || "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                />
 
+                <textarea
+                  name="queIncluye"
+                  placeholder="📦 ¿Qué incluye?"
+                  defaultValue={editando?.queIncluye || ""}
+                  rows={3}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                />
+
+                <textarea
+                  name="informacionEnvio"
+                  placeholder="🚚 Información de envío"
+                  defaultValue={editando?.informacionEnvio || ""}
+                  rows={3}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                />
+
+                <textarea
+                  name="devolucionesReembolsos"
+                  placeholder="🔄 Devoluciones y reembolsos"
+                  defaultValue={editando?.devolucionesReembolsos || ""}
+                  rows={3}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                />
+              </div>
+
+              {/* Contador */}
+              <div className="space-y-2">
+                <label className="flex gap-2 items-center text-gray-300">
+                  <input
+                    type="checkbox"
+                    name="mostrarContador"
+                    defaultChecked={editando?.mostrarContador ?? true}
+                    className="w-4 h-4"
+                  />
+                  ⏱️ Mostrar contador
+                </label>
+
+                <input
+                  name="minutosContador"
+                  type="number"
+                  placeholder="Minutos contador"
+                  defaultValue={editando?.minutosContador || 28}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+
+              {/* Estrellas */}
+              <div className="space-y-2">
+                <label className="flex gap-2 items-center text-gray-300">
+                  <input
+                    type="checkbox"
+                    name="mostrarEstrellas"
+                    defaultChecked={editando?.mostrarEstrellas ?? true}
+                    className="w-4 h-4"
+                  />
+                  ⭐ Mostrar barra estrellas
+                </label>
+
+                <input
+                  name="textoEstrellas"
+                  placeholder="+100.000 Colombianos arreglaron sus uñas"
+                  defaultValue={editando?.textoEstrellas || ""}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+
+              {/* Botón */}
+              <input
+                name="textoBoton"
+                placeholder="🔘 Texto botón"
+                defaultValue={editando?.textoBoton || "COMPRAR AHORA Y PAGAR AL RECIBIR"}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              />
+            </div>
+
+            {/* Imágenes */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Imagen Principal */}
+              <div className="border border-gray-700 rounded-lg p-4">
+                <h3 className="font-bold text-white mb-2">🖼️ Imagen principal</h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => subirImagen(e, setImagenPrincipal)}
+                  className="text-gray-400 text-sm"
+                />
+                {imagenPrincipal && (
+                  <img src={imagenPrincipal} alt="Principal" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                )}
+              </div>
+
+              {/* Landing 1 */}
+              <div className="border border-gray-700 rounded-lg p-4">
+                <h3 className="font-bold text-white mb-2">📸 Landing 1</h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => subirImagen(e, setLanding1)}
+                  className="text-gray-400 text-sm"
+                />
+                {landing1 && (
+                  <img src={landing1} alt="Landing 1" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                )}
+              </div>
+
+              {/* Landing 2 */}
+              <div className="border border-gray-700 rounded-lg p-4">
+                <h3 className="font-bold text-white mb-2">📸 Landing 2</h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => subirImagen(e, setLanding2)}
+                  className="text-gray-400 text-sm"
+                />
+                {landing2 && (
+                  <img src={landing2} alt="Landing 2" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                )}
+              </div>
+
+              {/* Landing 3 */}
+              <div className="border border-gray-700 rounded-lg p-4">
+                <h3 className="font-bold text-white mb-2">📸 Landing 3</h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => subirImagen(e, setLanding3)}
+                  className="text-gray-400 text-sm"
+                />
+                {landing3 && (
+                  <img src={landing3} alt="Landing 3" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                )}
+              </div>
+
+              {/* Landing 4 */}
+              <div className="border border-gray-700 rounded-lg p-4">
+                <h3 className="font-bold text-white mb-2">📸 Landing 4</h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => subirImagen(e, setLanding4)}
+                  className="text-gray-400 text-sm"
+                />
+                {landing4 && (
+                  <img src={landing4} alt="Landing 4" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                )}
               </div>
             </div>
 
-            <div className="flex gap-2">
+            {imagenSubiendo && (
+              <p className="text-blue-400 text-sm">⏳ Subiendo imagen...</p>
+            )}
 
+            {/* Botones */}
+            <div className="flex gap-3">
               <button
-                onClick={() =>
-                  cargarParaEditar(
-                    producto
-                  )
-                }
-                className="bg-yellow-500 text-white px-4 py-2 rounded-lg"
+                type="submit"
+                disabled={loading || imagenSubiendo}
+                className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
               >
-                Editar
+                {loading ? "⏳ Guardando..." : editando ? "✏️ Actualizar producto" : "➕ Crear producto"}
               </button>
 
-              <button
-                onClick={() =>
-                  eliminarProducto(
-                    producto.id
-                  )
-                }
-                className="bg-red-600 text-white px-4 py-2 rounded-lg"
-              >
-                Eliminar
-              </button>
-
+              {editando && (
+                <button
+                  type="button"
+                  onClick={() => limpiarFormulario()}
+                  className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  ❌ Cancelar
+                </button>
+              )}
             </div>
-          </div>
-        ))}
+          </form>
 
-      </div>
-    </main>
-  </AdminGuard>
-);
+          {/* Lista de productos */}
+          <div className="space-y-3">
+            <h2 className="text-xl font-bold text-white mb-4">📋 Productos existentes</h2>
+            
+            {productos.map((producto) => (
+              <div key={producto.id} className="bg-gray-800 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex gap-4 items-center">
+                  <img
+                    src={producto.imagen}
+                    alt={producto.nombre}
+                    className="w-16 h-16 object-cover rounded-lg"
+                  />
+                  <div>
+                    <h3 className="text-white font-semibold">{producto.nombre}</h3>
+                    <p className="text-gray-400 text-sm">💰 ${producto.precio}</p>
+                    {producto.precioAntes > 0 && (
+                      <p className="text-gray-500 text-xs line-through">${producto.precioAntes}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => cargarParaEditar(producto)}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button
+                    onClick={() => eliminarProducto(producto.id)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {productos.length === 0 && (
+              <div className="text-center py-12 bg-gray-800 rounded-xl">
+                <div className="text-5xl mb-3">📭</div>
+                <p className="text-gray-400">No hay productos aún</p>
+                <p className="text-gray-500 text-sm mt-1">Crea tu primer producto con el formulario</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </AdminGuard>
+  );
 }
