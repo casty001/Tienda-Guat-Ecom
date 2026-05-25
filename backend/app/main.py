@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Response
 
 from fastapi.middleware.cors import (
     CORSMiddleware
@@ -41,9 +41,12 @@ app.include_router(
 )
 
 @app.get("/")
-@app.head("/")
 def root():
     return {
         "ok": True,
         "message": "Tienda Drop API funcionando"
     }
+
+@app.head("/")
+def root_head():
+    return Response(status_code=200)
