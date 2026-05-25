@@ -41,9 +41,9 @@ app.include_router(
 )
 
 @app.get("/")
-def home():
+@app.head("/")
+def root():
     return {
         "ok": True,
-        "message":
-            "Tienda Drop API funcionando"
+        "message": "Tienda Drop API funcionando"
     }
