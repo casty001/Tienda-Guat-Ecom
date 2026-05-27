@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import Link from "next/link";
 import AdminGuard from "@/components/AdminGuard";
-import { onAuthStateChanged } from "firebase/auth"
-import { useRouter } from "next/navigation"
+import { onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 
 export default function AdminProductosPage() {
-  const router = useRouter()
+  const router = useRouter();
   const [productos, setProductos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [imagenSubiendo, setImagenSubiendo] = useState(false);
@@ -21,32 +21,32 @@ export default function AdminProductosPage() {
   const [landing3, setLanding3] = useState("");
   const [landing4, setLanding4] = useState("");
 
-useEffect(() => {
-  const unsub = onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      router.replace("/login")
-      return
-    }
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
 
-    cargarProductos()
-  })
+      cargarProductos();
+    });
 
-  return () => unsub()
-}, [router])
+    return () => unsub();
+  }, [router]);
 
   async function cargarProductos() {
     try {
       const res = await api.get("/productos");
       setProductos(res.data);
     } catch (error: any) {
-  console.error(error)
+      console.error(error);
 
-  if (error.response?.status === 401) {
-    return
-  }
+      if (error.response?.status === 401) {
+        return;
+      }
 
-  alert("Error cargando productos")
-}
+      alert("Error cargando productos");
+    }
   }
 
   async function subirImagen(
@@ -135,12 +135,38 @@ useEffect(() => {
       minutosContador: Number(form.get("minutosContador") || 28),
       mostrarEstrellas: form.get("mostrarEstrellas") === "on",
       textoEstrellas: String(form.get("textoEstrellas") || ""),
-      textoBoton: String(form.get("textoBoton") || "COMPRAR AHORA Y PAGAR AL RECIBIR"),
+      textoBoton: String(
+        form.get("textoBoton") || "COMPRAR AHORA Y PAGAR AL RECIBIR",
+      ),
       mostrarInfoCompra: form.get("mostrarInfoCompra") === "on",
-      textoDescuento: String(form.get("textoDescuento") || "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"),
+      textoDescuento: String(
+        form.get("textoDescuento") ||
+          "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
+      ),
       queIncluye: String(form.get("queIncluye") || ""),
       informacionEnvio: String(form.get("informacionEnvio") || ""),
       devolucionesReembolsos: String(form.get("devolucionesReembolsos") || ""),
+      mostrarResenas: form.get("mostrarResenas") === "on",
+
+      preguntasFrecuentes: [
+        {
+          pregunta: String(form.get("faqPregunta1") || ""),
+
+          respuesta: String(form.get("faqRespuesta1") || ""),
+        },
+
+        {
+          pregunta: String(form.get("faqPregunta2") || ""),
+
+          respuesta: String(form.get("faqRespuesta2") || ""),
+        },
+
+        {
+          pregunta: String(form.get("faqPregunta3") || ""),
+
+          respuesta: String(form.get("faqRespuesta3") || ""),
+        },
+      ].filter((faq) => faq.pregunta || faq.respuesta),
       activo: true,
     };
 
@@ -180,13 +206,16 @@ useEffect(() => {
     <AdminGuard>
       <main className="min-h-screen bg-gray-900">
         <div className="max-w-5xl mx-auto px-4 py-6">
-          
           {/* Header simplificado */}
           <div className="bg-gray-800 rounded-xl p-4 mb-6">
             <div className="flex justify-between items-center flex-wrap gap-3">
               <div>
-                <h1 className="text-2xl font-bold text-white">📦 Productos</h1>
-                <p className="text-gray-400 text-sm mt-0.5">Gestionar productos</p>
+                <h1 className="text-2xl font-bold text-white">
+                  📦 Productos
+                </h1>
+                <p className="text-gray-400 text-sm mt-0.5">
+                  Gestionar productos
+                </p>
               </div>
 
               <Link
@@ -199,8 +228,10 @@ useEffect(() => {
           </div>
 
           {/* Formulario - Simplificado pero funcional */}
-          <form onSubmit={guardarProducto} className="bg-gray-800 rounded-xl p-6 mb-8 space-y-4">
-            
+          <form
+            onSubmit={guardarProducto}
+            className="bg-gray-800 rounded-xl p-6 mb-8 space-y-4"
+          >
             {/* Nombre y precios */}
             <input
               name="nombre"
@@ -231,12 +262,16 @@ useEffect(() => {
 
             {/* Configuración Landing */}
             <div className="border border-gray-700 rounded-lg p-4 space-y-3">
-              <h2 className="text-lg font-bold text-white">⚙️ Configuración Landing</h2>
+              <h2 className="text-lg font-bold text-white">
+                ⚙️ Configuración Landing
+              </h2>
 
               {/* Contenedor precio/envío */}
               <div className="border border-gray-700 rounded-lg p-4 space-y-3">
-                <h3 className="text-md font-semibold text-gray-300">📦 Contenedor compra</h3>
-                
+                <h3 className="text-md font-semibold text-gray-300">
+                  📦 Contenedor compra
+                </h3>
+
                 <label className="flex gap-2 items-center text-gray-300">
                   <input
                     type="checkbox"
@@ -250,7 +285,10 @@ useEffect(() => {
                 <input
                   name="textoDescuento"
                   placeholder="🎯 Texto descuento"
-                  defaultValue={editando?.textoDescuento || "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"}
+                  defaultValue={
+                    editando?.textoDescuento ||
+                    "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"
+                  }
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
 
@@ -324,16 +362,64 @@ useEffect(() => {
               <input
                 name="textoBoton"
                 placeholder="🔘 Texto botón"
-                defaultValue={editando?.textoBoton || "COMPRAR AHORA Y PAGAR AL RECIBIR"}
+                defaultValue={
+                  editando?.textoBoton || "COMPRAR AHORA Y PAGAR AL RECIBIR"
+                }
                 className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
+              {/* Reseñas */}
+
+              <div className="space-y-2 border border-gray-700 rounded-lg p-4">
+                <label className="flex gap-2 items-center text-gray-300">
+                  <input
+                    type="checkbox"
+                    name="mostrarResenas"
+                    defaultChecked={editando?.mostrarResenas ?? true}
+                    className="w-4 h-4"
+                  />
+                  ⭐ Mostrar reseñas
+                </label>
+              </div>
+
+              {/* FAQs */}
+
+              <div className="border border-gray-700 rounded-lg p-4 space-y-4">
+                <h3 className="text-md font-semibold text-gray-300">
+                  ❓ Preguntas frecuentes
+                </h3>
+
+                {[1, 2, 3].map((num, index) => (
+                  <div key={num} className="space-y-2">
+                    <input
+                      name={`faqPregunta${num}`}
+                      placeholder={`Pregunta ${num}`}
+                      defaultValue={
+                        editando?.preguntasFrecuentes?.[index]?.pregunta || ""
+                      }
+                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    />
+
+                    <textarea
+                      name={`faqRespuesta${num}`}
+                      placeholder={`Respuesta ${num}`}
+                      defaultValue={
+                        editando?.preguntasFrecuentes?.[index]?.respuesta || ""
+                      }
+                      rows={3}
+                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Imágenes */}
             <div className="grid grid-cols-2 gap-4">
               {/* Imagen Principal */}
               <div className="border border-gray-700 rounded-lg p-4">
-                <h3 className="font-bold text-white mb-2">🖼️ Imagen principal</h3>
+                <h3 className="font-bold text-white mb-2">
+                  🖼️ Imagen principal
+                </h3>
                 <input
                   type="file"
                   accept="image/*"
@@ -341,7 +427,11 @@ useEffect(() => {
                   className="text-gray-400 text-sm"
                 />
                 {imagenPrincipal && (
-                  <img src={imagenPrincipal} alt="Principal" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                  <img
+                    src={imagenPrincipal}
+                    alt="Principal"
+                    className="w-24 h-24 object-cover rounded-lg mt-2"
+                  />
                 )}
               </div>
 
@@ -355,7 +445,11 @@ useEffect(() => {
                   className="text-gray-400 text-sm"
                 />
                 {landing1 && (
-                  <img src={landing1} alt="Landing 1" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                  <img
+                    src={landing1}
+                    alt="Landing 1"
+                    className="w-24 h-24 object-cover rounded-lg mt-2"
+                  />
                 )}
               </div>
 
@@ -369,7 +463,11 @@ useEffect(() => {
                   className="text-gray-400 text-sm"
                 />
                 {landing2 && (
-                  <img src={landing2} alt="Landing 2" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                  <img
+                    src={landing2}
+                    alt="Landing 2"
+                    className="w-24 h-24 object-cover rounded-lg mt-2"
+                  />
                 )}
               </div>
 
@@ -383,7 +481,11 @@ useEffect(() => {
                   className="text-gray-400 text-sm"
                 />
                 {landing3 && (
-                  <img src={landing3} alt="Landing 3" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                  <img
+                    src={landing3}
+                    alt="Landing 3"
+                    className="w-24 h-24 object-cover rounded-lg mt-2"
+                  />
                 )}
               </div>
 
@@ -397,7 +499,11 @@ useEffect(() => {
                   className="text-gray-400 text-sm"
                 />
                 {landing4 && (
-                  <img src={landing4} alt="Landing 4" className="w-24 h-24 object-cover rounded-lg mt-2" />
+                  <img
+                    src={landing4}
+                    alt="Landing 4"
+                    className="w-24 h-24 object-cover rounded-lg mt-2"
+                  />
                 )}
               </div>
             </div>
@@ -405,7 +511,46 @@ useEffect(() => {
             {imagenSubiendo && (
               <p className="text-blue-400 text-sm">⏳ Subiendo imagen...</p>
             )}
+            <div className="border border-gray-700 rounded-lg p-4 space-y-4">
+              <label className="flex gap-2 items-center text-gray-300">
+                <input
+                  type="checkbox"
+                  name="mostrarResenas"
+                  defaultChecked={editando?.mostrarResenas ?? true}
+                  className="w-4 h-4"
+                />
+                ⭐ Mostrar reseñas automáticas
+              </label>
+            </div>
 
+            <div className="border border-gray-700 rounded-lg p-4 space-y-4">
+              <h3 className="text-md font-semibold text-gray-300">
+                ❓ Preguntas frecuentes
+              </h3>
+
+              {[1, 2, 3].map((num, index) => (
+                <div key={num} className="space-y-2">
+                  <input
+                    name={`faqPregunta${num}`}
+                    placeholder={`Pregunta ${num}`}
+                    defaultValue={
+                      editando?.preguntasFrecuentes?.[index]?.pregunta || ""
+                    }
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+
+                  <textarea
+                    name={`faqRespuesta${num}`}
+                    placeholder={`Respuesta ${num}`}
+                    defaultValue={
+                      editando?.preguntasFrecuentes?.[index]?.respuesta || ""
+                    }
+                    rows={3}
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+                </div>
+              ))}
+            </div>
             {/* Botones */}
             <div className="flex gap-3">
               <button
@@ -413,7 +558,11 @@ useEffect(() => {
                 disabled={loading || imagenSubiendo}
                 className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
               >
-                {loading ? "⏳ Guardando..." : editando ? "✏️ Actualizar producto" : "➕ Crear producto"}
+                {loading
+                  ? "⏳ Guardando..."
+                  : editando
+                    ? "✏️ Actualizar producto"
+                    : "➕ Crear producto"}
               </button>
 
               {editando && (
@@ -430,10 +579,15 @@ useEffect(() => {
 
           {/* Lista de productos */}
           <div className="space-y-3">
-            <h2 className="text-xl font-bold text-white mb-4">📋 Productos existentes</h2>
-            
+            <h2 className="text-xl font-bold text-white mb-4">
+              📋 Productos existentes
+            </h2>
+
             {productos.map((producto) => (
-              <div key={producto.id} className="bg-gray-800 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between">
+              <div
+                key={producto.id}
+                className="bg-gray-800 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between"
+              >
                 <div className="flex gap-4 items-center">
                   <img
                     src={producto.imagen}
@@ -441,10 +595,16 @@ useEffect(() => {
                     className="w-16 h-16 object-cover rounded-lg"
                   />
                   <div>
-                    <h3 className="text-white font-semibold">{producto.nombre}</h3>
-                    <p className="text-gray-400 text-sm">💰 ${producto.precio}</p>
+                    <h3 className="text-white font-semibold">
+                      {producto.nombre}
+                    </h3>
+                    <p className="text-gray-400 text-sm">
+                      💰 ${producto.precio}
+                    </p>
                     {producto.precioAntes > 0 && (
-                      <p className="text-gray-500 text-xs line-through">${producto.precioAntes}</p>
+                      <p className="text-gray-500 text-xs line-through">
+                        ${producto.precioAntes}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -470,7 +630,9 @@ useEffect(() => {
               <div className="text-center py-12 bg-gray-800 rounded-xl">
                 <div className="text-5xl mb-3">📭</div>
                 <p className="text-gray-400">No hay productos aún</p>
-                <p className="text-gray-500 text-sm mt-1">Crea tu primer producto con el formulario</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Crea tu primer producto con el formulario
+                </p>
               </div>
             )}
           </div>

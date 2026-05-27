@@ -9,8 +9,8 @@ const FloatingOrderModal = dynamic(
   () => import("@/components/FloatingOrderModal"),
   {
     ssr: false,
-  }
-)
+  },
+);
 
 export default function ProductoPage() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -351,42 +351,61 @@ export default function ProductoPage() {
           className="w-full h-auto"
         />
       )}
+      {producto.mostrarResenas && producto.resenas?.length > 0 && (
+        <section className="bg-white text-black p-6">
+          <h2 className="text-3xl font-black text-center mb-6">
+            Opiniones de clientes
+          </h2>
+
+          <div className="space-y-4">
+            {producto.resenas.map((resena: any, index: number) => (
+              <div key={index} className="border rounded-xl p-4 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <div>
+                    <h3 className="font-bold">{resena.nombre}</h3>
+
+                    <p className="text-sm text-gray-500">
+                      {resena.ciudad} · {resena.fecha}
+                    </p>
+                  </div>
+
+                  {resena.verificado && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
+                      Verificado
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-yellow-500 mb-2">
+                  {"⭐".repeat(Number(resena.puntuacion || 5))}
+                </div>
+
+                <p className="text-gray-700">{resena.resena}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
 
-      <section className="bg-[#121212] p-6">
-        <h2 className="bg-[#121212] text-3xl font-bold text-center mb-6">
-          Preguntas frecuentes
-        </h2>
+      {producto.preguntasFrecuentes?.length > 0 && (
+        <section className="bg-[#121212] p-6">
+          <h2 className="text-white text-3xl font-bold text-center mb-6">
+            Preguntas frecuentes
+          </h2>
 
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="text-[#121212] font-bold">
-              ¿El pago es contraentrega?
-            </h3>
+          <div className="space-y-4">
+            {producto.preguntasFrecuentes.map((faq: any, index: number) => (
+              <div key={index} className="bg-white rounded-xl p-4">
+                <h3 className="text-[#121212] font-bold">{faq.pregunta}</h3>
 
-            <p className="text-[#121212]">
-              Sí, pagas cuando recibes el producto en casa.
-            </p>
+                <p className="text-[#121212]">{faq.respuesta}</p>
+              </div>
+            ))}
           </div>
-
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="text-[#121212] font-bold">
-              ¿Cuánto tarda el envío?
-            </h3>
-
-            <p className="text-[#121212]">Entre 2 y 5 días hábiles.</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="text-[#121212] font-bold">¿Cómo hago el pedido?</h3>
-
-            <p className="text-[#121212]">
-              Llena el formulario y nuestro equipo te contactará.
-            </p>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <FloatingOrderModal
         open={modalOpen}

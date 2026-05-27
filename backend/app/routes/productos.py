@@ -7,6 +7,7 @@ from fastapi import (
 from datetime import datetime
 
 from app.firebase import db
+from app.utils.resenas import generar_resenas
 
 from app.schemas.producto import (
     ProductoCreate
@@ -59,10 +60,14 @@ def crear_producto(
 ):
 
     data = producto.model_dump()
+    if data.get("mostrarResenas"):
+        data["resenas"] = generar_resenas(8)
+    else:
+        data["resenas"] = []
 
-    data["creadoEn"] = (
-        datetime.utcnow().isoformat()
-    )
+        data["creadoEn"] = (
+            datetime.utcnow().isoformat()
+        )
 
     ref = (
         db.collection("productos")
@@ -95,10 +100,15 @@ def editar_producto(
         )
 
     data = producto.model_dump()
+    if data.get("mostrarResenas"):
+        if not data.get("resenas"):
+            data["resenas"] = generar_resenas(8)    
+    else:
+        data["resenas"] = []
 
-    data["actualizadoEn"] = (
-        datetime.utcnow().isoformat()
-    )
+        data["actualizadoEn"] = (
+            datetime.utcnow().isoformat()
+        )
 
     ref.update(data)
 
