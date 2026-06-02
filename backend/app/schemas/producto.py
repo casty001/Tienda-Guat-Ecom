@@ -7,7 +7,7 @@ class ImagenesLanding(BaseModel):
     imagen2: Optional[str] = ""
     imagen3: Optional[str] = ""
     imagen4: Optional[str] = ""
-
+    imagen5: Optional[str] = ""
 
 class PreguntaFrecuente(BaseModel):
     pregunta: str = ""
@@ -22,12 +22,16 @@ class Resena(BaseModel):
     fecha: str = ""
     verificado: bool = True
 
-
+class Precio2Opcional(BaseModel):
+    activo: bool = False
+    precio: float = 0
+    precioAntes: float = 0
 class ProductoCreate(BaseModel):
     nombre: str
     precio: float
     precioAntes: Optional[float] = 0
     imagen: str
+    precio2: Optional[Precio2Opcional] = Precio2Opcional()
 
     imagenesLanding: Optional[ImagenesLanding] = ImagenesLanding()
 

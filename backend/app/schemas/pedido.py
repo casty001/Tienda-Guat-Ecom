@@ -20,3 +20,4 @@ class PedidoCreate(BaseModel):
     precio: float
 
     imagen: Optional[str] = ""
+    event_id: Optional[str] = None

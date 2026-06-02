@@ -1,5 +1,7 @@
 import "./globals.css"
 
+import Script from "next/script"
+
 import { Poppins } from "next/font/google"
 
 const poppins = Poppins({
@@ -16,7 +18,59 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={poppins.className}>
+
+        <Script
+          id="tiktok-pixel"
+          strategy="afterInteractive"
+        >
+          {`
+            !function (w, d, t) {
+              w.TiktokAnalyticsObject=t;
+              var ttq=w[t]=w[t]||[];
+
+              ttq.methods=[
+                "page","track","identify",
+                "instances","debug","on","off",
+                "once","ready","alias","group",
+                "enableCookie","disableCookie",
+                "holdConsent","revokeConsent",
+                "grantConsent"
+              ];
+
+              ttq.setAndDefer=function(t,e){
+                t[e]=function(){
+                  t.push([e].concat(
+                    Array.prototype.slice.call(arguments,0)
+                  ))
+                }
+              };
+
+              for(var i=0;i<ttq.methods.length;i++){
+                ttq.setAndDefer(ttq,ttq.methods[i]);
+              }
+
+              ttq.load=function(e){
+                var s=d.createElement("script");
+
+                s.async=!0;
+
+                s.src="https://analytics.tiktok.com/i18n/pixel/events.js?sdkid="+e+"&lib="+t;
+
+                var x=d.getElementsByTagName("script")[0];
+
+                x.parentNode.insertBefore(s,x);
+              };
+
+              ttq.load('D8E1PFBC77UANKFS69IG');
+
+              ttq.page();
+
+            }(window, document, 'ttq');
+          `}
+        </Script>
+
         {children}
+
       </body>
     </html>
   )

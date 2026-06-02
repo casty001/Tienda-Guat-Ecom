@@ -20,6 +20,10 @@ export default function AdminProductosPage() {
   const [landing2, setLanding2] = useState("");
   const [landing3, setLanding3] = useState("");
   const [landing4, setLanding4] = useState("");
+  const [landing5, setLanding5] = useState("");
+  const [precio2Activo, setPrecio2Activo] = useState(false)
+  const [precio2, setPrecio2] = useState(0)
+  const [precio2Antes, setPrecio2Antes] = useState(0)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -78,15 +82,21 @@ export default function AdminProductosPage() {
   }
 
   function cargarParaEditar(producto: any) {
-    setEditando(producto);
-    setImagenPrincipal(producto.imagen || "");
-    setLanding1(producto.imagenesLanding?.imagen1 || "");
-    setLanding2(producto.imagenesLanding?.imagen2 || "");
-    setLanding3(producto.imagenesLanding?.imagen3 || "");
-    setLanding4(producto.imagenesLanding?.imagen4 || "");
+  setEditando(producto);
+  setImagenPrincipal(producto.imagen || "");
+  setLanding1(producto.imagenesLanding?.imagen1 || "");
+  setLanding2(producto.imagenesLanding?.imagen2 || "");
+  setLanding3(producto.imagenesLanding?.imagen3 || "");
+  setLanding4(producto.imagenesLanding?.imagen4 || "");
+  setLanding5(producto.imagenesLanding?.imagen5 || "");
+  
+  // ✅ Leer desde la estructura anidada
+  setPrecio2Activo(producto.precio2?.activo || false);
+  setPrecio2(producto.precio2?.precio || 0);
+  setPrecio2Antes(producto.precio2?.precioAntes || 0);
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
   function limpiarFormulario(form?: HTMLFormElement) {
     setEditando(null);
@@ -95,99 +105,105 @@ export default function AdminProductosPage() {
     setLanding2("");
     setLanding3("");
     setLanding4("");
-
+    setLanding5("");
+    setPrecio2Activo(false);
+    setPrecio2(0);
+    setPrecio2Antes(0);
     if (form) {
       form.reset();
     }
   }
 
   async function guardarProducto(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    const form = new FormData(e.currentTarget);
-    const nombre = String(form.get("nombre") || "").trim();
+  const form = new FormData(e.currentTarget);
+  const nombre = String(form.get("nombre") || "").trim();
 
-    if (!nombre) {
-      alert("❌ Falta el nombre del producto");
-      setLoading(false);
-      return;
-    }
-
-    if (!imagenPrincipal) {
-      alert("❌ Falta la imagen principal");
-      setLoading(false);
-      return;
-    }
-
-    const data = {
-      nombre,
-      precio: Number(form.get("precio") || 0),
-      precioAntes: Number(form.get("precioAntes") || 0),
-      imagen: imagenPrincipal,
-      imagenesLanding: {
-        imagen1: landing1,
-        imagen2: landing2,
-        imagen3: landing3,
-        imagen4: landing4,
-      },
-      mostrarContador: form.get("mostrarContador") === "on",
-      minutosContador: Number(form.get("minutosContador") || 28),
-      mostrarEstrellas: form.get("mostrarEstrellas") === "on",
-      textoEstrellas: String(form.get("textoEstrellas") || ""),
-      textoBoton: String(
-        form.get("textoBoton") || "COMPRAR AHORA Y PAGAR AL RECIBIR",
-      ),
-      mostrarInfoCompra: form.get("mostrarInfoCompra") === "on",
-      textoDescuento: String(
-        form.get("textoDescuento") ||
-          "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
-      ),
-      queIncluye: String(form.get("queIncluye") || ""),
-      informacionEnvio: String(form.get("informacionEnvio") || ""),
-      devolucionesReembolsos: String(form.get("devolucionesReembolsos") || ""),
-      mostrarResenas: form.get("mostrarResenas") === "on",
-
-      preguntasFrecuentes: [
-        {
-          pregunta: String(form.get("faqPregunta1") || ""),
-
-          respuesta: String(form.get("faqRespuesta1") || ""),
-        },
-
-        {
-          pregunta: String(form.get("faqPregunta2") || ""),
-
-          respuesta: String(form.get("faqRespuesta2") || ""),
-        },
-
-        {
-          pregunta: String(form.get("faqPregunta3") || ""),
-
-          respuesta: String(form.get("faqRespuesta3") || ""),
-        },
-      ].filter((faq) => faq.pregunta || faq.respuesta),
-      activo: true,
-    };
-
-    try {
-      if (editando) {
-        await api.patch(`/productos/${editando.id}`, data);
-        alert("✅ Producto actualizado");
-      } else {
-        await api.post("/productos", data);
-        alert("✅ Producto creado");
-      }
-
-      limpiarFormulario(e.currentTarget);
-      await cargarProductos();
-    } catch (error) {
-      console.error(error);
-      alert("❌ Error guardando producto");
-    } finally {
-      setLoading(false);
-    }
+  if (!nombre) {
+    alert("❌ Falta el nombre del producto");
+    setLoading(false);
+    return;
   }
+
+  if (!imagenPrincipal) {
+    alert("❌ Falta la imagen principal");
+    setLoading(false);
+    return;
+  }
+
+  const data = {
+    nombre,
+    precio: Number(form.get("precio") || 0),
+    precioAntes: Number(form.get("precioAntes") || 0),
+    imagen: imagenPrincipal,
+    
+    // ✅ Enviar precio2 como objeto anidado
+    precio2: {
+      activo: precio2Activo,
+      precio: Number(precio2),
+      precioAntes: Number(precio2Antes)
+    },
+    
+    imagenesLanding: {
+      imagen1: landing1,
+      imagen2: landing2,
+      imagen3: landing3,
+      imagen4: landing4,
+      imagen5: landing5,
+    },
+    mostrarContador: form.get("mostrarContador") === "on",
+    minutosContador: Number(form.get("minutosContador") || 28),
+    mostrarEstrellas: form.get("mostrarEstrellas") === "on",
+    textoEstrellas: String(form.get("textoEstrellas") || ""),
+    textoBoton: String(
+      form.get("textoBoton") || "COMPRAR AHORA Y PAGAR AL RECIBIR",
+    ),
+    mostrarInfoCompra: form.get("mostrarInfoCompra") === "on",
+    textoDescuento: String(
+      form.get("textoDescuento") ||
+      "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
+    ),
+    queIncluye: String(form.get("queIncluye") || ""),
+    informacionEnvio: String(form.get("informacionEnvio") || ""),
+    devolucionesReembolsos: String(form.get("devolucionesReembolsos") || ""),
+    mostrarResenas: form.get("mostrarResenas") === "on",
+    preguntasFrecuentes: [
+      {
+        pregunta: String(form.get("faqPregunta1") || ""),
+        respuesta: String(form.get("faqRespuesta1") || ""),
+      },
+      {
+        pregunta: String(form.get("faqPregunta2") || ""),
+        respuesta: String(form.get("faqRespuesta2") || ""),
+      },
+      {
+        pregunta: String(form.get("faqPregunta3") || ""),
+        respuesta: String(form.get("faqRespuesta3") || ""),
+      },
+    ].filter((faq) => faq.pregunta || faq.respuesta),
+    activo: true,
+  };
+
+  try {
+    if (editando) {
+      await api.patch(`/productos/${editando.id}`, data);
+      alert("✅ Producto actualizado");
+    } else {
+      await api.post("/productos", data);
+      alert("✅ Producto creado");
+    }
+
+    limpiarFormulario(e.currentTarget);
+    await cargarProductos();
+  } catch (error) {
+    console.error(error);
+    alert("❌ Error guardando producto");
+  } finally {
+    setLoading(false);
+  }
+}
 
   async function eliminarProducto(id: string) {
     if (!confirm("⚠️ ¿Eliminar este producto?")) return;
@@ -233,6 +249,7 @@ export default function AdminProductosPage() {
             className="bg-gray-800 rounded-xl p-6 mb-8 space-y-4"
           >
             {/* Nombre y precios */}
+            {/* Nombre del producto */}
             <input
               name="nombre"
               placeholder="📝 Nombre del producto"
@@ -241,23 +258,64 @@ export default function AdminProductosPage() {
               required
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                name="precio"
-                type="number"
-                placeholder="💰 Precio"
-                defaultValue={editando?.precio || ""}
-                className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
-                required
-              />
+            {/* PRECIO 1 UNIDAD (siempre activo) */}
+            <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+              <h3 className="text-md font-semibold text-gray-300">💰 Precio 1 Unidad</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  name="precio"
+                  type="number"
+                  placeholder="💰 Precio"
+                  defaultValue={editando?.precio || ""}
+                  className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                  required
+                />
+                <input
+                  name="precioAntes"
+                  type="number"
+                  placeholder="🏷️ Precio antes (tachado)"
+                  defaultValue={editando?.precioAntes || ""}
+                  className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
 
-              <input
-                name="precioAntes"
-                type="number"
-                placeholder="🏷️ Precio antes"
-                defaultValue={editando?.precioAntes || ""}
-                className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
-              />
+            {/* PRECIO 2 UNIDADES (opcional con checkbox) */}
+            <div className="border border-purple-600 rounded-lg p-4 space-y-3 bg-gray-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-md font-semibold text-purple-400">🎁 Precio 2 Unidades</h3>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-gray-300 text-sm">Activar</span>
+                  <input
+                    type="checkbox"
+                    checked={precio2Activo}
+                    onChange={(e) => setPrecio2Activo(e.target.checked)}
+                    className="w-5 h-5 accent-purple-600"
+                  />
+                </label>
+              </div>
+
+              {precio2Activo && (
+                <div className="space-y-3 pl-4 border-l-2 border-purple-500">
+                  <p className="text-gray-400 text-sm">Configura el precio especial para 2 unidades</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="number"
+                      placeholder="💰 Precio 2 unidades"
+                      value={precio2}
+                      onChange={(e) => setPrecio2(Number(e.target.value))}
+                      className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                    />
+                    <input
+                      type="number"
+                      placeholder="🏷️ Precio antes (tachado)"
+                      value={precio2Antes}
+                      onChange={(e) => setPrecio2Antes(Number(e.target.value))}
+                      className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Configuración Landing */}
@@ -417,21 +475,28 @@ export default function AdminProductosPage() {
             <div className="grid grid-cols-2 gap-4">
               {/* Imagen Principal */}
               <div className="border border-gray-700 rounded-lg p-4">
-                <h3 className="font-bold text-white mb-2">
-                  🖼️ Imagen principal
-                </h3>
+                <h3 className="font-bold text-white mb-2">🖼️ Imagen principal</h3>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => subirImagen(e, setImagenPrincipal)}
-                  className="text-gray-400 text-sm"
+                  className="text-gray-400 text-sm w-full text-ellipsis"
                 />
                 {imagenPrincipal && (
-                  <img
-                    src={imagenPrincipal}
-                    alt="Principal"
-                    className="w-24 h-24 object-cover rounded-lg mt-2"
-                  />
+                  <div className="relative inline-block mt-2">
+                    <img
+                      src={imagenPrincipal}
+                      alt="Principal"
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImagenPrincipal("")}
+                      className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -442,14 +507,23 @@ export default function AdminProductosPage() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => subirImagen(e, setLanding1)}
-                  className="text-gray-400 text-sm"
+                  className="text-gray-400 text-sm w-full text-ellipsis"
                 />
                 {landing1 && (
-                  <img
-                    src={landing1}
-                    alt="Landing 1"
-                    className="w-24 h-24 object-cover rounded-lg mt-2"
-                  />
+                  <div className="relative inline-block mt-2">
+                    <img
+                      src={landing1}
+                      alt="Landing 1"
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLanding1("")}
+                      className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -460,14 +534,23 @@ export default function AdminProductosPage() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => subirImagen(e, setLanding2)}
-                  className="text-gray-400 text-sm"
+                  className="text-gray-400 text-sm w-full text-ellipsis"
                 />
                 {landing2 && (
-                  <img
-                    src={landing2}
-                    alt="Landing 2"
-                    className="w-24 h-24 object-cover rounded-lg mt-2"
-                  />
+                  <div className="relative inline-block mt-2">
+                    <img
+                      src={landing2}
+                      alt="Landing 2"
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLanding2("")}
+                      className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -478,14 +561,23 @@ export default function AdminProductosPage() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => subirImagen(e, setLanding3)}
-                  className="text-gray-400 text-sm"
+                  className="text-gray-400 text-sm w-full text-ellipsis"
                 />
                 {landing3 && (
-                  <img
-                    src={landing3}
-                    alt="Landing 3"
-                    className="w-24 h-24 object-cover rounded-lg mt-2"
-                  />
+                  <div className="relative inline-block mt-2">
+                    <img
+                      src={landing3}
+                      alt="Landing 3"
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLanding3("")}
+                      className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -496,17 +588,54 @@ export default function AdminProductosPage() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => subirImagen(e, setLanding4)}
-                  className="text-gray-400 text-sm"
+                  className="text-gray-400 text-sm w-full text-ellipsis"
                 />
                 {landing4 && (
-                  <img
-                    src={landing4}
-                    alt="Landing 4"
-                    className="w-24 h-24 object-cover rounded-lg mt-2"
-                  />
+                  <div className="relative inline-block mt-2">
+                    <img
+                      src={landing4}
+                      alt="Landing 4"
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLanding4("")}
+                      className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Landing 5 */}
+              <div className="border border-gray-700 rounded-lg p-4">
+                <h3 className="font-bold text-white mb-2">📸 Landing 5</h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => subirImagen(e, setLanding5)}
+                  className="text-gray-400 text-sm w-full text-ellipsis"
+                />
+                {landing5 && (
+                  <div className="relative inline-block mt-2">
+                    <img
+                      src={landing5}
+                      alt="Landing 5"
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLanding5("")}
+                      className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
+
 
             {imagenSubiendo && (
               <p className="text-blue-400 text-sm">⏳ Subiendo imagen...</p>
@@ -521,35 +650,6 @@ export default function AdminProductosPage() {
                 />
                 ⭐ Mostrar reseñas automáticas
               </label>
-            </div>
-
-            <div className="border border-gray-700 rounded-lg p-4 space-y-4">
-              <h3 className="text-md font-semibold text-gray-300">
-                ❓ Preguntas frecuentes
-              </h3>
-
-              {[1, 2, 3].map((num, index) => (
-                <div key={num} className="space-y-2">
-                  <input
-                    name={`faqPregunta${num}`}
-                    placeholder={`Pregunta ${num}`}
-                    defaultValue={
-                      editando?.preguntasFrecuentes?.[index]?.pregunta || ""
-                    }
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  />
-
-                  <textarea
-                    name={`faqRespuesta${num}`}
-                    placeholder={`Respuesta ${num}`}
-                    defaultValue={
-                      editando?.preguntasFrecuentes?.[index]?.respuesta || ""
-                    }
-                    rows={3}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  />
-                </div>
-              ))}
             </div>
             {/* Botones */}
             <div className="flex gap-3">

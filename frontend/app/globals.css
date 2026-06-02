@@ -58,3 +58,15 @@ body {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
   filter: brightness(1.1);
 }
+@keyframes rsiTickUpsBorder {
+  0% {
+    background-position: 0 0, 100% 100%, 0 100%, 100% 0;
+  }
+  100% {
+    background-position: 13px 0, calc(100% - 13px) 100%, 0 calc(100% - 13px), 100% 13px;
+  }
+}
+
+.rsi-border-animation {
+  animation: rsiTickUpsBorder 0.3s linear infinite;
+}
