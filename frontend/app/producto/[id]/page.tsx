@@ -15,18 +15,27 @@ const FloatingOrderModal = dynamic(
 export default function ProductoPage() {
   const [modalOpen, setModalOpen] = useState(false);
   function irFormulario() {
-  if (typeof window !== "undefined" && (window as any).ttq && producto) {
-    (window as any).ttq.track("InitiateCheckout", {
-      content_id: producto.id,
-      content_type: "product",
-      content_name: producto.nombre,
-      value: Number(producto.precio || 0),
-      currency: "COP",
-    })
-  }
+    if (typeof window !== "undefined" && (window as any).ttq && producto) {
+      (window as any).ttq.track("InitiateCheckout", {
+        content_id: producto.id,
+        content_type: "product",
+        content_name: producto.nombre,
+        value: Number(producto.precio || 0),
+        currency: "COP",
+      });
+    }
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq("track", "InitiateCheckout", {
+        content_ids: [producto.id],
+        content_type: "product",
+        content_name: producto.nombre,
+        value: Number(producto.precio || 0),
+        currency: "COP",
+      });
+    }
 
-  setModalOpen(true)
-}
+    setModalOpen(true);
+  }
 
   const [mostrarDesktop, setMostrarDesktop] = useState(false);
   useEffect(() => {
@@ -99,14 +108,23 @@ export default function ProductoPage() {
       const res = await api.get(`/productos/${params.id}`);
       setProducto(res.data);
       if (typeof window !== "undefined" && (window as any).ttq) {
-  (window as any).ttq.track("ViewContent", {
-    content_id: res.data.id,
-    content_type: "product",
-    content_name: res.data.nombre,
-    value: Number(res.data.precio || 0),
-    currency: "COP",
-  })
-}
+        (window as any).ttq.track("ViewContent", {
+          content_id: res.data.id,
+          content_type: "product",
+          content_name: res.data.nombre,
+          value: Number(res.data.precio || 0),
+          currency: "COP",
+        });
+      }
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq("track", "ViewContent", {
+          content_ids: [res.data.id],
+          content_type: "product",
+          content_name: res.data.nombre,
+          value: Number(res.data.precio || 0),
+          currency: "COP",
+        });
+      }
     } catch (error) {
       console.error(error);
       alert("Error cargando producto");
@@ -115,18 +133,21 @@ export default function ProductoPage() {
     }
   }
 
-  async function enviarPedido(e: React.FormEvent<HTMLFormElement>, datosEnvio?: any) {
+  async function enviarPedido(
+    e: React.FormEvent<HTMLFormElement>,
+    datosEnvio?: any,
+  ) {
     e.preventDefault();
     setEnviando(true);
 
     const form = new FormData(e.currentTarget);
-    
+
     const ofertaSeleccionada = datosEnvio?.ofertaSeleccionada || "1";
-  const cantidad = datosEnvio?.cantidad || 1;
-  const precioTotal = datosEnvio?.precio || producto.precio;
-  const envioPrioritario = datosEnvio?.envioPrioritario || false;
-  const costoEnvio = datosEnvio?.costoEnvio || 0;
-  const precioBase = datosEnvio?.precioBase || producto.precio; 
+    const cantidad = datosEnvio?.cantidad || 1;
+    const precioTotal = datosEnvio?.precio || producto.precio;
+    const envioPrioritario = datosEnvio?.envioPrioritario || false;
+    const costoEnvio = datosEnvio?.costoEnvio || 0;
+    const precioBase = datosEnvio?.precioBase || producto.precio;
 
     const data = {
       nombre: String(form.get("nombre") || ""),
@@ -146,37 +167,51 @@ export default function ProductoPage() {
 
     console.log("Enviando a DB:", data);
 
-   try {
+    try {
+      const eventId = crypto.randomUUID();
 
-  const eventId = crypto.randomUUID();
+      if (typeof window !== "undefined" && (window as any).ttq) {
+        const telefonoLimpio = String(data.telefono || "").replace(/\D/g, "");
+        const telefonoFinal = telefonoLimpio.startsWith("57")
+          ? telefonoLimpio
+          : `57${telefonoLimpio}`;
 
-if (typeof window !== "undefined" && (window as any).ttq) {
-  const telefonoLimpio = String(data.telefono || "").replace(/\D/g, "");
-  const telefonoFinal = telefonoLimpio.startsWith("57")
-    ? telefonoLimpio
-    : `57${telefonoLimpio}`;
+        (window as any).ttq.identify({
+          phone_number: telefonoFinal,
+        });
 
-  (window as any).ttq.identify({
-    phone_number: telefonoFinal,
-  });
+        (window as any).ttq.track("CompletePayment", {
+          content_id: producto.id,
+          content_type: "product",
+          content_name: producto.nombre,
+          value: Number(precioTotal || 0),
+          currency: "COP",
+          event_id: eventId,
+        });
+      }
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq(
+          "track",
+          "Purchase",
+          {
+            content_ids: [producto.id],
+            content_type: "product",
+            content_name: producto.nombre,
+            value: Number(precioTotal || 0),
+            currency: "COP",
+          },
+          {
+            eventID: eventId,
+          },
+        );
+      }
 
-  (window as any).ttq.track("CompletePayment", {
-    content_id: producto.id,
-    content_type: "product",
-    content_name: producto.nombre,
-    value: Number(precioTotal || 0),
-    currency: "COP",
-    event_id: eventId,
-  });
-}
-
-await api.post("/pedidos", {
-  ...data,
-  event_id: eventId,
-});
-  window.location.href = "/gracias";
-
-}catch (error) {
+      await api.post("/pedidos", {
+        ...data,
+        event_id: eventId,
+      });
+      window.location.href = "/gracias";
+    } catch (error) {
       console.error(error);
       alert("Error creando pedido");
     } finally {
@@ -230,7 +265,8 @@ await api.post("/pedidos", {
       {/* ESTRELLAS */}
       {producto.mostrarEstrellas && (
         <div className="bg-white text-black text-center text-sm md:text-base font-bold py-1">
-          ⭐⭐⭐⭐⭐ {producto.textoEstrellas || "+100.000 clientes satisfechos"}
+          ⭐⭐⭐⭐⭐{" "}
+          {producto.textoEstrellas || "+100.000 clientes satisfechos"}
         </div>
       )}
 
@@ -251,12 +287,20 @@ await api.post("/pedidos", {
         onClick={irFormulario}
         className="w-[90%] mx-auto my-6 flex items-center justify-center gap-3 bg-[#cb1515] text-white py-4 px-6 rounded-md shadow-lg font-extrabold uppercase relative overflow-hidden animate-[shake_2.5s_ease-in-out_infinite] hover:scale-[1.01] transition"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 fill-white shrink-0">
-          <path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          className="w-6 h-6 fill-white shrink-0"
+        >
+          <path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
         </svg>
         <div className="flex flex-col leading-tight">
-          <span className="text-[15px] md:text-[18px]">PEDIR AHORA Y PAGAR AL RECIBIR</span>
-          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">2.044 Vendidas - 14 Unidades disponibles</span>
+          <span className="text-[15px] md:text-[18px]">
+            PEDIR AHORA Y PAGAR AL RECIBIR
+          </span>
+          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">
+            2.044 Vendidas - 14 Unidades disponibles
+          </span>
         </div>
       </button>
 
@@ -264,10 +308,14 @@ await api.post("/pedidos", {
       {producto.mostrarInfoCompra && (
         <section className="bg-[#121212] text-white p-6 text-center">
           <h2 className="text-2xl md:text-4xl font-black leading-tight">
-            {producto.textoDescuento || "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"}
+            {producto.textoDescuento ||
+              "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"}
           </h2>
           <h3 className="text-2xl md:text-4xl font-black mt-3">
-            PRECIO FINAL <span className="text-red-600">${precio.toLocaleString("es-CO")}</span>
+            PRECIO FINAL{" "}
+            <span className="text-red-600">
+              ${precio.toLocaleString("es-CO")}
+            </span>
           </h3>
           <div className="mt-8 text-left max-w-3xl mx-auto divide-y divide-[#2a2a2a] bg-inherit">
             <details className="p-5">
@@ -275,21 +323,29 @@ await api.post("/pedidos", {
                 <span>📦 ¿Qué incluye?</span>
                 <span>▼</span>
               </summary>
-              <p className="mt-4 text-gray-200">{producto.queIncluye || "Incluye el producto seleccionado."}</p>
+              <p className="mt-4 text-gray-200">
+                {producto.queIncluye || "Incluye el producto seleccionado."}
+              </p>
             </details>
             <details className="p-5">
               <summary className="cursor-pointer font-bold text-xl flex justify-between items-center">
                 <span>🚚 Información de envío</span>
                 <span>▼</span>
               </summary>
-              <p className="mt-4 text-gray-200">{producto.informacionEnvio || "Enviamos a tu ciudad y pagas al recibir."}</p>
+              <p className="mt-4 text-gray-200">
+                {producto.informacionEnvio ||
+                  "Enviamos a tu ciudad y pagas al recibir."}
+              </p>
             </details>
             <details className="p-5">
               <summary className="cursor-pointer font-bold text-xl flex justify-between items-center">
                 <span>↩️ Devoluciones y reembolsos</span>
                 <span>▼</span>
               </summary>
-              <p className="mt-4 text-gray-200">{producto.devolucionesReembolsos || "Nuestro equipo te ayudará si tienes inconvenientes."}</p>
+              <p className="mt-4 text-gray-200">
+                {producto.devolucionesReembolsos ||
+                  "Nuestro equipo te ayudará si tienes inconvenientes."}
+              </p>
             </details>
           </div>
         </section>
@@ -299,87 +355,147 @@ await api.post("/pedidos", {
         onClick={irFormulario}
         className="w-[90%] mx-auto my-6 flex items-center justify-center gap-3 bg-[#cb1515] text-white py-4 px-6 rounded-md shadow-lg font-extrabold uppercase relative overflow-hidden animate-[shake_2.5s_ease-in-out_infinite] hover:scale-[1.01] transition"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 fill-white shrink-0">
-          <path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          className="w-6 h-6 fill-white shrink-0"
+        >
+          <path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
         </svg>
         <div className="flex flex-col leading-tight">
-          <span className="text-[15px] md:text-[18px]">PEDIR AHORA Y PAGAR AL RECIBIR</span>
-          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">2.044 Vendidas - 14 Unidades disponibles</span>
+          <span className="text-[15px] md:text-[18px]">
+            PEDIR AHORA Y PAGAR AL RECIBIR
+          </span>
+          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">
+            2.044 Vendidas - 14 Unidades disponibles
+          </span>
         </div>
       </button>
 
       {/* LANDING 2 */}
       {producto.imagenesLanding?.imagen2 && (
-        <Image src={producto.imagenesLanding.imagen2} alt={producto.nombre} width={1200} height={1600} className="w-full h-auto" />
+        <Image
+          src={producto.imagenesLanding.imagen2}
+          alt={producto.nombre}
+          width={1200}
+          height={1600}
+          className="w-full h-auto"
+        />
       )}
 
       <button
         onClick={irFormulario}
         className="w-[90%] mx-auto my-6 flex items-center justify-center gap-3 bg-[#cb1515] text-white py-4 px-6 rounded-md shadow-lg font-extrabold uppercase relative overflow-hidden animate-[shake_2.5s_ease-in-out_infinite] hover:scale-[1.01] transition"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 fill-white shrink-0">
-          <path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          className="w-6 h-6 fill-white shrink-0"
+        >
+          <path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
         </svg>
         <div className="flex flex-col leading-tight">
-          <span className="text-[15px] md:text-[18px]">PEDIR AHORA Y PAGAR AL RECIBIR</span>
-          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">2.044 Vendidas - 14 Unidades disponibles</span>
+          <span className="text-[15px] md:text-[18px]">
+            PEDIR AHORA Y PAGAR AL RECIBIR
+          </span>
+          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">
+            2.044 Vendidas - 14 Unidades disponibles
+          </span>
         </div>
       </button>
 
       {/* LANDING 3 */}
       {producto.imagenesLanding?.imagen3 && (
-        <Image src={producto.imagenesLanding.imagen3} alt={producto.nombre} width={1200} height={1600} className="w-full h-auto" />
+        <Image
+          src={producto.imagenesLanding.imagen3}
+          alt={producto.nombre}
+          width={1200}
+          height={1600}
+          className="w-full h-auto"
+        />
       )}
 
       <button
         onClick={irFormulario}
         className="w-[90%] mx-auto my-6 flex items-center justify-center gap-3 bg-[#cb1515] text-white py-4 px-6 rounded-md shadow-lg font-extrabold uppercase relative overflow-hidden animate-[shake_2.5s_ease-in-out_infinite] hover:scale-[1.01] transition"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 fill-white shrink-0">
-          <path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          className="w-6 h-6 fill-white shrink-0"
+        >
+          <path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
         </svg>
         <div className="flex flex-col leading-tight">
-          <span className="text-[15px] md:text-[18px]">PEDIR AHORA Y PAGAR AL RECIBIR</span>
-          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">2.044 Vendidas - 14 Unidades disponibles</span>
+          <span className="text-[15px] md:text-[18px]">
+            PEDIR AHORA Y PAGAR AL RECIBIR
+          </span>
+          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">
+            2.044 Vendidas - 14 Unidades disponibles
+          </span>
         </div>
       </button>
 
       {/* LANDING 4 y 5 */}
       {producto.imagenesLanding?.imagen4 && (
-        <Image src={producto.imagenesLanding.imagen4} alt={producto.nombre} width={1200} height={1600} className="w-full h-auto" />
+        <Image
+          src={producto.imagenesLanding.imagen4}
+          alt={producto.nombre}
+          width={1200}
+          height={1600}
+          className="w-full h-auto"
+        />
       )}
       {producto.imagenesLanding?.imagen5 && (
-        <Image src={producto.imagenesLanding.imagen5} alt={producto.nombre} width={1200} height={1600} className="w-full h-auto" />
+        <Image
+          src={producto.imagenesLanding.imagen5}
+          alt={producto.nombre}
+          width={1200}
+          height={1600}
+          className="w-full h-auto"
+        />
       )}
 
       {/* RESEÑAS */}
-      {producto.mostrarResenas && producto.resenas && producto.resenas.length > 0 && (
-        <section className="bg-white text-black p-6">
-          <h2 className="text-3xl font-black text-center mb-6">Opiniones de clientes</h2>
-          <div className="space-y-4">
-            {producto.resenas.map((resena: any, index: number) => (
-              <div key={index} className="border rounded-xl p-4 shadow-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <div>
-                    <h3 className="font-bold">{resena.nombre}</h3>
-                    <p className="text-sm text-gray-500">{resena.ciudad} · {resena.fecha}</p>
+      {producto.mostrarResenas &&
+        producto.resenas &&
+        producto.resenas.length > 0 && (
+          <section className="bg-white text-black p-6">
+            <h2 className="text-3xl font-black text-center mb-6">
+              Opiniones de clientes
+            </h2>
+            <div className="space-y-4">
+              {producto.resenas.map((resena: any, index: number) => (
+                <div key={index} className="border rounded-xl p-4 shadow-sm">
+                  <div className="flex justify-between items-center mb-2">
+                    <div>
+                      <h3 className="font-bold">{resena.nombre}</h3>
+                      <p className="text-sm text-gray-500">
+                        {resena.ciudad} · {resena.fecha}
+                      </p>
+                    </div>
+                    {resena.verificado && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
+                        Verificado
+                      </span>
+                    )}
                   </div>
-                  {resena.verificado && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">Verificado</span>
-                  )}
+                  <div className="text-yellow-500 mb-2">
+                    {"⭐".repeat(Number(resena.puntuacion || 5))}
+                  </div>
+                  <p className="text-gray-700">{resena.resena}</p>
                 </div>
-                <div className="text-yellow-500 mb-2">{"⭐".repeat(Number(resena.puntuacion || 5))}</div>
-                <p className="text-gray-700">{resena.resena}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+              ))}
+            </div>
+          </section>
+        )}
 
       {/* FAQ */}
       {producto.preguntasFrecuentes?.length > 0 && (
         <section className="bg-[#121212] p-6">
-          <h2 className="text-white text-3xl font-bold text-center mb-6">Preguntas frecuentes</h2>
+          <h2 className="text-white text-3xl font-bold text-center mb-6">
+            Preguntas frecuentes
+          </h2>
           <div className="space-y-4">
             {producto.preguntasFrecuentes.map((faq: any, index: number) => (
               <div key={index} className="bg-white rounded-xl p-4">

@@ -23,6 +23,7 @@ export default function AdminProductosPage() {
   const [landing5, setLanding5] = useState("");
   const [precio2Activo, setPrecio2Activo] = useState(false)
   const [precio2, setPrecio2] = useState(0)
+  const [pais, setPais] = useState<"CO" | "EC">("CO")
   const [precio2Antes, setPrecio2Antes] = useState(0)
 
   useEffect(() => {
@@ -89,7 +90,8 @@ export default function AdminProductosPage() {
   setLanding3(producto.imagenesLanding?.imagen3 || "");
   setLanding4(producto.imagenesLanding?.imagen4 || "");
   setLanding5(producto.imagenesLanding?.imagen5 || "");
-  
+  setPais(producto.pais || "CO")
+
   // ✅ Leer desde la estructura anidada
   setPrecio2Activo(producto.precio2?.activo || false);
   setPrecio2(producto.precio2?.precio || 0);
@@ -109,6 +111,7 @@ export default function AdminProductosPage() {
     setPrecio2Activo(false);
     setPrecio2(0);
     setPrecio2Antes(0);
+    setPais("CO")
     if (form) {
       form.reset();
     }
@@ -138,7 +141,8 @@ export default function AdminProductosPage() {
     precio: Number(form.get("precio") || 0),
     precioAntes: Number(form.get("precioAntes") || 0),
     imagen: imagenPrincipal,
-    
+      pais: pais,  // 👈 AGREGAR ESTA LÍNEA
+
     // ✅ Enviar precio2 como objeto anidado
     precio2: {
       activo: precio2Activo,
@@ -258,6 +262,34 @@ export default function AdminProductosPage() {
               required
             />
 
+{/* 👇 SELECTOR DE PAÍS - AGREGAR ESTO */}
+<div className="border border-gray-700 rounded-lg p-4 space-y-3">
+  <h3 className="text-md font-semibold text-gray-300">🌎 País de venta</h3>
+  <div className="flex gap-4">
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        type="radio"
+        name="pais"
+        value="CO"
+        checked={pais === "CO"}
+        onChange={(e) => setPais(e.target.value as "CO")}
+        className="w-4 h-4 accent-purple-600"
+      />
+      <span className="text-white">🇨🇴 Colombia</span>
+    </label>
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        type="radio"
+        name="pais"
+        value="EC"
+        checked={pais === "EC"}
+        onChange={(e) => setPais(e.target.value as "EC")}
+        className="w-4 h-4 accent-purple-600"
+      />
+      <span className="text-white">🇪🇨 Ecuador</span>
+    </label>
+  </div>
+</div>
             {/* PRECIO 1 UNIDAD (siempre activo) */}
             <div className="border border-gray-700 rounded-lg p-4 space-y-3">
               <h3 className="text-md font-semibold text-gray-300">💰 Precio 1 Unidad</h3>
