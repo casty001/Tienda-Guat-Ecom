@@ -296,7 +296,7 @@ export default function AdminProductosPage() {
               <div className="grid grid-cols-2 gap-4">
                 <input
                   name="precio"
-                  type="number"
+                  type="text"
                   placeholder="💰 Precio"
                   defaultValue={editando?.precio || ""}
                   className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
@@ -304,7 +304,7 @@ export default function AdminProductosPage() {
                 />
                 <input
                   name="precioAntes"
-                  type="number"
+                  type="text"
                   placeholder="🏷️ Precio antes (tachado)"
                   defaultValue={editando?.precioAntes || ""}
                   className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
