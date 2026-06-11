@@ -3,8 +3,13 @@ from fastapi import (
     HTTPException,
     Depends
 )
+
 from app.utils.tiktok import (
     enviar_place_order
+)
+
+from app.utils.meta import (
+    enviar_purchase_meta
 )
 
 from datetime import datetime
@@ -38,7 +43,11 @@ def crear_pedido(
         db.collection("pedidos")
         .add(data)
     )
+
     enviar_place_order(data)
+
+    enviar_purchase_meta(data)
+
     return {
         "ok": True,
         "id": ref[1].id

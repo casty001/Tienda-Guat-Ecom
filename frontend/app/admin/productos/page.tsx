@@ -21,9 +21,10 @@ export default function AdminProductosPage() {
   const [landing3, setLanding3] = useState("");
   const [landing4, setLanding4] = useState("");
   const [landing5, setLanding5] = useState("");
-  const [precio2Activo, setPrecio2Activo] = useState(false)
-  const [precio2, setPrecio2] = useState(0)
-  const [precio2Antes, setPrecio2Antes] = useState(0)
+  const [precio2Activo, setPrecio2Activo] = useState(false);
+  const [precio2, setPrecio2] = useState(0);
+  const [pais, setPais] = useState<"CO" | "EC">("CO");
+  const [precio2Antes, setPrecio2Antes] = useState(0);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -82,21 +83,22 @@ export default function AdminProductosPage() {
   }
 
   function cargarParaEditar(producto: any) {
-  setEditando(producto);
-  setImagenPrincipal(producto.imagen || "");
-  setLanding1(producto.imagenesLanding?.imagen1 || "");
-  setLanding2(producto.imagenesLanding?.imagen2 || "");
-  setLanding3(producto.imagenesLanding?.imagen3 || "");
-  setLanding4(producto.imagenesLanding?.imagen4 || "");
-  setLanding5(producto.imagenesLanding?.imagen5 || "");
-  
-  // ✅ Leer desde la estructura anidada
-  setPrecio2Activo(producto.precio2?.activo || false);
-  setPrecio2(producto.precio2?.precio || 0);
-  setPrecio2Antes(producto.precio2?.precioAntes || 0);
+    setEditando(producto);
+    setImagenPrincipal(producto.imagen || "");
+    setLanding1(producto.imagenesLanding?.imagen1 || "");
+    setLanding2(producto.imagenesLanding?.imagen2 || "");
+    setLanding3(producto.imagenesLanding?.imagen3 || "");
+    setLanding4(producto.imagenesLanding?.imagen4 || "");
+    setLanding5(producto.imagenesLanding?.imagen5 || "");
+    setPais(producto.pais || "CO");
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
+    // ✅ Leer desde la estructura anidada
+    setPrecio2Activo(producto.precio2?.activo || false);
+    setPrecio2(producto.precio2?.precio || 0);
+    setPrecio2Antes(producto.precio2?.precioAntes || 0);
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function limpiarFormulario(form?: HTMLFormElement) {
     setEditando(null);
@@ -109,101 +111,100 @@ export default function AdminProductosPage() {
     setPrecio2Activo(false);
     setPrecio2(0);
     setPrecio2Antes(0);
+    setPais("CO");
     if (form) {
       form.reset();
     }
   }
 
   async function guardarProducto(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  const form = new FormData(e.currentTarget);
-  const nombre = String(form.get("nombre") || "").trim();
+    const form = new FormData(e.currentTarget);
+    const nombre = String(form.get("nombre") || "").trim();
 
-  if (!nombre) {
-    alert("❌ Falta el nombre del producto");
-    setLoading(false);
-    return;
-  }
-
-  if (!imagenPrincipal) {
-    alert("❌ Falta la imagen principal");
-    setLoading(false);
-    return;
-  }
-
-  const data = {
-    nombre,
-    precio: Number(form.get("precio") || 0),
-    precioAntes: Number(form.get("precioAntes") || 0),
-    imagen: imagenPrincipal,
-    
-    // ✅ Enviar precio2 como objeto anidado
-    precio2: {
-      activo: precio2Activo,
-      precio: Number(precio2),
-      precioAntes: Number(precio2Antes)
-    },
-    
-    imagenesLanding: {
-      imagen1: landing1,
-      imagen2: landing2,
-      imagen3: landing3,
-      imagen4: landing4,
-      imagen5: landing5,
-    },
-    mostrarContador: form.get("mostrarContador") === "on",
-    minutosContador: Number(form.get("minutosContador") || 28),
-    mostrarEstrellas: form.get("mostrarEstrellas") === "on",
-    textoEstrellas: String(form.get("textoEstrellas") || ""),
-    textoBoton: String(
-      form.get("textoBoton") || "COMPRAR AHORA Y PAGAR AL RECIBIR",
-    ),
-    mostrarInfoCompra: form.get("mostrarInfoCompra") === "on",
-    textoDescuento: String(
-      form.get("textoDescuento") ||
-      "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
-    ),
-    queIncluye: String(form.get("queIncluye") || ""),
-    informacionEnvio: String(form.get("informacionEnvio") || ""),
-    devolucionesReembolsos: String(form.get("devolucionesReembolsos") || ""),
-    mostrarResenas: form.get("mostrarResenas") === "on",
-    preguntasFrecuentes: [
-      {
-        pregunta: String(form.get("faqPregunta1") || ""),
-        respuesta: String(form.get("faqRespuesta1") || ""),
-      },
-      {
-        pregunta: String(form.get("faqPregunta2") || ""),
-        respuesta: String(form.get("faqRespuesta2") || ""),
-      },
-      {
-        pregunta: String(form.get("faqPregunta3") || ""),
-        respuesta: String(form.get("faqRespuesta3") || ""),
-      },
-    ].filter((faq) => faq.pregunta || faq.respuesta),
-    activo: true,
-  };
-
-  try {
-    if (editando) {
-      await api.patch(`/productos/${editando.id}`, data);
-      alert("✅ Producto actualizado");
-    } else {
-      await api.post("/productos", data);
-      alert("✅ Producto creado");
+    if (!nombre) {
+      alert("❌ Falta el nombre del producto");
+      setLoading(false);
+      return;
     }
 
-    limpiarFormulario(e.currentTarget);
-    await cargarProductos();
-  } catch (error) {
-    console.error(error);
-    alert("❌ Error guardando producto");
-  } finally {
-    setLoading(false);
+    if (!imagenPrincipal) {
+      alert("❌ Falta la imagen principal");
+      setLoading(false);
+      return;
+    }
+
+    const data = {
+      nombre,
+      precio: form.get("precio"), // 👈 Sin Number(), se envía "79,990"
+      precioAntes: form.get("precioAntes"), // 👈 Sin Number()
+      imagen: imagenPrincipal,
+      pais: pais,
+      precio2: {
+        activo: precio2Activo,
+        precio: precio2, // 👈 Sin Number(), se envía "109,990"
+        precioAntes: precio2Antes, // 👈 Sin Number()
+      },
+      imagenesLanding: {
+        imagen1: landing1,
+        imagen2: landing2,
+        imagen3: landing3,
+        imagen4: landing4,
+        imagen5: landing5,
+      },
+      mostrarContador: form.get("mostrarContador") === "on",
+      minutosContador: Number(form.get("minutosContador") || 28),
+      mostrarEstrellas: form.get("mostrarEstrellas") === "on",
+      textoEstrellas: String(form.get("textoEstrellas") || ""),
+      textoBoton: String(
+        form.get("textoBoton") || "COMPRAR AHORA Y PAGAR AL RECIBIR",
+      ),
+      mostrarInfoCompra: form.get("mostrarInfoCompra") === "on",
+      textoDescuento: String(
+        form.get("textoDescuento") ||
+          "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
+      ),
+      queIncluye: String(form.get("queIncluye") || ""),
+      informacionEnvio: String(form.get("informacionEnvio") || ""),
+      devolucionesReembolsos: String(form.get("devolucionesReembolsos") || ""),
+      mostrarResenas: form.get("mostrarResenas") === "on",
+      preguntasFrecuentes: [
+        {
+          pregunta: String(form.get("faqPregunta1") || ""),
+          respuesta: String(form.get("faqRespuesta1") || ""),
+        },
+        {
+          pregunta: String(form.get("faqPregunta2") || ""),
+          respuesta: String(form.get("faqRespuesta2") || ""),
+        },
+        {
+          pregunta: String(form.get("faqPregunta3") || ""),
+          respuesta: String(form.get("faqRespuesta3") || ""),
+        },
+      ].filter((faq) => faq.pregunta || faq.respuesta),
+      activo: true,
+    };
+
+    try {
+      if (editando) {
+        await api.patch(`/productos/${editando.id}`, data);
+        alert("✅ Producto actualizado");
+      } else {
+        await api.post("/productos", data);
+        alert("✅ Producto creado");
+      }
+
+      limpiarFormulario(e.currentTarget);
+      await cargarProductos();
+    } catch (error) {
+      console.error(error);
+      alert("❌ Error guardando producto");
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   async function eliminarProducto(id: string) {
     if (!confirm("⚠️ ¿Eliminar este producto?")) return;
@@ -226,9 +227,7 @@ export default function AdminProductosPage() {
           <div className="bg-gray-800 rounded-xl p-4 mb-6">
             <div className="flex justify-between items-center flex-wrap gap-3">
               <div>
-                <h1 className="text-2xl font-bold text-white">
-                  📦 Productos
-                </h1>
+                <h1 className="text-2xl font-bold text-white">📦 Productos</h1>
                 <p className="text-gray-400 text-sm mt-0.5">
                   Gestionar productos
                 </p>
@@ -258,13 +257,45 @@ export default function AdminProductosPage() {
               required
             />
 
+            {/* 👇 SELECTOR DE PAÍS - AGREGAR ESTO */}
+            <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+              <h3 className="text-md font-semibold text-gray-300">
+                🌎 País de venta
+              </h3>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pais"
+                    value="CO"
+                    checked={pais === "CO"}
+                    onChange={(e) => setPais(e.target.value as "CO")}
+                    className="w-4 h-4 accent-purple-600"
+                  />
+                  <span className="text-white">🇨🇴 Colombia</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pais"
+                    value="EC"
+                    checked={pais === "EC"}
+                    onChange={(e) => setPais(e.target.value as "EC")}
+                    className="w-4 h-4 accent-purple-600"
+                  />
+                  <span className="text-white">🇪🇨 Ecuador</span>
+                </label>
+              </div>
+            </div>
             {/* PRECIO 1 UNIDAD (siempre activo) */}
             <div className="border border-gray-700 rounded-lg p-4 space-y-3">
-              <h3 className="text-md font-semibold text-gray-300">💰 Precio 1 Unidad</h3>
+              <h3 className="text-md font-semibold text-gray-300">
+                💰 Precio 1 Unidad
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <input
                   name="precio"
-                  type="number"
+                  type="text"
                   placeholder="💰 Precio"
                   defaultValue={editando?.precio || ""}
                   className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
@@ -272,7 +303,7 @@ export default function AdminProductosPage() {
                 />
                 <input
                   name="precioAntes"
-                  type="number"
+                  type="text"
                   placeholder="🏷️ Precio antes (tachado)"
                   defaultValue={editando?.precioAntes || ""}
                   className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
@@ -283,7 +314,9 @@ export default function AdminProductosPage() {
             {/* PRECIO 2 UNIDADES (opcional con checkbox) */}
             <div className="border border-purple-600 rounded-lg p-4 space-y-3 bg-gray-800">
               <div className="flex items-center justify-between">
-                <h3 className="text-md font-semibold text-purple-400">🎁 Precio 2 Unidades</h3>
+                <h3 className="text-md font-semibold text-purple-400">
+                  🎁 Precio 2 Unidades
+                </h3>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <span className="text-gray-300 text-sm">Activar</span>
                   <input
@@ -297,17 +330,19 @@ export default function AdminProductosPage() {
 
               {precio2Activo && (
                 <div className="space-y-3 pl-4 border-l-2 border-purple-500">
-                  <p className="text-gray-400 text-sm">Configura el precio especial para 2 unidades</p>
+                  <p className="text-gray-400 text-sm">
+                    Configura el precio especial para 2 unidades
+                  </p>
                   <div className="grid grid-cols-2 gap-4">
                     <input
-                      type="number"
+                      type="text"
                       placeholder="💰 Precio 2 unidades"
                       value={precio2}
                       onChange={(e) => setPrecio2(Number(e.target.value))}
                       className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
                     />
                     <input
-                      type="number"
+                      type="text"
                       placeholder="🏷️ Precio antes (tachado)"
                       value={precio2Antes}
                       onChange={(e) => setPrecio2Antes(Number(e.target.value))}
@@ -475,7 +510,9 @@ export default function AdminProductosPage() {
             <div className="grid grid-cols-2 gap-4">
               {/* Imagen Principal */}
               <div className="border border-gray-700 rounded-lg p-4">
-                <h3 className="font-bold text-white mb-2">🖼️ Imagen principal</h3>
+                <h3 className="font-bold text-white mb-2">
+                  🖼️ Imagen principal
+                </h3>
                 <input
                   type="file"
                   accept="image/*"
@@ -635,7 +672,6 @@ export default function AdminProductosPage() {
                 )}
               </div>
             </div>
-
 
             {imagenSubiendo && (
               <p className="text-blue-400 text-sm">⏳ Subiendo imagen...</p>
