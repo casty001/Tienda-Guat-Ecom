@@ -18,8 +18,28 @@ apellidos = [
 ]
 
 ciudades = [
-    "Bogotá", "Medellín", "Cali", "Barranquilla", "Cartagena",
-    "Bucaramanga", "Pereira", "Manizales", "Ibagué", "Cúcuta",
+    "Quito",           # Pichincha
+    "Guayaquil",       # Guayas
+    "Cuenca",          # Azuay
+    "Ambato",          # Tungurahua
+    "Santo Domingo",   # Santo Domingo de los Tsáchilas
+    "Machala",         # El Oro
+    "Manta",           # Manabí
+    "Portoviejo",      # Manabí (alterna con Manta)
+    "Loja",            # Loja
+    "Ibarra",          # Imbabura
+    "Riobamba",        # Chimborazo
+    "Latacunga",       # Cotopaxi
+    "Tulcán",          # Carchi
+    "Esmeraldas",      # Esmeraldas
+    "Babahoyo",        # Los Ríos
+    "Puyo",            # Pastaza
+    "Tena",            # Napo
+    "Macas",           # Morona Santiago
+    "Zamora",          # Zamora Chinchipe
+    "Nueva Loja",      # Orellana
+    "Salinas",         # Santa Elena (alterna con Santa Elena)
+    "Puerto Baquerizo Moreno",  # Galápagos
 ]
 
 textos_5 = [
@@ -47,12 +67,11 @@ textos_4 = [
 ]
 
 def puntuacion():
-    # Distribución: 80% son 5 estrellas, 20% son entre 4.0 y 4.9
     rand = random.random()
     
-    if rand < 0.80:  # 80% de 5 estrellas exactas
+    if rand < 0.80:  
         return 5.0
-    else:  # 20% entre 4.0 y 4.9 (con un decimal)
+    else:  
         return round(random.uniform(4.0, 4.9), 1)
 
 def fecha_aleatoria():

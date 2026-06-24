@@ -28,11 +28,12 @@ class Precio2Opcional(BaseModel):
     precioAntes: float = 0
 class ProductoCreate(BaseModel):
     nombre: str
-    precio: str
-    precioAntes: Optional[str] = "0"  # ✅ string
+    precio: float
+    precioAntes: Optional[float] = "0"
     imagen: str
     precio2: Optional[Precio2Opcional] = Precio2Opcional()
-    pais: str = "CO" 
+    textoOferta1: str = "1 Unidad + Regalo"
+    textoOferta2: str = "2 Unidades + Regalo"
     imagenesLanding: Optional[ImagenesLanding] = ImagenesLanding()
 
     mostrarContador: bool = True

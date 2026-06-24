@@ -2,80 +2,38 @@
 
 import { useState } from "react";
 
-// DATOS POR PAÍS
-const datosPorPais = {
-  CO: {
-    nombre: "Colombia",
-    moneda: "COP",
-    simbolo: "$",
-    regiones: [
-      "Bogotá",
-      "Amazonas",
-      "Antioquia",
-      "Arauca",
-      "Atlántico",
-      "Bolívar",
-      "Boyacá",
-      "Caldas",
-      "Caquetá",
-      "Casanare",
-      "Cauca",
-      "Cesar",
-      "Chocó",
-      "Córdoba",
-      "Cundinamarca",
-      "Huila",
-      "La Guajira",
-      "Magdalena",
-      "Meta",
-      "Nariño",
-      "Norte de Santander",
-      "Putumayo",
-      "Quindío",
-      "Risaralda",
-      "Santander",
-      "Sucre",
-      "Tolima",
-      "Valle del Cauca",
-      "Vaupés",
-      "Vichada",
-    ],
-    costoEnvioPrioritario: 4900,
-    envioGratisTexto: "Gratis",
-  },
-  EC: {
-    nombre: "Ecuador",
-    moneda: "USD",
-    simbolo: "$",
-    regiones: [
-      "Azuay",
-      "Bolívar",
-      "Cañar",
-      "Carchi",
-      "Chimborazo",
-      "Cotopaxi",
-      "El Oro",
-      "Esmeraldas",
-      "Galápagos",
-      "Guayas",
-      "Imbabura",
-      "Loja",
-      "Los Ríos",
-      "Manabí",
-      "Morona Santiago",
-      "Napo",
-      "Orellana",
-      "Pastaza",
-      "Pichincha",
-      "Santa Elena",
-      "Santo Domingo de los Tsáchilas",
-      "Sucumbíos",
-      "Tungurahua",
-      "Zamora Chinchipe",
-    ],
-    costoEnvioPrioritario: 1.9,
-    envioGratisTexto: "Gratis",
-  },
+const datosPais = {
+  nombre: "Ecuador",
+  moneda: "USD",
+  simbolo: "$",
+  regiones: [
+    "Azuay",
+    "Bolívar",
+    "Cañar",
+    "Carchi",
+    "Chimborazo",
+    "Cotopaxi",
+    "El Oro",
+    "Esmeraldas",
+    "Galápagos",
+    "Guayas",
+    "Imbabura",
+    "Loja",
+    "Los Ríos",
+    "Manabí",
+    "Morona Santiago",
+    "Napo",
+    "Orellana",
+    "Pastaza",
+    "Pichincha",
+    "Santa Elena",
+    "Santo Domingo de los Tsáchilas",
+    "Sucumbíos",
+    "Tungurahua",
+    "Zamora Chinchipe",
+  ],
+  costoEnvioPrioritario: 1.9,
+  envioGratisTexto: "Gratis",
 };
 
 export default function FloatingOrderModal({
@@ -90,11 +48,6 @@ export default function FloatingOrderModal({
 
   if (!open) return null;
 
-  // Obtener país del producto (por defecto Colombia)
-  const pais = producto?.pais || "CO";
-  const datosPais =
-    datosPorPais[pais as keyof typeof datosPorPais] || datosPorPais.CO;
-
   // Oferta 1
   const oferta1Precio = Number(producto.precio || 0);
   const oferta1PrecioAntes = Number(producto.precioAntes || 0);
@@ -103,7 +56,6 @@ export default function FloatingOrderModal({
   const oferta2Activa = producto.precio2?.activo === true;
   const oferta2Precio = Number(producto.precio2?.precio || 0);
   const oferta2PrecioAntes = Number(producto.precio2?.precioAntes || 0);
-  const oferta2Titulo = "2 Unidades + Regalo";
 
   // Precios
   const precioBase = ofertaSeleccionada === "1" ? oferta1Precio : oferta2Precio;
@@ -113,10 +65,7 @@ export default function FloatingOrderModal({
   const precioTotal = precioBase + costoEnvioExtra;
 
   const formatearPrecio = (precio: number) => {
-    if (pais === "EC") {
-      return `${datosPais.simbolo}${precio.toFixed(2)}`;
-    }
-    return `${datosPais.simbolo}${precio.toLocaleString("es-CO")}`;
+    return `$${precio.toFixed(2)}`;
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -125,7 +74,7 @@ export default function FloatingOrderModal({
     const formData = new FormData(e.currentTarget);
 
     const datosExtras = {
-      pais: pais,
+      pais: "EC",
       ofertaSeleccionada: ofertaSeleccionada,
       ofertaTitulo:
         ofertaSeleccionada === "1"
@@ -136,7 +85,7 @@ export default function FloatingOrderModal({
       precioBase: precioBase,
       envioPrioritario: envioPrioritario,
       costoEnvio: costoEnvioExtra,
-      moneda: datosPais.moneda,
+      moneda: "USD",
     };
 
     onSubmit(e, datosExtras);
@@ -149,7 +98,7 @@ export default function FloatingOrderModal({
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <h2 className="font-bold text-lg text-gray-900">
-               OFERTA DE TIEMPO LIMITADO 🔥
+              🇪🇨 OFERTA DE TIEMPO LIMITADO 🔥
             </h2>
           </div>
           <button
@@ -179,7 +128,9 @@ export default function FloatingOrderModal({
               alt="1 Unidad"
             />
             <div className="flex-1">
-              <p className="font-bold text-gray-900">1 Unidad + Regalo</p>
+              <p className="font-bold text-gray-900">
+                {producto.textoOferta1 || "1 Unidad + Regalo"}
+              </p>
               <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded">
                 Precio Especial 🔥
               </span>
@@ -212,7 +163,9 @@ export default function FloatingOrderModal({
                 alt="2 Unidades"
               />
               <div className="flex-1">
-                <p className="font-bold text-gray-900">{oferta2Titulo}</p>
+                <p className="font-bold text-gray-900">
+                  {producto.textoOferta2 || "2 Unidades + Regalo"}
+                </p>
                 <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded">
                   🔥 Más Vendido
                 </span>
@@ -282,7 +235,7 @@ export default function FloatingOrderModal({
               </label>
               <input
                 name="telefono"
-                placeholder={pais === "CO" ? "304458627" : "0991234567"}
+                placeholder="0991234567"
                 className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
                 required
               />
@@ -294,11 +247,7 @@ export default function FloatingOrderModal({
               </label>
               <input
                 name="direccion"
-                placeholder={
-                  pais === "CO"
-                    ? "Ej: Calle 62a #55-66"
-                    : "Calle principal con intersección y # de casa"
-                }
+                placeholder="Calle principal con intersección y # de casa"
                 className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
                 required
               />
@@ -317,18 +266,14 @@ export default function FloatingOrderModal({
 
             <div>
               <label className="font-bold text-black mb-1 block">
-                {pais === "CO" ? "Departamento" : "Provincia"}{" "}
-                <span className="text-red-500">*</span>
+                Provincia <span className="text-red-500">*</span>
               </label>
               <select
                 name="departamento"
                 className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
                 required
               >
-                <option value="">
-                  Selecciona{" "}
-                  {pais === "CO" ? "un departamento" : "una provincia"}
-                </option>
+                <option value="">Selecciona una provincia</option>
                 {datosPais.regiones.map((region) => (
                   <option key={region} value={region}>
                     {region}
@@ -343,7 +288,7 @@ export default function FloatingOrderModal({
               </label>
               <input
                 name="ciudad"
-                placeholder={pais === "CO" ? "Ej: Bogotá" : "Ej: Quito"}
+                placeholder="Ej: Quito"
                 className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
                 required
               />
@@ -391,7 +336,7 @@ export default function FloatingOrderModal({
             >
               {enviando
                 ? "Enviando pedido..."
-                : `COMPLETA TU COMPRA CON PAGO CONTRAENTREGA- ${formatearPrecio(precioTotal)}`}
+                : `COMPLETA TU COMPRA CON PAGO CONTRAENTREGA - ${formatearPrecio(precioTotal)}`}
             </button>
           </form>
         </div>

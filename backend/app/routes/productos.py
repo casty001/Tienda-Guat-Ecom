@@ -99,7 +99,8 @@ def editar_producto(
             detail="Producto no encontrado"
         )
 
-    data = producto.model_dump()
+    data = producto.model_dump(exclude_unset=True)
+    
     if data.get("mostrarResenas"):
         if not data.get("resenas"):
             data["resenas"] = generar_resenas(8)    

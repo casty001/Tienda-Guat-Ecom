@@ -64,7 +64,7 @@ def enviar_purchase_meta(pedido: dict):
                 }
             }
         ],
-        #"test_event_code": "TEST59534"
+        #"test_event_code": "TEST72353"
 
     }
 

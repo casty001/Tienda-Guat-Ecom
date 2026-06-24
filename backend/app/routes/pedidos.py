@@ -11,8 +11,9 @@ from app.utils.tiktok import (
 from app.utils.meta import (
     enviar_purchase_meta
 )
+from app.utils.email import enviar_correo_pedido 
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.firebase import db
 
@@ -30,42 +31,35 @@ router = APIRouter()
 def crear_pedido(
     pedido: PedidoCreate
 ):
-
     data = pedido.model_dump()
-
     data["estado"] = "pendiente"
+    
+    hora_colombia = datetime.utcnow() - timedelta(hours=5)
+    data["creadoEn"] = hora_colombia.isoformat()
 
-    data["creadoEn"] = (
-        datetime.utcnow().isoformat()
-    )
-
-    ref = (
-        db.collection("pedidos")
-        .add(data)
-    )
+    ref = db.collection("pedidos").add(data)
+    pedido_id = ref[1].id  # 👈 Obtener ID
 
     enviar_place_order(data)
-
     enviar_purchase_meta(data)
+    
+    try:
+        enviar_correo_pedido(data, pedido_id)
+    except Exception as e:
+        print(f"⚠️ Error con correo: {e}")
 
     return {
         "ok": True,
-        "id": ref[1].id
+        "id": pedido_id
     }
 
 @router.get("/")
 def listar_pedidos(
     user=Depends(verificar_admin)
 ):
-
-    docs = (
-        db.collection("pedidos")
-        .order_by(
-            "creadoEn",
-            direction="DESCENDING"
-        )
+    docs = db.collection("pedidos")\
+        .order_by("creadoEn", direction="DESCENDING")\
         .stream()
-    )
 
     return [
         {"id": doc.id, **doc.to_dict()}
@@ -78,22 +72,13 @@ def cambiar_estado(
     estado: str,
     user=Depends(verificar_admin)
 ):
-
-    if estado not in [
-        "pendiente",
-        "aceptado",
-        "cancelado"
-    ]:
+    if estado not in ["pendiente", "aceptado", "cancelado"]:
         raise HTTPException(
             status_code=400,
             detail="Estado inválido"
         )
 
-    ref = (
-        db.collection("pedidos")
-        .document(pedido_id)
-    )
-
+    ref = db.collection("pedidos").document(pedido_id)
     doc = ref.get()
 
     if not doc.exists:
@@ -101,11 +86,11 @@ def cambiar_estado(
             status_code=404,
             detail="Pedido no encontrado"
         )
-
+    
+    hora_colombia = datetime.utcnow() - timedelta(hours=5)
     ref.update({
         "estado": estado,
-        "actualizadoEn":
-            datetime.utcnow().isoformat()
+        "actualizadoEn": hora_colombia.isoformat()
     })
 
     return {"ok": True}

@@ -36,7 +36,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
         content_type: "product",
         content_name: producto.nombre,
         value: Number(producto.precio || 0),
-        currency: "COP",
+        currency: "USD",
       })
     }
   }, [producto])
@@ -81,7 +81,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
         content_type: "product",
         content_name: producto.nombre,
         value: Number(producto.precio || 0),
-        currency: "COP",
+        currency: "USD",
       })
     }
     setModalOpen(true)
@@ -128,7 +128,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
           content_type: "product",
           content_name: producto.nombre,
           value: Number(precioTotal || 0),
-          currency: "COP",
+          currency: "USD",
           event_id: eventId,
         })
       }
@@ -213,7 +213,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
             {producto.textoDescuento || "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"}
           </h2>
           <h3 className="text-2xl md:text-4xl font-black mt-3">
-            PRECIO FINAL <span className="text-red-600">${precio.toLocaleString("es-CO")}</span>
+            PRECIO FINAL <span className="text-red-600">${precio.toFixed(2)}</span>
           </h3>
           <div className="mt-8 text-left max-w-3xl mx-auto divide-y divide-[#2a2a2a] bg-inherit">
             <details className="p-5">
@@ -269,6 +269,19 @@ export default function ProductoClient({ producto }: { producto: any }) {
       {producto.imagenesLanding?.imagen4 && <Image src={producto.imagenesLanding.imagen4} alt={producto.nombre} width={1200} height={1600} className="w-full h-auto" />}
       {producto.imagenesLanding?.imagen5 && <Image src={producto.imagenesLanding.imagen5} alt={producto.nombre} width={1200} height={1600} className="w-full h-auto" />}
 
+      {producto.preguntasFrecuentes?.length > 0 && (
+        <section className="bg-[#121212] p-6">
+          <h2 className="text-white text-3xl font-bold text-center mb-6">Preguntas frecuentes</h2>
+          <div className="space-y-4">
+            {producto.preguntasFrecuentes.map((faq: any, index: number) => (
+              <div key={index} className="bg-white rounded-xl p-4">
+                <h3 className="text-[#121212] font-bold">{faq.pregunta}</h3>
+                <p className="text-[#121212]">{faq.respuesta}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       {producto.mostrarResenas && producto.resenas?.length > 0 && (
         <section className="bg-white text-black p-6">
           <h2 className="text-3xl font-black text-center mb-6">Opiniones de clientes</h2>
@@ -286,20 +299,6 @@ export default function ProductoClient({ producto }: { producto: any }) {
                 </div>
                 <div className="text-yellow-500 mb-2">{"⭐".repeat(Number(resena.puntuacion || 5))}</div>
                 <p className="text-gray-700">{resena.resena}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {producto.preguntasFrecuentes?.length > 0 && (
-        <section className="bg-[#121212] p-6">
-          <h2 className="text-white text-3xl font-bold text-center mb-6">Preguntas frecuentes</h2>
-          <div className="space-y-4">
-            {producto.preguntasFrecuentes.map((faq: any, index: number) => (
-              <div key={index} className="bg-white rounded-xl p-4">
-                <h3 className="text-[#121212] font-bold">{faq.pregunta}</h3>
-                <p className="text-[#121212]">{faq.respuesta}</p>
               </div>
             ))}
           </div>
