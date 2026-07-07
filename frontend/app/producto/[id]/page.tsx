@@ -1,4 +1,3 @@
-// app/productos/[id]/page.tsx
 import ProductoClient from "./ProductoClient"
 
 export default async function ProductoPage({
@@ -11,7 +10,8 @@ export default async function ProductoPage({
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/productos/${id}`,
-      { cache: "no-store" }
+      { next: { revalidate: 300 } }
+      //{ cache: "no-store" }
     )
 
     if (!res.ok) {

@@ -1,7 +1,7 @@
 "use client"
 import Image from "next/image"
 import { api } from "@/lib/api"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import DesktopGenericLanding from "@/components/DesktopGenericLanding"
 import dynamic from "next/dynamic"
 
@@ -12,7 +12,7 @@ const FloatingOrderModal = dynamic(
 
 export default function ProductoClient({ producto }: { producto: any }) {
   const [modalOpen, setModalOpen] = useState(false)
-  const [mostrarDesktop, setMostrarDesktop] = useState(false)
+  const [mostrarDesktop, setMostrarDesktop] = useState<boolean | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [tiempo, setTiempo] = useState({
     horas: 0,
@@ -21,6 +21,8 @@ export default function ProductoClient({ producto }: { producto: any }) {
   })
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+    
     function revisarPantalla() {
       setMostrarDesktop(window.innerWidth >= 768)
     }
@@ -145,8 +147,16 @@ export default function ProductoClient({ producto }: { producto: any }) {
   }
 
   const precio = Number(producto.precio || 0)
-  const precioAntes = Number(producto.precioAntes || 0)
 
+  if (mostrarDesktop === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-pulse text-gray-400 text-lg">
+          Cargando...
+        </div>
+      </div>
+    )
+  }
   if (mostrarDesktop) {
     return <DesktopGenericLanding />
   }
@@ -190,7 +200,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
           width={1200}
           height={1600}
           className="w-full h-auto"
-          priority
+          priority 
         />
       )}
 

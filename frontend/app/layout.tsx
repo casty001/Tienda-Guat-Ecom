@@ -15,24 +15,6 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        {/* 👇 Google Analytics */}
-        <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-0P4TQEPSKM"
-          strategy="afterInteractive"
-        />
-        <Script
-          id="google-analytics"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-0P4TQEPSKM');
-            `,
-          }}
-        />
       </head>
       <body className={poppins.className}>
         <Script id="tiktok-pixel" strategy="afterInteractive">
