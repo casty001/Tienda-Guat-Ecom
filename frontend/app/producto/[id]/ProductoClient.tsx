@@ -267,6 +267,13 @@ export default function ProductoClient({ producto }: { producto: any }) {
       </button>
 
       {producto.imagenesLanding?.imagen4 && <Image src={producto.imagenesLanding.imagen4} alt={producto.nombre} width={1200} height={1600} className="w-full h-auto" />}
+      <button onClick={irFormulario} className="w-[90%] mx-auto my-6 flex items-center justify-center gap-3 bg-[#cb1515] text-white py-4 px-6 rounded-md shadow-lg font-extrabold uppercase relative overflow-hidden animate-[shake_2.5s_ease-in-out_infinite] hover:scale-[1.01] transition">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 fill-white shrink-0"><path d="M15.55 13c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45zM6.16 6h12.15l-2.76 5H8.53L6.16 6zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        <div className="flex flex-col leading-tight">
+          <span className="text-[15px] md:text-[18px]">PEDIR AHORA Y PAGAR AL RECIBIR</span>
+          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">2.044 Vendidas - 14 Unidades disponibles</span>
+        </div>
+      </button>
       {producto.imagenesLanding?.imagen5 && <Image src={producto.imagenesLanding.imagen5} alt={producto.nombre} width={1200} height={1600} className="w-full h-auto" />}
 
       {producto.preguntasFrecuentes?.length > 0 && (

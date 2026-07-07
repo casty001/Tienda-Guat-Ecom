@@ -6,3 +6,4 @@ python-dotenv
 pydantic
 cloudinary
 python-multipart
+resend
