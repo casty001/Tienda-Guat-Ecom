@@ -1,7 +1,8 @@
 from fastapi import (
     APIRouter,
     HTTPException,
-    Depends
+    Depends,
+    Request   # 👈 nuevo import
 )
 
 from app.utils.tiktok import (
@@ -29,7 +30,8 @@ router = APIRouter()
 
 @router.post("/")
 def crear_pedido(
-    pedido: PedidoCreate
+    pedido: PedidoCreate,
+    request: Request   # 👈 nuevo parámetro
 ):
     data = pedido.model_dump()
     data["estado"] = "pendiente"
@@ -38,11 +40,23 @@ def crear_pedido(
     data["creadoEn"] = hora_colombia.isoformat()
 
     ref = db.collection("pedidos").add(data)
-    pedido_id = ref[1].id  # 👈 Obtener ID
+    pedido_id = ref[1].id
 
-    enviar_place_order(data)
-    enviar_purchase_meta(data)
-    
+    request_meta = {
+        "ip": request.client.host if request.client else None,
+        "user_agent": request.headers.get("user-agent"),
+    }
+
+    try:
+        enviar_place_order(data)
+    except Exception as e:
+        print(f"⚠️ Error con TikTok: {e}")
+
+    try:
+        enviar_purchase_meta(data, request_meta)
+    except Exception as e:
+        print(f"⚠️ Error con Meta CAPI: {e}")
+
     try:
         enviar_correo_pedido(data, pedido_id)
     except Exception as e:

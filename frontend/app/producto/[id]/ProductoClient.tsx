@@ -10,6 +10,13 @@ const FloatingOrderModal = dynamic(
   { ssr: false }
 )
 
+// 👇 helper para leer cookies del navegador (_fbp y _fbc)
+function getCookie(name: string) {
+  if (typeof document === "undefined") return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
 export default function ProductoClient({ producto }: { producto: any }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -20,14 +27,26 @@ export default function ProductoClient({ producto }: { producto: any }) {
   })
 
   useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).ttq && producto) {
-      (window as any).ttq.track("ViewContent", {
-        content_id: producto.id,
-        content_type: "product",
-        content_name: producto.nombre,
-        value: Number(producto.precio || 0),
-        currency: "USD",
-      })
+    if (typeof window !== "undefined" && producto) {
+      if ((window as any).ttq) {
+        (window as any).ttq.track("ViewContent", {
+          content_id: producto.id,
+          content_type: "product",
+          content_name: producto.nombre,
+          value: Number(producto.precio || 0),
+          currency: "USD",
+        })
+      }
+
+      if ((window as any).fbq) {
+        (window as any).fbq("track", "ViewContent", {
+          content_ids: [producto.id],
+          content_type: "product",
+          content_name: producto.nombre,
+          value: Number(producto.precio || 0),
+          currency: "COP",
+        })
+      }
     }
   }, [producto])
 
@@ -65,14 +84,26 @@ export default function ProductoClient({ producto }: { producto: any }) {
   }, [producto])
 
   function irFormulario() {
-    if (typeof window !== "undefined" && (window as any).ttq && producto) {
-      (window as any).ttq.track("InitiateCheckout", {
-        content_id: producto.id,
-        content_type: "product",
-        content_name: producto.nombre,
-        value: Number(producto.precio || 0),
-        currency: "USD",
-      })
+    if (typeof window !== "undefined" && producto) {
+      if ((window as any).ttq) {
+        (window as any).ttq.track("InitiateCheckout", {
+          content_id: producto.id,
+          content_type: "product",
+          content_name: producto.nombre,
+          value: Number(producto.precio || 0),
+          currency: "USD",
+        })
+      }
+
+      if ((window as any).fbq) {
+        (window as any).fbq("track", "InitiateCheckout", {
+          content_ids: [producto.id],
+          content_type: "product",
+          content_name: producto.nombre,
+          value: Number(producto.precio || 0),
+          currency: "COP",
+        })
+      }
     }
     setModalOpen(true)
   }
@@ -101,30 +132,50 @@ export default function ProductoClient({ producto }: { producto: any }) {
       costoEnvio: costoEnvio,
       envioPrioritario: envioPrioritario,
       imagen: producto.imagen,
+      fbp: getCookie("_fbp"),
+      fbc: getCookie("_fbc"),
+      url: typeof window !== "undefined" ? window.location.href : "",
     }
 
     try {
       const eventId = crypto.randomUUID()
 
-      if (typeof window !== "undefined" && (window as any).ttq) {
+      if (typeof window !== "undefined") {
         const telefonoLimpio = String(data.telefono || "").replace(/\D/g, "")
         const telefonoFinal = telefonoLimpio.startsWith("57")
           ? telefonoLimpio
           : `57${telefonoLimpio}`
 
-        ;(window as any).ttq.identify({ phone_number: telefonoFinal })
-        ;(window as any).ttq.track("CompletePayment", {
-          content_id: producto.id,
-          content_type: "product",
-          content_name: producto.nombre,
-          value: Number(precioTotal || 0),
-          currency: "USD",
-          event_id: eventId,
-        })
+        if ((window as any).ttq) {
+          (window as any).ttq.identify({ phone_number: telefonoFinal })
+          ;(window as any).ttq.track("CompletePayment", {
+            content_id: producto.id,
+            content_type: "product",
+            content_name: producto.nombre,
+            value: Number(precioTotal || 0),
+            currency: "USD",
+            event_id: eventId,
+          })
+        }
+
+        if ((window as any).fbq) {
+          (window as any).fbq(
+            "track",
+            "Purchase",
+            {
+              content_ids: [producto.id],
+              content_type: "product",
+              content_name: producto.nombre,
+              value: Number(precioTotal || 0),
+              currency: "COP",
+            },
+            { eventID: eventId } 
+          )
+        }
       }
 
       await api.post("/pedidos", { ...data, event_id: eventId })
-      window.location.href = "/gracias"
+      window.location.replace(`/gracias?producto=${producto.id}`)
 
     } catch (error) {
       console.error(error)

@@ -1,18 +1,24 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function GraciasPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const productoId = searchParams.get("producto");
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.back();
+      if (productoId) {
+        router.push(`/producto/${productoId}`);
+      } else {
+        router.push("/");
+      }
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [router, productoId]);
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-10 text-center bg-[#121212]">

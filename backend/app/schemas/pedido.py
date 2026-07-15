@@ -21,3 +21,8 @@ class PedidoCreate(BaseModel):
 
     imagen: Optional[str] = ""
     event_id: Optional[str] = None
+
+    #
+    fbp: Optional[str] = None
+    fbc: Optional[str] = None
+    url: Optional[str] = None

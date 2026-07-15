@@ -45,33 +45,77 @@ export default function FloatingOrderModal({
 }: any) {
   const [envioPrioritario, setEnvioPrioritario] = useState(false);
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState<"1" | "2">("1");
+  const [errores, setErrores] = useState<Record<string, string>>({});
 
   if (!open) return null;
 
-  // Oferta 1
   const oferta1Precio = Number(producto.precio || 0);
   const oferta1PrecioAntes = Number(producto.precioAntes || 0);
-
-  // Oferta 2
   const oferta2Activa = producto.precio2?.activo === true;
   const oferta2Precio = Number(producto.precio2?.precio || 0);
   const oferta2PrecioAntes = Number(producto.precio2?.precioAntes || 0);
 
-  // Precios
   const precioBase = ofertaSeleccionada === "1" ? oferta1Precio : oferta2Precio;
-  const costoEnvioExtra = envioPrioritario
-    ? datosPais.costoEnvioPrioritario
-    : 0;
+  const costoEnvioExtra = envioPrioritario ? datosPais.costoEnvioPrioritario : 0;
   const precioTotal = precioBase + costoEnvioExtra;
 
-  const formatearPrecio = (precio: number) => {
-    return `$${precio.toFixed(2)}`;
+  const formatearPrecio = (precio: number) => `$${precio.toFixed(2)}`;
+
+  const limpiarError = (campo: string) => {
+    setErrores((prev) => {
+      if (!prev[campo]) return prev;
+      const copia = { ...prev };
+      delete copia[campo];
+      return copia;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
+
+    const nombre = String(formData.get("nombre") || "").trim();
+    const telefono = String(formData.get("telefono") || "").trim();
+    const direccion = String(formData.get("direccion") || "").trim();
+    const referencia = String(formData.get("referencia") || "").trim();
+    const departamento = String(formData.get("departamento") || "").trim();
+    const ciudad = String(formData.get("ciudad") || "").trim();
+
+    const nuevosErrores: Record<string, string> = {};
+
+    if (!nombre || nombre.length < 3 || /\d/.test(nombre)) {
+      nuevosErrores.nombre = "Escribe tu nombre completo";
+    }
+
+    if (!/^\d+$/.test(telefono)) {
+      nuevosErrores.telefono = "Escribe solo números en tu teléfono";
+    } else if (telefono.replace(/\D/g, "").length < 9) {
+      nuevosErrores.telefono = "Revisa tu número de celular";
+    }
+
+    if (!direccion || direccion.length < 5) {
+      nuevosErrores.direccion = "Agrega la dirección completa";
+    }
+
+    if (!referencia || referencia.length < 3) {
+      nuevosErrores.referencia = "Cuéntanos una referencia para ubicarte";
+    }
+
+    if (!departamento) {
+      nuevosErrores.departamento = "Selecciona tu provincia";
+    }
+
+    if (!ciudad || ciudad.length < 3 || /\d/.test(ciudad)) {
+      nuevosErrores.ciudad = "Escribe el nombre de tu ciudad";
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      return;
+    }
+
+    setErrores({});
 
     const datosExtras = {
       pais: "EC",
@@ -94,18 +138,13 @@ export default function FloatingOrderModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-3">
       <div className="bg-white w-full max-w-md max-h-[92vh] overflow-y-auto rounded-xl shadow-2xl">
-        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <h2 className="font-bold text-lg text-gray-900">
               🇪🇨 OFERTA DE TIEMPO LIMITADO 🔥
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-2xl font-bold text-gray-600 hover:text-gray-900"
-            type="button"
-          >
+          <button onClick={onClose} className="text-2xl font-bold text-gray-600 hover:text-gray-900" type="button">
             ×
           </button>
         </div>
@@ -113,77 +152,46 @@ export default function FloatingOrderModal({
         <img src="/selecciona-tu-oferta.webp" className="w-full" alt="Oferta" />
 
         <div className="p-4">
-          {/* OFERTA 1 */}
           <div
             onClick={() => setOfertaSeleccionada("1")}
             className={`border-2 rounded-xl p-3 flex gap-3 items-center mb-3 cursor-pointer transition-all ${
-              ofertaSeleccionada === "1"
-                ? "border-purple-600 bg-purple-100"
-                : "border-gray-200 bg-white hover:border-purple-300"
+              ofertaSeleccionada === "1" ? "border-purple-600 bg-purple-100" : "border-gray-200 bg-white hover:border-purple-300"
             }`}
           >
-            <img
-              src={producto.imagen}
-              className="w-16 h-16 object-cover rounded-lg"
-              alt="1 Unidad"
-            />
+            <img src={producto.imagen} className="w-16 h-16 object-cover rounded-lg" alt="1 Unidad" />
             <div className="flex-1">
-              <p className="font-bold text-gray-900">
-                {producto.textoOferta1 || "1 Unidad + Regalo"}
-              </p>
-              <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded">
-                Precio Especial 🔥
-              </span>
+              <p className="font-bold text-gray-900">{producto.textoOferta1 || "1 Unidad + Regalo"}</p>
+              <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded">Precio Especial 🔥</span>
             </div>
             <div className="text-right">
               {oferta1PrecioAntes > 0 && (
-                <div className="text-gray-400 line-through text-sm">
-                  {formatearPrecio(oferta1PrecioAntes)}
-                </div>
+                <div className="text-gray-400 line-through text-sm">{formatearPrecio(oferta1PrecioAntes)}</div>
               )}
-              <p className="font-bold text-gray-900">
-                {formatearPrecio(oferta1Precio)}
-              </p>
+              <p className="font-bold text-gray-900">{formatearPrecio(oferta1Precio)}</p>
             </div>
           </div>
 
-          {/* OFERTA 2 */}
           {oferta2Activa && oferta2Precio > 0 && (
             <div
               onClick={() => setOfertaSeleccionada("2")}
               className={`border-2 rounded-xl p-3 flex gap-3 items-center mb-4 cursor-pointer transition-all ${
-                ofertaSeleccionada === "2"
-                  ? "border-purple-600 bg-purple-100"
-                  : "border-gray-200 bg-white hover:border-purple-300"
+                ofertaSeleccionada === "2" ? "border-purple-600 bg-purple-100" : "border-gray-200 bg-white hover:border-purple-300"
               }`}
             >
-              <img
-                src={producto.precio2?.imagen || producto.imagen}
-                className="w-16 h-16 object-cover rounded-lg"
-                alt="2 Unidades"
-              />
+              <img src={producto.precio2?.imagen || producto.imagen} className="w-16 h-16 object-cover rounded-lg" alt="2 Unidades" />
               <div className="flex-1">
-                <p className="font-bold text-gray-900">
-                  {producto.textoOferta2 || "2 Unidades + Regalo"}
-                </p>
-                <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded">
-                  🔥 Más Vendido
-                </span>
+                <p className="font-bold text-gray-900">{producto.textoOferta2 || "2 Unidades + Regalo"}</p>
+                <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded">🔥 Más Vendido</span>
               </div>
               <div className="text-right">
                 {oferta2PrecioAntes > 0 && (
-                  <div className="text-gray-400 line-through text-sm">
-                    {formatearPrecio(oferta2PrecioAntes)}
-                  </div>
+                  <div className="text-gray-400 line-through text-sm">{formatearPrecio(oferta2PrecioAntes)}</div>
                 )}
-                <p className="font-bold text-gray-900">
-                  {formatearPrecio(oferta2Precio)}
-                </p>
+                <p className="font-bold text-gray-900">{formatearPrecio(oferta2Precio)}</p>
               </div>
             </div>
           )}
 
-          {/* Resumen */}
           <div className="border rounded-xl p-4 mb-4 bg-gray-50">
             <div className="flex justify-between text-gray-700">
               <span>Subtotal</span>
@@ -193,30 +201,21 @@ export default function FloatingOrderModal({
               <span>Envío</span>
               {envioPrioritario ? (
                 <span className="text-purple-600 font-semibold">
-                  + {formatearPrecio(datosPais.costoEnvioPrioritario)}{" "}
-                  (Prioritario)
+                  + {formatearPrecio(datosPais.costoEnvioPrioritario)} (Prioritario)
                 </span>
               ) : (
-                <span className="text-green-600">
-                  {datosPais.envioGratisTexto}
-                </span>
+                <span className="text-green-600">{datosPais.envioGratisTexto}</span>
               )}
             </div>
             <div className="flex justify-between font-bold text-xl mt-2 pt-2 border-t">
               <span className="text-gray-900">Total</span>
-              <span className="text-gray-900">
-                {formatearPrecio(precioTotal)}
-              </span>
+              <span className="text-gray-900">{formatearPrecio(precioTotal)}</span>
             </div>
           </div>
 
-          <img
-            src="/ingresa-tus-datos.webp"
-            className="w-full"
-            alt="Ingresa tus datos"
-          />
+          <img src="/ingresa-tus-datos.webp" className="w-full" alt="Ingresa tus datos" />
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
             <div>
               <label className="font-bold text-black mb-1 block">
                 Nombre Completo <span className="text-red-500">*</span>
@@ -224,9 +223,12 @@ export default function FloatingOrderModal({
               <input
                 name="nombre"
                 placeholder="Ej: Mateo Rodriguez Castaño"
-                className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
+                onChange={() => limpiarError("nombre")}
+                className={`w-full p-3 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${
+                  errores.nombre ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-500"
+                }`}
               />
+              {errores.nombre && <p className="text-red-500 text-sm mt-1">{errores.nombre}</p>}
             </div>
 
             <div>
@@ -236,9 +238,12 @@ export default function FloatingOrderModal({
               <input
                 name="telefono"
                 placeholder="0991234567"
-                className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
-                required
+                onChange={() => limpiarError("telefono")}
+                className={`w-full p-3 border rounded-lg text-gray-900 ${
+                  errores.telefono ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {errores.telefono && <p className="text-red-500 text-sm mt-1">{errores.telefono}</p>}
             </div>
 
             <div>
@@ -248,20 +253,27 @@ export default function FloatingOrderModal({
               <input
                 name="direccion"
                 placeholder="Calle principal con intersección y # de casa"
-                className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
-                required
+                onChange={() => limpiarError("direccion")}
+                className={`w-full p-3 border rounded-lg text-gray-900 ${
+                  errores.direccion ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {errores.direccion && <p className="text-red-500 text-sm mt-1">{errores.direccion}</p>}
             </div>
 
             <div>
               <label className="font-bold text-black mb-1 block">
-                Referencia
+                Referencia <span className="text-red-500">*</span>
               </label>
               <input
                 name="referencia"
                 placeholder="Ej: Torre B, Apto 201"
-                className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
+                onChange={() => limpiarError("referencia")}
+                className={`w-full p-3 border rounded-lg text-gray-900 ${
+                  errores.referencia ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {errores.referencia && <p className="text-red-500 text-sm mt-1">{errores.referencia}</p>}
             </div>
 
             <div>
@@ -270,8 +282,10 @@ export default function FloatingOrderModal({
               </label>
               <select
                 name="departamento"
-                className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
-                required
+                onChange={() => limpiarError("departamento")}
+                className={`w-full p-3 border rounded-lg text-gray-900 ${
+                  errores.departamento ? "border-red-500" : "border-gray-300"
+                }`}
               >
                 <option value="">Selecciona una provincia</option>
                 {datosPais.regiones.map((region) => (
@@ -280,6 +294,7 @@ export default function FloatingOrderModal({
                   </option>
                 ))}
               </select>
+              {errores.departamento && <p className="text-red-500 text-sm mt-1">{errores.departamento}</p>}
             </div>
 
             <div>
@@ -289,12 +304,14 @@ export default function FloatingOrderModal({
               <input
                 name="ciudad"
                 placeholder="Ej: Quito"
-                className="w-full p-3 border border-gray-300 rounded-lg text-gray-900"
-                required
+                onChange={() => limpiarError("ciudad")}
+                className={`w-full p-3 border rounded-lg text-gray-900 ${
+                  errores.ciudad ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {errores.ciudad && <p className="text-red-500 text-sm mt-1">{errores.ciudad}</p>}
             </div>
 
-            {/* Envío prioritario */}
             <div
               className="border border-purple-500 rounded-lg p-3 mb-4"
               style={{
@@ -303,8 +320,7 @@ export default function FloatingOrderModal({
                   "linear-gradient(90deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(90deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(0deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(0deg, rgba(143, 27, 214, 1) 50%, transparent 50%)",
                 backgroundRepeat: "repeat-x, repeat-x, repeat-y, repeat-y",
                 backgroundSize: "13px 2px, 13px 2px, 2px 13px, 2px 13px",
-                backgroundPosition:
-                  "left top, right bottom, left bottom, right top",
+                backgroundPosition: "left top, right bottom, left bottom, right top",
                 animation: "rsiTickUpsBorder 0.3s linear infinite",
               }}
             >
@@ -318,8 +334,7 @@ export default function FloatingOrderModal({
                 />
                 <div className="flex flex-col">
                   <span className="text-black">
-                    Agrega <b>ENVÍO PRIORITARIO + GARANTÍA EXTENDIDA</b> por
-                    solo{" "}
+                    Agrega <b>ENVÍO PRIORITARIO + GARANTÍA EXTENDIDA</b> por solo{" "}
                     <b>{formatearPrecio(datosPais.costoEnvioPrioritario)}</b>
                   </span>
                   <span className="text-gray-600 text-sm">
@@ -334,9 +349,7 @@ export default function FloatingOrderModal({
               disabled={enviando}
               className="bg-red-600 text-white p-4 rounded-lg font-bold disabled:opacity-50 hover:bg-red-700 transition-colors"
             >
-              {enviando
-                ? "Enviando pedido..."
-                : `COMPLETA TU COMPRA CON PAGO CONTRAENTREGA - ${formatearPrecio(precioTotal)}`}
+              {enviando ? "Enviando pedido..." : `COMPLETA TU COMPRA CON PAGO CONTRAENTREGA - ${formatearPrecio(precioTotal)}`}
             </button>
           </form>
         </div>

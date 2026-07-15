@@ -14,7 +14,11 @@ def hash_sha256(valor):
         str(valor).strip().lower().encode()
     ).hexdigest()
 
-def enviar_purchase_meta(pedido: dict):
+def enviar_purchase_meta(pedido: dict, request_meta: dict = None):
+    """
+    request_meta (opcional): {"ip": "...", "user_agent": "..."}
+    Se pasa por separado porque no viene del frontend, sino del propio request HTTP.
+    """
 
     url = f"https://graph.facebook.com/v23.0/{META_PIXEL_ID}/events"
 
@@ -29,6 +33,25 @@ def enviar_purchase_meta(pedido: dict):
     if not telefono.startswith("57"):
         telefono = f"57{telefono}"
 
+    user_data = {
+        "ph": [
+            hash_sha256(telefono)
+        ]
+    }
+
+    # 👇 nuevo: solo se agregan si vienen, no rompen nada si faltan
+    if pedido.get("fbp"):
+        user_data["fbp"] = pedido.get("fbp")
+
+    if pedido.get("fbc"):
+        user_data["fbc"] = pedido.get("fbc")
+
+    if request_meta and request_meta.get("ip"):
+        user_data["client_ip_address"] = request_meta.get("ip")
+
+    if request_meta and request_meta.get("user_agent"):
+        user_data["client_user_agent"] = request_meta.get("user_agent")
+
     payload = {
         "data": [
             {
@@ -40,11 +63,9 @@ def enviar_purchase_meta(pedido: dict):
 
                 "action_source": "website",
 
-                "user_data": {
-                    "ph": [
-                        hash_sha256(telefono)
-                    ]
-                },
+                "event_source_url": pedido.get("url", ""),
+
+                "user_data": user_data,
 
                 "custom_data": {
                     "currency": "COP",
@@ -64,8 +85,7 @@ def enviar_purchase_meta(pedido: dict):
                 }
             }
         ],
-        #"test_event_code": "TEST72353"
-
+        #"test_event_code": "TEST28153"
     }
 
     response = requests.post(
