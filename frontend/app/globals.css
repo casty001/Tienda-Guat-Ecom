@@ -70,3 +70,17 @@ body {
 .rsi-border-animation {
   animation: rsiTickUpsBorder 0.3s linear infinite;
 }
+.btn-shake {
+  animation: shake-cta 4s ease-in-out infinite;
+}
+
+@keyframes shake-cta {
+  0%, 70%, 100% { transform: translateX(0) rotate(0); }
+  71% { transform: translateX(-6px) rotate(-1deg); }
+  73% { transform: translateX(6px) rotate(1deg); }
+  75% { transform: translateX(-6px) rotate(-1deg); }
+  77% { transform: translateX(6px) rotate(1deg); }
+  79% { transform: translateX(-4px) rotate(-1deg); }
+  81% { transform: translateX(4px) rotate(1deg); }
+  83%, 100% { transform: translateX(0) rotate(0); }
+}
