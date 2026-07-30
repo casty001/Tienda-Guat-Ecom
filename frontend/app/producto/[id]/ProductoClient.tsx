@@ -17,6 +17,28 @@ function getCookie(name: string) {
   return match ? decodeURIComponent(match[1]) : null
 }
 
+function setCookie(name: string, value: string, days = 90) {
+  if (typeof document === "undefined") return
+  const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString()
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`
+}
+
+// 👇 Nuevo: asegura que _fbc exista, incluso si el navegador (in-app) no la creó solo
+function asegurarFbc(): string | null {
+  const existente = getCookie("_fbc")
+  if (existente) return existente
+
+  if (typeof window === "undefined") return null
+
+  const params = new URLSearchParams(window.location.search)
+  const fbclid = params.get("fbclid")
+  if (!fbclid) return null
+
+  const fbcGenerado = `fb.1.${Date.now()}.${fbclid}`
+  setCookie("_fbc", fbcGenerado)
+  return fbcGenerado
+}
+
 export default function ProductoClient({ producto }: { producto: any }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -27,6 +49,8 @@ export default function ProductoClient({ producto }: { producto: any }) {
   })
 
   useEffect(() => {
+    asegurarFbc() // 👈 captura fbclid en cuanto carga la página, antes de cualquier otra cosa
+
     if (typeof window !== "undefined" && producto) {
       if ((window as any).ttq) {
         (window as any).ttq.track("ViewContent", {
@@ -44,7 +68,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
           content_type: "product",
           content_name: producto.nombre,
           value: Number(producto.precio || 0),
-          currency: "COP",
+          currency: "USD",
         })
       }
     }
@@ -101,7 +125,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
           content_type: "product",
           content_name: producto.nombre,
           value: Number(producto.precio || 0),
-          currency: "COP",
+          currency: "USD",
         })
       }
     }
@@ -133,7 +157,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
       envioPrioritario: envioPrioritario,
       imagen: producto.imagen,
       fbp: getCookie("_fbp"),
-      fbc: getCookie("_fbc"),
+      fbc: asegurarFbc(), // 👈 en vez de getCookie("_fbc") directo
       url: typeof window !== "undefined" ? window.location.href : "",
     }
 
@@ -159,19 +183,19 @@ export default function ProductoClient({ producto }: { producto: any }) {
         }
 
         if ((window as any).fbq) {
-          (window as any).fbq(
-            "track",
-            "Purchase",
-            {
-              content_ids: [producto.id],
-              content_type: "product",
-              content_name: producto.nombre,
-              value: Number(precioTotal || 0),
-              currency: "COP",
-            },
-            { eventID: eventId } 
-          )
-        }
+  (window as any).fbq(
+    "track",
+    "Purchase",
+    {
+      content_ids: [producto.id],
+      content_type: "product",
+      content_name: producto.nombre,
+      value: Number(precioTotal || 0),
+      currency: "USD",
+    },
+    { eventID: eventId }
+  )
+}
       }
 
       await api.post("/pedidos", { ...data, event_id: eventId })

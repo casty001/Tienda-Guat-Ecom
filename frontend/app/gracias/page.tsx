@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function GraciasPage() {
+function GraciasContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productoId = searchParams.get("producto");
@@ -28,5 +28,13 @@ export default function GraciasPage() {
         <p className="text-gray-600">Nuestro equipo te contactará pronto.</p>
       </div>
     </main>
+  );
+}
+
+export default function GraciasPage() {
+  return (
+    <Suspense fallback={null}>
+      <GraciasContent />
+    </Suspense>
   );
 }
