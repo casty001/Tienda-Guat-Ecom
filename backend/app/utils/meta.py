@@ -39,10 +39,12 @@ def enviar_purchase_meta(pedido: dict, request_meta: dict = None):
     ciudad_raw = str(pedido.get("ciudad", "")).strip().lower().replace(" ", "")
     ciudad = quitar_acentos(ciudad_raw)
 
+    departamento_raw = str(pedido.get("departamento", "")).strip().lower().replace(" ", "")
+    departamento = quitar_acentos(departamento_raw)
+
     user_data = {
-        "ph": [
-            hash_sha256(telefono)
-        ]
+        "ph": [hash_sha256(telefono)],
+        "external_id": [hash_sha256(telefono)],
     }
 
     if primer_nombre:
@@ -53,7 +55,9 @@ def enviar_purchase_meta(pedido: dict, request_meta: dict = None):
 
     if ciudad:
         user_data["ct"] = [hash_sha256(ciudad)]
-
+    if departamento:
+        user_data["st"] = [hash_sha256(departamento)]
+        
     user_data["country"] = [hash_sha256("ec")]
 
     if pedido.get("fbp"):
