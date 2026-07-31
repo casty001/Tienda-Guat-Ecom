@@ -2,8 +2,11 @@
 import Image from "next/image"
 import { api } from "@/lib/api"
 import { useEffect, useState } from "react"
-import DesktopGenericLanding from "@/components/DesktopGenericLanding"
 import dynamic from "next/dynamic"
+const DesktopGenericLanding = dynamic(
+  () => import("@/components/DesktopGenericLanding"),
+  { ssr: false }
+)
 
 const FloatingOrderModal = dynamic(
   () => import("@/components/FloatingOrderModal"),

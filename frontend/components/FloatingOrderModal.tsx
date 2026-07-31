@@ -1,36 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 const datosPais = {
   nombre: "Ecuador",
   moneda: "USD",
   simbolo: "$",
   regiones: [
-    "Azuay",
-    "Bolívar",
-    "Cañar",
-    "Carchi",
-    "Chimborazo",
-    "Cotopaxi",
-    "El Oro",
-    "Esmeraldas",
-    "Galápagos",
-    "Guayas",
-    "Imbabura",
-    "Loja",
-    "Los Ríos",
-    "Manabí",
-    "Morona Santiago",
-    "Napo",
-    "Orellana",
-    "Pastaza",
-    "Pichincha",
-    "Santa Elena",
-    "Santo Domingo de los Tsáchilas",
-    "Sucumbíos",
-    "Tungurahua",
-    "Zamora Chinchipe",
+    "Azuay", "Bolívar", "Cañar", "Carchi", "Chimborazo", "Cotopaxi",
+    "El Oro", "Esmeraldas", "Galápagos", "Guayas", "Imbabura", "Loja",
+    "Los Ríos", "Manabí", "Morona Santiago", "Napo", "Orellana", "Pastaza",
+    "Pichincha", "Santa Elena", "Santo Domingo de los Tsáchilas",
+    "Sucumbíos", "Tungurahua", "Zamora Chinchipe",
   ],
   costoEnvioPrioritario: 1.9,
   envioGratisTexto: "Gratis",
@@ -149,7 +131,7 @@ export default function FloatingOrderModal({
           </button>
         </div>
 
-        <img src="/selecciona-tu-oferta.webp" className="w-full" alt="Oferta" />
+        <Image src="/selecciona-tu-oferta.webp" width={400} height={200} className="w-full h-auto" sizes="100vw" alt="Oferta" />
 
         <div className="p-4">
           <div
@@ -158,7 +140,9 @@ export default function FloatingOrderModal({
               ofertaSeleccionada === "1" ? "border-purple-600 bg-purple-100" : "border-gray-200 bg-white hover:border-purple-300"
             }`}
           >
-            <img src={producto.imagen} className="w-16 h-16 object-cover rounded-lg" alt="1 Unidad" />
+            {producto.imagen && (
+              <Image src={producto.imagen} width={64} height={64} className="w-16 h-16 object-cover rounded-lg" alt="1 Unidad" />
+            )}
             <div className="flex-1">
               <p className="font-bold text-gray-900">{producto.textoOferta1 || "1 Unidad + Regalo"}</p>
               <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded">Precio Especial 🔥</span>
@@ -178,7 +162,9 @@ export default function FloatingOrderModal({
                 ofertaSeleccionada === "2" ? "border-purple-600 bg-purple-100" : "border-gray-200 bg-white hover:border-purple-300"
               }`}
             >
-              <img src={producto.precio2?.imagen || producto.imagen} className="w-16 h-16 object-cover rounded-lg" alt="2 Unidades" />
+              {(producto.precio2?.imagen || producto.imagen) && (
+                <Image src={producto.precio2?.imagen || producto.imagen} width={64} height={64} className="w-16 h-16 object-cover rounded-lg" alt="2 Unidades" />
+              )}
               <div className="flex-1">
                 <p className="font-bold text-gray-900">{producto.textoOferta2 || "2 Unidades + Regalo"}</p>
                 <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded">🔥 Más Vendido</span>
@@ -213,7 +199,7 @@ export default function FloatingOrderModal({
             </div>
           </div>
 
-          <img src="/ingresa-tus-datos.webp" className="w-full" alt="Ingresa tus datos" />
+          <Image src="/ingresa-tus-datos.webp" width={400} height={100} className="w-full h-auto" sizes="100vw" alt="Ingresa tus datos" />
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
             <div>
