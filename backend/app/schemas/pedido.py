@@ -25,4 +25,6 @@ class PedidoCreate(BaseModel):
     #
     fbp: Optional[str] = None
     fbc: Optional[str] = None
+    ttclid: Optional[str] = None
+    anonId: Optional[str] = None
     url: Optional[str] = None

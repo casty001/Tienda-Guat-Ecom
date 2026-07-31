@@ -58,6 +58,17 @@ export default function RootLayout({
 
               ttq.load('D8E1PFBC77UANKFS69IG');
 
+              function guardarTtclid() {
+  var params = new URLSearchParams(w.location.search);
+  var ttclid = params.get('ttclid');
+  if (ttclid) {
+    var expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
+    d.cookie = '_ttclid=' + encodeURIComponent(ttclid) + '; expires=' + expires + '; path=/; SameSite=Lax';
+  }
+}
+
+guardarTtclid();
+
               ttq.page();
 
             }(window, document, 'ttq');

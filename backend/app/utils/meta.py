@@ -57,7 +57,7 @@ def enviar_purchase_meta(pedido: dict, request_meta: dict = None):
         user_data["ct"] = [hash_sha256(ciudad)]
     if departamento:
         user_data["st"] = [hash_sha256(departamento)]
-        
+
     user_data["country"] = [hash_sha256("ec")]
 
     if pedido.get("fbp"):
@@ -101,3 +101,4 @@ def enviar_purchase_meta(pedido: dict, request_meta: dict = None):
     )
 
     print("META EVENT:", response.status_code, response.text)
+    print("🔍 PAYLOAD ENVIADO A META:", payload)

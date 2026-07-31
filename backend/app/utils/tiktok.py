@@ -14,7 +14,7 @@ def hash_sha256(valor):
         str(valor).strip().lower().encode()
     ).hexdigest()
 
-def enviar_place_order(pedido: dict):
+def enviar_place_order(pedido: dict, request_meta: dict = None):
 
     url = "https://business-api.tiktok.com/open_api/v1.3/event/track/"
 
@@ -23,6 +23,13 @@ def enviar_place_order(pedido: dict):
         "Content-Type": "application/json",
     }
 
+    telefono = str(pedido.get("telefono", ""))
+    telefono = ''.join(filter(str.isdigit, telefono))
+    telefono = telefono.lstrip("0")
+    if not telefono.startswith("593"):
+        telefono = f"593{telefono}"
+    telefono_e164 = f"+{telefono}"
+
     payload = {
         "event_source": "web",
         "event_source_id": TIKTOK_PIXEL_ID,
@@ -30,15 +37,18 @@ def enviar_place_order(pedido: dict):
             {
                 "event": "CompletePayment",
                 "event_id": pedido.get("event_id"),
-                #"event_time": int(time.time()),
+                "event_time": int(time.time()),
 
                 "context": {
                     "page": {
                         "url": pedido.get("url", "")
                     },
                     "user": {
-                        "phone_number": hash_sha256(pedido.get("telefono")),
-                        "external_id": hash_sha256(pedido.get("telefono")),
+                        "phone_number": hash_sha256(telefono_e164),
+                        "external_id": hash_sha256(pedido.get("anonId")),
+                        "ttclid": pedido.get("ttclid"),
+                        "ip": request_meta.get("ip") if request_meta else None,
+                        "user_agent": request_meta.get("user_agent") if request_meta else None,
                     }
                 },
 
@@ -46,7 +56,7 @@ def enviar_place_order(pedido: dict):
                     "content_id": pedido.get("productoId"),
                     "content_name": pedido.get("productoNombre"),
                     "value": float(pedido.get("precio") or 0),
-                    "currency": "COP",
+                    "currency": "USD",
                 }
             }
         ]
@@ -58,4 +68,5 @@ def enviar_place_order(pedido: dict):
         timeout=10
     )
 
+    print("🔍 PAYLOAD ENVIADO A TIKTOK:", payload)
     print("TikTok Event:", response.status_code, response.text)

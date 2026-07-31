@@ -48,7 +48,7 @@ def crear_pedido(
     }
 
     try:
-        enviar_place_order(data)
+        enviar_place_order(data, request_meta)
     except Exception as e:
         print(f"⚠️ Error con TikTok: {e}")
 

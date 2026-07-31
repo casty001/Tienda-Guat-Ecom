@@ -38,7 +38,25 @@ function asegurarFbc(): string | null {
   setCookie("_fbc", fbcGenerado)
   return fbcGenerado
 }
+async function sha256Hex(texto: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(texto.trim().toLowerCase())
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+}
 
+function getOrCreateAnonId(): string {
+  const existente = getCookie("_anon_id")
+  if (existente) return existente
+  const id = crypto.randomUUID()
+  setCookie("_anon_id", id, 90)
+  return id
+}
+
+function getTtclid(): string | null {
+  return getCookie("_ttclid")
+}
 export default function ProductoClient({ producto }: { producto: any }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -48,30 +66,45 @@ export default function ProductoClient({ producto }: { producto: any }) {
     segundos: 59,
   })
 
-  useEffect(() => {
-    asegurarFbc() // 👈 captura fbclid en cuanto carga la página, antes de cualquier otra cosa
+useEffect(() => {
+    asegurarFbc()
 
-    if (typeof window !== "undefined" && producto) {
-      if ((window as any).ttq) {
-        (window as any).ttq.track("ViewContent", {
-          content_id: producto.id,
-          content_type: "product",
-          content_name: producto.nombre,
-          value: Number(producto.precio || 0),
-          currency: "USD",
-        })
-      }
+    async function trackViewContent() {
+      if (typeof window !== "undefined" && producto) {
+        if ((window as any).ttq) {
+          const externalIdHash = await sha256Hex(getOrCreateAnonId())
+          const ttclid = getTtclid()
+          //debug
+          //console.log("🔍 TikTok identify:", { external_id: externalIdHash, ttclid })
+          ;(window as any).ttq.identify({
+            external_id: externalIdHash,
+            ...(ttclid && { ttclid }),
+          })
+          ;(window as any).ttq.track("ViewContent", {
+            content_id: producto.id,
+            content_type: "product",
+            content_name: producto.nombre,
+            value: Number(producto.precio || 0),
+            currency: "USD",
+          })
+        }
 
-      if ((window as any).fbq) {
-        (window as any).fbq("track", "ViewContent", {
-          content_ids: [producto.id],
-          content_type: "product",
-          content_name: producto.nombre,
-          value: Number(producto.precio || 0),
-          currency: "USD",
-        })
+        if ((window as any).fbq) {
+          //debug
+          //console.log("🔍 Meta ViewContent:", {
+          (window as any).fbq("track", "ViewContent", {
+            
+            content_ids: [producto.id],
+            content_type: "product",
+            content_name: producto.nombre,
+            value: Number(producto.precio || 0),
+            currency: "USD",
+          })
+        }
       }
     }
+
+    trackViewContent()
   }, [producto])
 
   useEffect(() => {
@@ -107,10 +140,16 @@ export default function ProductoClient({ producto }: { producto: any }) {
     return () => clearInterval(interval)
   }, [producto])
 
-  function irFormulario() {
+  async function irFormulario() {
     if (typeof window !== "undefined" && producto) {
       if ((window as any).ttq) {
-        (window as any).ttq.track("InitiateCheckout", {
+        const externalIdHash = await sha256Hex(getOrCreateAnonId())
+        const ttclid = getTtclid()
+        ;(window as any).ttq.identify({
+          external_id: externalIdHash,
+          ...(ttclid && { ttclid }),
+        })
+        ;(window as any).ttq.track("InitiateCheckout", {
           content_id: producto.id,
           content_type: "product",
           content_name: producto.nombre,
@@ -155,9 +194,11 @@ export default function ProductoClient({ producto }: { producto: any }) {
       precioBase: precioBase,
       costoEnvio: costoEnvio,
       envioPrioritario: envioPrioritario,
-      imagen: producto.imagen,
+      imagen: producto.imagen,  
       fbp: getCookie("_fbp"),
-      fbc: asegurarFbc(), // 👈 en vez de getCookie("_fbc") directo
+      fbc: asegurarFbc(),
+      ttclid: getTtclid(),
+      anonId: getOrCreateAnonId(),
       url: typeof window !== "undefined" ? window.location.href : "",
     }
 
@@ -166,12 +207,18 @@ export default function ProductoClient({ producto }: { producto: any }) {
 
       if (typeof window !== "undefined") {
         const telefonoLimpio = String(data.telefono || "").replace(/\D/g, "")
-        const telefonoFinal = telefonoLimpio.startsWith("57")
+        const telefonoFinal = telefonoLimpio.startsWith("593")
           ? telefonoLimpio
-          : `57${telefonoLimpio}`
+          : `593${telefonoLimpio}`
 
         if ((window as any).ttq) {
-          (window as any).ttq.identify({ phone_number: telefonoFinal })
+          const externalIdHash = await sha256Hex(getOrCreateAnonId())
+          const ttclid = getTtclid()
+          ;(window as any).ttq.identify({
+            phone_number: telefonoFinal,
+            external_id: externalIdHash,
+            ...(ttclid && { ttclid }),
+          })
           ;(window as any).ttq.track("CompletePayment", {
             content_id: producto.id,
             content_type: "product",
