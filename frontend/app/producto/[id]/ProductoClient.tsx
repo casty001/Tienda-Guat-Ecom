@@ -1,6 +1,6 @@
 "use client"
 import Image from "next/image"
-import { api } from "@/lib/api"
+import { apiPublica } from "@/lib/api"
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 
@@ -268,7 +268,7 @@ useEffect(() => {
 }
       }
 
-      await api.post("/pedidos", { ...data, event_id: eventId })
+      await apiPublica.post("/pedidos", { ...data, event_id: eventId })
       window.location.replace(`/gracias?producto=${producto.id}`)
 
     } catch (error) {
