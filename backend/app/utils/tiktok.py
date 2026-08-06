@@ -52,12 +52,19 @@ def enviar_place_order(pedido: dict, request_meta: dict = None):
                     }
                 },
 
-                "properties": {
-                    "content_id": pedido.get("productoId"),
-                    "content_name": pedido.get("productoNombre"),
-                    "value": float(pedido.get("precio") or 0),
-                    "currency": "USD",
-                }
+            "properties": {
+                "contents": [
+                    {
+                        "content_id": str(pedido.get("productoId", "")),
+                        "content_type": "product",
+                        "content_name": pedido.get("productoNombre", ""),
+                        "price": float(pedido.get("precio") or 0),
+                        "quantity": 1,
+                    }
+                ],
+                "value": float(pedido.get("precio") or 0),
+                "currency": "USD",
+            }
             }
         ]
     }
