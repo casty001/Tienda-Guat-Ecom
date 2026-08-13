@@ -4,17 +4,15 @@ import { apiPublica } from "@/lib/api";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 
-const DesktopGenericLanding = dynamic(
-  () => import("@/components/DesktopGenericLanding"),
-  { ssr: false },
-);
-
 const FloatingOrderModal = dynamic(
   () => import("@/components/FloatingOrderModal"),
   { ssr: false },
 );
-
-// 👇 helper para leer cookies del navegador (_fbp y _fbc)
+const DesktopGenericLanding = dynamic(
+  () => import("@/components/DesktopGenericLanding"),
+  { ssr: false },
+);
+// helper para leer cookies del navegador (_fbp y _fbc)
 function getCookie(name: string) {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
@@ -76,26 +74,16 @@ function getTtclid(): string | null {
 
 export default function ProductoClient({
   producto,
-  esMobileUA,
 }: {
   producto: any;
-  esMobileUA: boolean;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [esMobile, setEsMobile] = useState(esMobileUA);
   const [tiempo, setTiempo] = useState({
     horas: 0,
     minutos: 28,
     segundos: 59,
   });
-
-  useEffect(() => {
-    const chequear = () => setEsMobile(window.innerWidth < 768);
-    chequear();
-    window.addEventListener("resize", chequear);
-    return () => window.removeEventListener("resize", chequear);
-  }, []);
 
   useEffect(() => {
     import("@/components/FloatingOrderModal");
@@ -319,12 +307,14 @@ export default function ProductoClient({
     </svg>
   );
 
-  if (!esMobile) {
-    return <DesktopGenericLanding />;
-  }
-
   return (
-    <main className="bg-[#121212] min-h-screen">
+  <>
+    <div className="hidden md:block">
+      <DesktopGenericLanding />
+    </div>
+
+    <div className="block md:hidden">
+      <main className="bg-[#121212] min-h-screen">
       {producto.mostrarContador && (
         <section className="bg-red-800 text-white py-3">
           <div className="flex items-center justify-center gap-4">
@@ -584,5 +574,7 @@ export default function ProductoClient({
         enviando={enviando}
       />
     </main>
+    </div>
+  </>
   );
 }
