@@ -31,7 +31,7 @@ export default async function ProductoPage({
       `${process.env.NEXT_PUBLIC_API_URL}/productos/${id}`,
       {
         next: {
-          revalidate: 300,
+          revalidate: 1800,
         },
       }
     );

@@ -79,6 +79,7 @@ export default function ProductoClient({
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [errorBackend, setErrorBackend] = useState<string | null>(null);
   const [tiempo, setTiempo] = useState({
     horas: 0,
     minutos: 28,
@@ -202,98 +203,108 @@ export default function ProductoClient({
   }
 
   async function enviarPedido(
-    e: React.FormEvent<HTMLFormElement>,
-    datosEnvio?: any,
-  ) {
-    e.preventDefault();
-    setEnviando(true);
+  e: React.FormEvent<HTMLFormElement>,
+  datosEnvio?: any,
+) {
+  e.preventDefault();
+  setEnviando(true);
+  setErrorBackend(null);
+  
+  const form = new FormData(e.currentTarget);
+  const precioTotal = datosEnvio?.precio || producto.precio;
+  const envioPrioritario = datosEnvio?.envioPrioritario || false;
+  const costoEnvio = datosEnvio?.costoEnvio || 0;
+  const precioBase = datosEnvio?.precioBase || producto.precio;
 
-    const form = new FormData(e.currentTarget);
-    const precioTotal = datosEnvio?.precio || producto.precio;
-    const envioPrioritario = datosEnvio?.envioPrioritario || false;
-    const costoEnvio = datosEnvio?.costoEnvio || 0;
-    const precioBase = datosEnvio?.precioBase || producto.precio;
+  const data = {
+    nombre: String(form.get("nombre") || ""),
+    telefono: String(form.get("telefono") || ""),
+    departamento: String(form.get("departamento") || ""),
+    ciudad: String(form.get("ciudad") || ""),
+    direccion: String(form.get("direccion") || ""),
+    referencia: String(form.get("referencia") || ""),
+    productoId: producto.id,
+    productoNombre: producto.nombre,
+    precio: precioTotal,
+    precioBase: precioBase,
+    costoEnvio: costoEnvio,
+    envioPrioritario: envioPrioritario,
+    imagen: producto.imagen,
+    fbp: getCookie("_fbp"),
+    fbc: asegurarFbc(),
+    ttclid: asegurarTtclid(),
+    anonId: getOrCreateAnonId(),
+    url: typeof window !== "undefined" ? window.location.href : "",
+  };
 
-    const data = {
-      nombre: String(form.get("nombre") || ""),
-      telefono: String(form.get("telefono") || ""),
-      departamento: String(form.get("departamento") || ""),
-      ciudad: String(form.get("ciudad") || ""),
-      direccion: String(form.get("direccion") || ""),
-      referencia: String(form.get("referencia") || ""),
-      productoId: producto.id,
-      productoNombre: producto.nombre,
-      precio: precioTotal,
-      precioBase: precioBase,
-      costoEnvio: costoEnvio,
-      envioPrioritario: envioPrioritario,
-      imagen: producto.imagen,
-      fbp: getCookie("_fbp"),
-      fbc: asegurarFbc(),
-      ttclid: asegurarTtclid(),
-      anonId: getOrCreateAnonId(),
-      url: typeof window !== "undefined" ? window.location.href : "",
-    };
+  try {
+    const eventId = crypto.randomUUID();
 
-    try {
-      const eventId = crypto.randomUUID();
+    // 👇 1. Se crea el pedido primero. El backend decide si el número está en blacklist.
+    const res = await apiPublica.post("/pedidos", { ...data, event_id: eventId });
+    const bloqueado = res?.data?.bloqueado === true;
 
-      if (typeof window !== "undefined") {
-        const telefonoLimpio = String(data.telefono || "").replace(/\D/g, "");
-        const telefonoFinal = telefonoLimpio.startsWith("593")
-          ? telefonoLimpio
-          : `593${telefonoLimpio}`;
+    // 👇 2. Solo si NO está bloqueado se dispara Purchase/CompletePayment.
+    //    Este bloque es exactamente el mismo tracking que ya tenías, solo movido de lugar.
+    if (!bloqueado && typeof window !== "undefined") {
+      const telefonoLimpio = String(data.telefono || "").replace(/\D/g, "");
+      const telefonoFinal = telefonoLimpio.startsWith("593")
+        ? telefonoLimpio
+        : `593${telefonoLimpio}`;
 
-        if ((window as any).ttq) {
-          const externalIdHash = await sha256Hex(getOrCreateAnonId());
-          const ttclid = asegurarTtclid();
-          (window as any).ttq.identify({
-            phone_number: telefonoFinal,
-            external_id: externalIdHash,
-            ...(ttclid && { ttclid }),
-          });
-          (window as any).ttq.track(
-            "CompletePayment",
-            {
-              contents: [
-                {
-                  content_id: String(producto.id),
-                  content_type: "product",
-                  content_name: producto.nombre,
-                },
-              ],
-              value: Number(precioTotal || 0),
-              currency: "USD",
-            },
-            { event_id: eventId },
-          );
-        }
-
-        if ((window as any).fbq) {
-          (window as any).fbq(
-            "track",
-            "Purchase",
-            {
-              content_ids: [producto.id],
-              content_type: "product",
-              content_name: producto.nombre,
-              value: Number(precioTotal || 0),
-              currency: "USD",
-            },
-            { eventID: eventId },
-          );
-        }
+      if ((window as any).ttq) {
+        const externalIdHash = await sha256Hex(getOrCreateAnonId());
+        const ttclid = asegurarTtclid();
+        (window as any).ttq.identify({
+          phone_number: telefonoFinal,
+          external_id: externalIdHash,
+          ...(ttclid && { ttclid }),
+        });
+        (window as any).ttq.track(
+          "CompletePayment",
+          {
+            contents: [
+              {
+                content_id: String(producto.id),
+                content_type: "product",
+                content_name: producto.nombre,
+              },
+            ],
+            value: Number(precioTotal || 0),
+            currency: "USD",
+          },
+          { event_id: eventId },
+        );
       }
 
-      await apiPublica.post("/pedidos", { ...data, event_id: eventId });
-      window.location.replace(`/gracias?producto=${producto.id}`);
-    } catch (error) {
-      console.error(error);
-      alert("Error creando pedido");
-    } finally {
-      setEnviando(false);
+      if ((window as any).fbq) {
+        (window as any).fbq(
+          "track",
+          "Purchase",
+          {
+            content_ids: [producto.id],
+            content_type: "product",
+            content_name: producto.nombre,
+            value: Number(precioTotal || 0),
+            currency: "USD",
+          },
+          { eventID: eventId },
+        );
+      }
     }
+
+    window.location.replace(`/gracias?producto=${producto.id}`);
+} catch (error: any) {
+  console.error(error);
+  const detail = error?.response?.data?.detail;
+  const mensaje = Array.isArray(detail)
+    ? detail[0]?.msg?.replace("Value error, ", "")
+    : detail;
+  setErrorBackend(mensaje || "No pudimos procesar tu pedido. Intenta de nuevo.");
+}finally {
+    setEnviando(false);
   }
+}
 
   const precio = Number(producto.precio || 0);
 
@@ -572,6 +583,7 @@ export default function ProductoClient({
         producto={producto}
         onSubmit={(e: any, datos: any) => enviarPedido(e, datos)}
         enviando={enviando}
+        errorBackend={errorBackend}
       />
     </main>
     </div>

@@ -6,7 +6,8 @@ from fastapi.middleware.cors import (
 from app.routes import (
     productos,
     pedidos,
-    upload
+    upload,
+    blacklist
 )
 
 app = FastAPI(
@@ -38,7 +39,11 @@ app.include_router(
     prefix="/upload",
     tags=["Upload"]
 )
-
+app.include_router(
+    blacklist.router,
+    prefix="/blacklist",
+    tags=["Blacklist"]
+)
 @app.get("/")
 def root():
     return {

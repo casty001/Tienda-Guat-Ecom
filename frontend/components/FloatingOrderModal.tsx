@@ -24,6 +24,7 @@ export default function FloatingOrderModal({
   producto,
   onSubmit,
   enviando,
+  errorBackend
 }: any) {
   const [envioPrioritario, setEnvioPrioritario] = useState(false);
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState<"1" | "2">("1");
@@ -329,7 +330,11 @@ export default function FloatingOrderModal({
                 </div>
               </label>
             </div>
-
+{errorBackend && (
+              <p className="text-red-600 text-sm font-semibold text-center -mt-1">
+                {errorBackend}
+              </p>
+            )}
             <button
               type="submit"
               disabled={enviando}

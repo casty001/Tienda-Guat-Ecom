@@ -131,13 +131,19 @@ export default function AdminPedidosPage() {
                     <>🔄 Actualizar</>
                   )}
                 </button>
-
+<Link
+                  href="/admin/blacklist"
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
+                >
+                  🚫 Blacklist
+                </Link>
                 <Link
                   href="/admin/productos"
                   className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
                 >
                   📋 Productos
                 </Link>
+              
                 <button
                   onClick={logout}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
