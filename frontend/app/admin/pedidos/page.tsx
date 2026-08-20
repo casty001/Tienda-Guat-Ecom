@@ -7,6 +7,7 @@ import AdminGuard from "@/components/AdminGuard";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function AdminPedidosPage() {
   const [pedidos, setPedidos] = useState<any[]>([]);
@@ -17,9 +18,16 @@ export default function AdminPedidosPage() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [itemsPorPagina, setItemsPorPagina] = useState(10);
 
-  useEffect(() => {
+ useEffect(() => {
+  const unsub = onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
     cargarPedidos();
-  }, []);
+  });
+  return () => unsub();
+}, [router]);
 
   async function logout() {
     await signOut(auth);
@@ -27,30 +35,20 @@ export default function AdminPedidosPage() {
   }
 
   async function cargarPedidos() {
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
-
-      const token = await user.getIdToken();
-      const res = await api.get("/pedidos/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setPedidos(res.data);
-    } catch (error: any) {
-      console.error(error);
-      if (error.response?.status === 401) {
-        router.replace("/login");
-        return;
-      }
-      alert("Error cargando pedidos");
-    } finally {
-      setLoading(false);
+  try {
+    const res = await api.get("/pedidos/"); // el interceptor de apiPrivada ya agrega el token
+    setPedidos(res.data);
+  } catch (error: any) {
+    console.error(error);
+    if (error.response?.status === 401) {
+      router.replace("/login");
+      return;
     }
+    alert("Error cargando pedidos");
+  } finally {
+    setLoading(false);
   }
+}
 
   async function cambiarEstado(id: string, estado: string) {
     setUpdatingId(id);
@@ -106,53 +104,54 @@ export default function AdminPedidosPage() {
       <main className="min-h-screen bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 py-6">
           {/* Header */}
-          <div className="bg-gray-800 rounded-xl p-4 mb-6">
-            <div className="flex justify-between items-center flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-white">📦 Pedidos</h1>
-                <span className="bg-blue-500/20 text-blue-400 text-xs px-3 py-1 rounded-full border border-blue-500/30">
-                  🇪🇨 Ecuador
-                </span>
-              </div>
+<div className="bg-gray-800 rounded-xl p-4 mb-6">
+  <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+    <div className="flex items-center gap-3">
+      <h1 className="text-2xl font-bold text-white">📦 Pedidos</h1>
+      <span className="bg-blue-500/20 text-blue-400 text-xs px-3 py-1 rounded-full border border-blue-500/30">
+        🇪🇨 Ecuador
+      </span>
+    </div>
 
-              <div className="flex gap-2">
-                {/* 👇 BOTÓN ACTUALIZAR */}
-                <button
-                  onClick={cargarPedidos}
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                      Cargando...
-                    </>
-                  ) : (
-                    <>🔄 Actualizar</>
-                  )}
-                </button>
-<Link
-                  href="/admin/blacklist"
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
-                >
-                  🚫 Blacklist
-                </Link>
-                <Link
-                  href="/admin/productos"
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
-                >
-                  📋 Productos
-                </Link>
-              
-                <button
-                  onClick={logout}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
-                >
-                  🚪 Salir
-                </button>
-              </div>
-            </div>
-          </div>
+    <div className="grid grid-cols-2 md:flex gap-2">
+      <button
+        onClick={cargarPedidos}
+        disabled={loading}
+        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+      >
+        {loading ? (
+          <>
+            <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            Cargando...
+          </>
+        ) : (
+          <>🔄 Actualizar</>
+        )}
+      </button>
+
+      <Link
+        href="/admin/blacklist"
+        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors text-center"
+      >
+        🚫 Blacklist
+      </Link>
+
+      <Link
+        href="/admin/productos"
+        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors text-center"
+      >
+        📋 Productos
+      </Link>
+
+      <button
+        onClick={logout}
+        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
+      >
+        🚪 Salir
+      </button>
+    </div>
+  </div>
+</div>
 
           {/* Tabla */}
           <div className="bg-gray-800 rounded-xl overflow-hidden">

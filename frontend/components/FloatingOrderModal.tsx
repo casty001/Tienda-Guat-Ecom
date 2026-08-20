@@ -8,11 +8,30 @@ const datosPais = {
   moneda: "USD",
   simbolo: "$",
   regiones: [
-    "Azuay", "Bolívar", "Cañar", "Carchi", "Chimborazo", "Cotopaxi",
-    "El Oro", "Esmeraldas", "Galápagos", "Guayas", "Imbabura", "Loja",
-    "Los Ríos", "Manabí", "Morona Santiago", "Napo", "Orellana", "Pastaza",
-    "Pichincha", "Santa Elena", "Santo Domingo de los Tsáchilas",
-    "Sucumbíos", "Tungurahua", "Zamora Chinchipe",
+    "Azuay",
+    "Bolívar",
+    "Cañar",
+    "Carchi",
+    "Chimborazo",
+    "Cotopaxi",
+    "El Oro",
+    "Esmeraldas",
+    "Galápagos",
+    "Guayas",
+    "Imbabura",
+    "Loja",
+    "Los Ríos",
+    "Manabí",
+    "Morona Santiago",
+    "Napo",
+    "Orellana",
+    "Pastaza",
+    "Pichincha",
+    "Santa Elena",
+    "Santo Domingo de los Tsáchilas",
+    "Sucumbíos",
+    "Tungurahua",
+    "Zamora Chinchipe",
   ],
   costoEnvioPrioritario: 1.9,
   envioGratisTexto: "Gratis",
@@ -24,13 +43,30 @@ export default function FloatingOrderModal({
   producto,
   onSubmit,
   enviando,
-  errorBackend
+  errorBackend,
 }: any) {
   const [envioPrioritario, setEnvioPrioritario] = useState(false);
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState<"1" | "2">("1");
   const [errores, setErrores] = useState<Record<string, string>>({});
 
   if (!open) return null;
+
+  // 👇 1. EXTRAER CONFIGURACIÓN Y TEXTOS DINÁMICOS DEL ADMIN
+  const config =
+    producto.disenoLanding === "moderno"
+      ? producto.disenoModerno
+      : producto.disenoClasico;
+
+  const mostrarSubtituloModal = config?.mostrarSubtituloModal ?? true;
+  const subtituloModal =
+    config?.subtituloModal ??
+    "Por alta demanda, este pedido se reserva por pocos minutos. Finaliza tu compra antes de que se agote.";
+
+  const mostrarTextoImportanteModal =
+    config?.mostrarTextoImportanteModal ?? true;
+  const textoImportanteModal =
+    config?.textoImportanteModal ??
+    "⚡IMPORTANTE⚡\n📲Confirmar tu pedido por WPP para poder enviarle\n📍Si prefieres retirar en Servientrega, solicita por WPP";
 
   const oferta1Precio = Number(producto.precio || 0);
   const oferta1PrecioAntes = Number(producto.precioAntes || 0);
@@ -39,7 +75,9 @@ export default function FloatingOrderModal({
   const oferta2PrecioAntes = Number(producto.precio2?.precioAntes || 0);
 
   const precioBase = ofertaSeleccionada === "1" ? oferta1Precio : oferta2Precio;
-  const costoEnvioExtra = envioPrioritario ? datosPais.costoEnvioPrioritario : 0;
+  const costoEnvioExtra = envioPrioritario
+    ? datosPais.costoEnvioPrioritario
+    : 0;
   const precioTotal = precioBase + costoEnvioExtra;
 
   const formatearPrecio = (precio: number) => `$${precio.toFixed(2)}`;
@@ -127,32 +165,68 @@ export default function FloatingOrderModal({
               🇪🇨 OFERTA DE TIEMPO LIMITADO 🔥
             </h2>
           </div>
-          <button onClick={onClose} className="text-2xl font-bold text-gray-600 hover:text-gray-900" type="button">
+          <button
+            onClick={onClose}
+            className="text-2xl font-bold text-gray-600 hover:text-gray-900"
+            type="button"
+          >
             ×
           </button>
         </div>
 
-        <Image src="/selecciona-tu-oferta.webp" width={400} height={200} className="w-full h-auto" sizes="100vw" alt="Oferta" />
+        {/* 👇 2. ALERTA SUPERIOR CONDICIONAL */}
+        {mostrarSubtituloModal && subtituloModal && (
+          <div className="bg-red-50 p-3 text-center border-b border-red-100">
+            <p className="text-red-600 font-bold text-xs md:text-sm leading-tight whitespace-pre-line">
+              {subtituloModal}
+            </p>
+          </div>
+        )}
+
+        <Image
+          src="/selecciona-tu-oferta.webp"
+          width={400}
+          height={200}
+          className="w-full h-auto"
+          sizes="100vw"
+          alt="Oferta"
+        />
 
         <div className="p-4">
           <div
             onClick={() => setOfertaSeleccionada("1")}
             className={`border-2 rounded-xl p-3 flex gap-3 items-center mb-3 cursor-pointer transition-all ${
-              ofertaSeleccionada === "1" ? "border-purple-600 bg-purple-100" : "border-gray-200 bg-white hover:border-purple-300"
+              ofertaSeleccionada === "1"
+                ? "border-purple-600 bg-purple-100"
+                : "border-gray-200 bg-white hover:border-purple-300"
             }`}
           >
             {producto.imagen && (
-              <Image src={producto.imagen} width={64} height={64} className="w-16 h-16 object-cover rounded-lg" alt="1 Unidad" />
+              <Image
+                src={producto.imagen}
+                width={64}
+                height={64}
+                className="w-16 h-16 object-cover rounded-lg"
+                alt="1 Unidad"
+              />
             )}
             <div className="flex-1">
-              <p className="font-bold text-gray-900">{producto.textoOferta1 || "1 Unidad + Regalo"}</p>
-              <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded">Precio Especial 🔥</span>
+              <p className="font-bold text-gray-900">
+                {producto.textoOferta1 || "1 Unidad + Regalo"}
+              </p>
+              <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                Precio Especial 🔥
+              </span>
             </div>
             <div className="text-right">
               {oferta1PrecioAntes > 0 && (
-                <div className="text-gray-400 line-through text-sm">{formatearPrecio(oferta1PrecioAntes)}</div>
+                <div className="text-gray-400 line-through text-sm">
+                  {formatearPrecio(oferta1PrecioAntes)}
+                </div>
               )}
-              <p className="font-bold text-gray-900">{formatearPrecio(oferta1Precio)}</p>
+              <p className="font-bold text-gray-900">
+                {formatearPrecio(oferta1Precio)}
+              </p>
             </div>
           </div>
 
@@ -160,21 +234,37 @@ export default function FloatingOrderModal({
             <div
               onClick={() => setOfertaSeleccionada("2")}
               className={`border-2 rounded-xl p-3 flex gap-3 items-center mb-4 cursor-pointer transition-all ${
-                ofertaSeleccionada === "2" ? "border-purple-600 bg-purple-100" : "border-gray-200 bg-white hover:border-purple-300"
+                ofertaSeleccionada === "2"
+                  ? "border-purple-600 bg-purple-100"
+                  : "border-gray-200 bg-white hover:border-purple-300"
               }`}
             >
               {(producto.precio2?.imagen || producto.imagen) && (
-                <Image src={producto.precio2?.imagen || producto.imagen} width={64} height={64} className="w-16 h-16 object-cover rounded-lg" alt="2 Unidades" />
+                <Image
+                  src={producto.precio2?.imagen || producto.imagen}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 object-cover rounded-lg"
+                  alt="2 Unidades"
+                />
               )}
               <div className="flex-1">
-                <p className="font-bold text-gray-900">{producto.textoOferta2 || "2 Unidades + Regalo"}</p>
-                <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded">🔥 Más Vendido</span>
+                <p className="font-bold text-gray-900">
+                  {producto.textoOferta2 || "2 Unidades + Regalo"}
+                </p>
+                <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded">
+                  🔥 Más Vendido
+                </span>
               </div>
               <div className="text-right">
                 {oferta2PrecioAntes > 0 && (
-                  <div className="text-gray-400 line-through text-sm">{formatearPrecio(oferta2PrecioAntes)}</div>
+                  <div className="text-gray-400 line-through text-sm">
+                    {formatearPrecio(oferta2PrecioAntes)}
+                  </div>
                 )}
-                <p className="font-bold text-gray-900">{formatearPrecio(oferta2Precio)}</p>
+                <p className="font-bold text-gray-900">
+                  {formatearPrecio(oferta2Precio)}
+                </p>
               </div>
             </div>
           )}
@@ -188,21 +278,37 @@ export default function FloatingOrderModal({
               <span>Envío</span>
               {envioPrioritario ? (
                 <span className="text-purple-600 font-semibold">
-                  + {formatearPrecio(datosPais.costoEnvioPrioritario)} (Prioritario)
+                  + {formatearPrecio(datosPais.costoEnvioPrioritario)}{" "}
+                  (Prioritario)
                 </span>
               ) : (
-                <span className="text-green-600">{datosPais.envioGratisTexto}</span>
+                <span className="text-green-600">
+                  {datosPais.envioGratisTexto}
+                </span>
               )}
             </div>
             <div className="flex justify-between font-bold text-xl mt-2 pt-2 border-t">
               <span className="text-gray-900">Total</span>
-              <span className="text-gray-900">{formatearPrecio(precioTotal)}</span>
+              <span className="text-gray-900">
+                {formatearPrecio(precioTotal)}
+              </span>
             </div>
           </div>
 
-          <Image src="/ingresa-tus-datos.webp" width={400} height={100} className="w-full h-auto" sizes="100vw" alt="Ingresa tus datos" />
+          <Image
+            src="/ingresa-tus-datos.webp"
+            width={400}
+            height={100}
+            className="w-full h-auto"
+            sizes="100vw"
+            alt="Ingresa tus datos"
+          />
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-3"
+            noValidate
+          >
             <div>
               <label className="font-bold text-black mb-1 block">
                 Nombre Completo <span className="text-red-500">*</span>
@@ -212,10 +318,14 @@ export default function FloatingOrderModal({
                 placeholder="Ej: Mateo Rodriguez Castaño"
                 onChange={() => limpiarError("nombre")}
                 className={`w-full p-3 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${
-                  errores.nombre ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-500"
+                  errores.nombre
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
-              {errores.nombre && <p className="text-red-500 text-sm mt-1">{errores.nombre}</p>}
+              {errores.nombre && (
+                <p className="text-red-500 text-sm mt-1">{errores.nombre}</p>
+              )}
             </div>
 
             <div>
@@ -230,7 +340,9 @@ export default function FloatingOrderModal({
                   errores.telefono ? "border-red-500" : "border-gray-300"
                 }`}
               />
-              {errores.telefono && <p className="text-red-500 text-sm mt-1">{errores.telefono}</p>}
+              {errores.telefono && (
+                <p className="text-red-500 text-sm mt-1">{errores.telefono}</p>
+              )}
             </div>
 
             <div>
@@ -245,7 +357,9 @@ export default function FloatingOrderModal({
                   errores.direccion ? "border-red-500" : "border-gray-300"
                 }`}
               />
-              {errores.direccion && <p className="text-red-500 text-sm mt-1">{errores.direccion}</p>}
+              {errores.direccion && (
+                <p className="text-red-500 text-sm mt-1">{errores.direccion}</p>
+              )}
             </div>
 
             <div>
@@ -260,7 +374,11 @@ export default function FloatingOrderModal({
                   errores.referencia ? "border-red-500" : "border-gray-300"
                 }`}
               />
-              {errores.referencia && <p className="text-red-500 text-sm mt-1">{errores.referencia}</p>}
+              {errores.referencia && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errores.referencia}
+                </p>
+              )}
             </div>
 
             <div>
@@ -281,7 +399,11 @@ export default function FloatingOrderModal({
                   </option>
                 ))}
               </select>
-              {errores.departamento && <p className="text-red-500 text-sm mt-1">{errores.departamento}</p>}
+              {errores.departamento && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errores.departamento}
+                </p>
+              )}
             </div>
 
             <div>
@@ -296,8 +418,19 @@ export default function FloatingOrderModal({
                   errores.ciudad ? "border-red-500" : "border-gray-300"
                 }`}
               />
-              {errores.ciudad && <p className="text-red-500 text-sm mt-1">{errores.ciudad}</p>}
+              {errores.ciudad && (
+                <p className="text-red-500 text-sm mt-1">{errores.ciudad}</p>
+              )}
             </div>
+
+            {/* 👇 3. BLOQUE NOTA IMPORTANTE CONDICIONAL */}
+            {mostrarTextoImportanteModal && textoImportanteModal && (
+              <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-center my-1">
+                <p className="text-sky-900 font-bold text-xs md:text-sm whitespace-pre-line leading-relaxed">
+                  {textoImportanteModal}
+                </p>
+              </div>
+            )}
 
             <div
               className="border border-purple-500 rounded-lg p-3 mb-4"
@@ -307,7 +440,8 @@ export default function FloatingOrderModal({
                   "linear-gradient(90deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(90deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(0deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(0deg, rgba(143, 27, 214, 1) 50%, transparent 50%)",
                 backgroundRepeat: "repeat-x, repeat-x, repeat-y, repeat-y",
                 backgroundSize: "13px 2px, 13px 2px, 2px 13px, 2px 13px",
-                backgroundPosition: "left top, right bottom, left bottom, right top",
+                backgroundPosition:
+                  "left top, right bottom, left bottom, right top",
                 animation: "rsiTickUpsBorder 0.3s linear infinite",
               }}
             >
@@ -321,7 +455,8 @@ export default function FloatingOrderModal({
                 />
                 <div className="flex flex-col">
                   <span className="text-black">
-                    Agrega <b>ENVÍO PRIORITARIO + GARANTÍA EXTENDIDA</b> por solo{" "}
+                    Agrega <b>ENVÍO PRIORITARIO + GARANTÍA EXTENDIDA</b> por
+                    solo{" "}
                     <b>{formatearPrecio(datosPais.costoEnvioPrioritario)}</b>
                   </span>
                   <span className="text-gray-600 text-sm">
@@ -330,7 +465,7 @@ export default function FloatingOrderModal({
                 </div>
               </label>
             </div>
-{errorBackend && (
+            {errorBackend && (
               <p className="text-red-600 text-sm font-semibold text-center -mt-1">
                 {errorBackend}
               </p>
@@ -340,7 +475,9 @@ export default function FloatingOrderModal({
               disabled={enviando}
               className="bg-red-600 text-white p-4 rounded-lg font-bold disabled:opacity-50 hover:bg-red-700 transition-colors"
             >
-              {enviando ? "Enviando pedido..." : `COMPLETA TU COMPRA CON PAGO CONTRAENTREGA - ${formatearPrecio(precioTotal)}`}
+              {enviando
+                ? "Enviando pedido..."
+                : `COMPLETA TU COMPRA CON PAGO CONTRAENTREGA - ${formatearPrecio(precioTotal)}`}
             </button>
           </form>
         </div>

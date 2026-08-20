@@ -13,27 +13,35 @@ export default function LoginPage() {
   const [error, setError] = useState("")
 
   async function login(e: React.FormEvent) {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+  e.preventDefault()
+  setError("")
+  setLoading(true)
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-      router.push("/admin/pedidos")
-    } catch (error: any) {
-      console.error(error)
-      // Mensajes amigables sin ser pesados
-      if (error.code === 'auth/invalid-credential') {
-        setError("❌ Correo o contraseña incorrectos")
-      } else if (error.code === 'auth/too-many-requests') {
-        setError("⚠️ Demasiados intentos. Espera unos minutos")
-      } else {
-        setError("❌ Error al iniciar sesión")
-      }
-    } finally {
+  try {
+    const credencial = await signInWithEmailAndPassword(auth, email, password)
+    const tokenResult = await credencial.user.getIdTokenResult()
+
+    if (!tokenResult.claims.admin) {
+      await auth.signOut()
+      setError("❌ Esta cuenta no tiene permisos de administrador")
       setLoading(false)
+      return
     }
+
+    router.push("/admin/pedidos")
+  } catch (error: any) {
+    console.error(error)
+    if (error.code === 'auth/invalid-credential') {
+      setError("❌ Correo o contraseña incorrectos")
+    } else if (error.code === 'auth/too-many-requests') {
+      setError("⚠️ Demasiados intentos. Espera unos minutos")
+    } else {
+      setError("❌ Error al iniciar sesión")
+    }
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-900">

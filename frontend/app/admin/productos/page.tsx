@@ -8,6 +8,36 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 
+// 👇 Valores por defecto de un ConfigDiseno (deben calzar con el schema)
+function defaultConfig() {
+  return {
+    mostrarContador: true,
+    minutosContador: "28",
+    mostrarEstrellas: true,
+    textoEstrellas: "+100.000 clientes satisfechos",
+    textoBoton: "COMPRAR AHORA Y PAGAR AL RECIBIR",
+    mostrarInfoCompra: true,
+    textoDescuento: "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
+    queIncluye: "",
+    informacionEnvio: "",
+    devolucionesReembolsos: "",
+    mostrarOrdenesHoy: true,
+    ordenesHoy: "137",
+    mostrarOpinionesVerificadas: true,
+    opinionesVerificadasCount: "1247",
+    caracteristicasDestacadas: "",
+    mostrarSubtituloModal: true,
+    subtituloModal: "Por alta demanda, este pedido se reserva por pocos minutos. Finaliza tu compra antes de que se agote.",
+    mostrarTextoImportanteModal: true,
+    textoImportanteModal: "⚡IMPORTANTE⚡\n📲Confirmar tu pedido por WPP para poder enviarle\n📍Si prefieres retirar en Servientrega, solicita por WPP",
+    beneficiosChecklist: [
+      { titulo: "", descripcion: "" },
+      { titulo: "", descripcion: "" },
+      { titulo: "", descripcion: "" },
+    ],
+  };
+}
+
 export default function AdminProductosPage() {
   const router = useRouter();
   const [productos, setProductos] = useState<any[]>([]);
@@ -26,6 +56,20 @@ export default function AdminProductosPage() {
   const [precio2Antes, setPrecio2Antes] = useState<string>("");
   const [textoOferta1, setTextoOferta1] = useState("1 Unidad + Regalo");
   const [textoOferta2, setTextoOferta2] = useState("2 Unidades + Regalo");
+
+  // 👇 Qué pestaña estás VIENDO/EDITANDO en el formulario ahora mismo (solo UI)
+  // 👇 Único selector: qué diseño se usa Y se está editando ahora mismo.
+  const [disenoLanding, setDisenoLanding] = useState<"clasico" | "moderno">(
+    "clasico",
+  );
+
+  // 👇 Config completa e independiente de cada diseño
+  const [configClasico, setConfigClasico] = useState<any>(defaultConfig());
+  const [configModerno, setConfigModerno] = useState<any>(defaultConfig());
+
+  // Atajo: la config y el setter del diseño seleccionado
+  const config = disenoLanding === "moderno" ? configModerno : configClasico;
+  const setConfig = disenoLanding === "moderno" ? setConfigModerno : setConfigClasico;
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -83,6 +127,24 @@ export default function AdminProductosPage() {
     }
   }
 
+  function cargarConfig(cfg: any) {
+    const base = defaultConfig();
+
+    const checklist = cfg?.beneficiosChecklist || [];
+
+    return {
+      ...base,
+      ...(cfg || {}),
+      beneficiosChecklist: [
+        ...checklist,
+        ...Array(Math.max(0, 3 - checklist.length)).fill({
+          titulo: "",
+          descripcion: "",
+        }),
+      ],
+    };
+  }
+
   function cargarParaEditar(producto: any) {
     setEditando(producto);
     setImagenPrincipal(producto.imagen || "");
@@ -96,6 +158,12 @@ export default function AdminProductosPage() {
     setPrecio2Activo(producto.precio2?.activo || false);
     setPrecio2(producto.precio2?.precio?.toString() || "");
     setPrecio2Antes(producto.precio2?.precioAntes?.toString() || "");
+
+    const diseno = producto.disenoLanding || "clasico";
+    setDisenoLanding(diseno);
+
+    setConfigClasico(cargarConfig(producto.disenoClasico));
+    setConfigModerno(cargarConfig(producto.disenoModerno));
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -113,10 +181,31 @@ export default function AdminProductosPage() {
     setPrecio2Antes("");
     setTextoOferta1("1 Unidad + Regalo");
     setTextoOferta2("2 Unidades + Regalo");
+    setDisenoLanding("clasico");
+    setConfigClasico(defaultConfig());
+    setConfigModerno(defaultConfig());
+
     if (form) {
       form.reset();
     }
   }
+
+  function buildConfigPayload(cfg: any) {
+  return {
+    ...cfg,
+    minutosContador: Number(cfg.minutosContador) || 0,
+    ordenesHoy: Number(cfg.ordenesHoy) || 0,
+    opinionesVerificadasCount: Number(cfg.opinionesVerificadasCount) || 0,
+    mostrarSubtituloModal: cfg.mostrarSubtituloModal ?? true,
+    subtituloModal: cfg.subtituloModal || "",
+    mostrarTextoImportanteModal: cfg.mostrarTextoImportanteModal ?? true,
+    textoImportanteModal: cfg.textoImportanteModal || "",
+    beneficiosChecklist: (cfg.beneficiosChecklist || []).map((b: any) => ({
+      titulo: b.titulo || "",
+      descripcion: b.descripcion || "",
+    })),
+  };
+}
 
   async function guardarProducto(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -137,7 +226,6 @@ export default function AdminProductosPage() {
       return;
     }
 
-    // CONVERTIR PRECIOS A NÚMERO
     const precio =
       parseFloat(String(form.get("precio") || "0").replace(",", ".")) || 0;
     const precioAntes =
@@ -151,6 +239,7 @@ export default function AdminProductosPage() {
       precio: precio,
       precioAntes: precioAntes,
       imagen: imagenPrincipal,
+      disenoLanding: disenoLanding,
       textoOferta1: textoOferta1,
       textoOferta2: textoOferta2,
       precio2: {
@@ -165,21 +254,11 @@ export default function AdminProductosPage() {
         imagen4: landing4,
         imagen5: landing5,
       },
-      mostrarContador: form.get("mostrarContador") === "on",
-      minutosContador: Number(form.get("minutosContador") || 28),
-      mostrarEstrellas: form.get("mostrarEstrellas") === "on",
-      textoEstrellas: String(form.get("textoEstrellas") || ""),
-      textoBoton: String(
-        form.get("textoBoton") || "COMPRAR AHORA Y PAGAR AL RECIBIR",
-      ),
-      mostrarInfoCompra: form.get("mostrarInfoCompra") === "on",
-      textoDescuento: String(
-        form.get("textoDescuento") ||
-          "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
-      ),
-      queIncluye: String(form.get("queIncluye") || ""),
-      informacionEnvio: String(form.get("informacionEnvio") || ""),
-      devolucionesReembolsos: String(form.get("devolucionesReembolsos") || ""),
+
+      // 👇 Cada diseño manda SU config, completamente independiente
+      disenoClasico: buildConfigPayload(configClasico),
+      disenoModerno: buildConfigPayload(configModerno),
+
       mostrarResenas: form.get("mostrarResenas") === "on",
       preguntasFrecuentes: [
         {
@@ -197,9 +276,6 @@ export default function AdminProductosPage() {
       ].filter((faq) => faq.pregunta || faq.respuesta),
       activo: true,
     };
-
-    //prueba envio datos
-    // console.log("📤 Enviando data:", JSON.stringify(data, null, 2));
 
     try {
       if (editando) {
@@ -219,6 +295,7 @@ export default function AdminProductosPage() {
       setLoading(false);
     }
   }
+
   async function eliminarProducto(id: string) {
     if (!confirm("⚠️ ¿Eliminar este producto?")) return;
 
@@ -236,7 +313,7 @@ export default function AdminProductosPage() {
     <AdminGuard>
       <main className="min-h-screen bg-gray-900">
         <div className="max-w-5xl mx-auto px-4 py-6">
-          {/* Header simplificado */}
+          {/* Header */}
           <div className="bg-gray-800 rounded-xl p-4 mb-6">
             <div className="flex justify-between items-center flex-wrap gap-3">
               <div>
@@ -255,12 +332,10 @@ export default function AdminProductosPage() {
             </div>
           </div>
 
-          {/* Formulario - Simplificado pero funcional */}
           <form
             onSubmit={guardarProducto}
             className="bg-gray-800 rounded-xl p-6 mb-8 space-y-4"
           >
-            {/* Nombre y precios */}
             {/* Nombre del producto */}
             <input
               name="nombre"
@@ -269,7 +344,8 @@ export default function AdminProductosPage() {
               className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
               required
             />
-            {/* PRECIO 1 UNIDAD (siempre activo) */}
+
+            {/* PRECIO 1 UNIDAD */}
             <div className="border border-gray-700 rounded-lg p-4 space-y-3">
               <h3 className="text-md font-semibold text-gray-300">
                 💰 Precio 1 Unidad
@@ -293,7 +369,7 @@ export default function AdminProductosPage() {
               </div>
             </div>
 
-            {/* PRECIO 2 UNIDADES (opcional con checkbox) */}
+            {/* PRECIO 2 UNIDADES */}
             <div className="border border-purple-600 rounded-lg p-4 space-y-3 bg-gray-800">
               <div className="flex items-center justify-between">
                 <h3 className="text-md font-semibold text-purple-400">
@@ -334,6 +410,7 @@ export default function AdminProductosPage() {
                 </div>
               )}
             </div>
+
             <div className="border border-gray-700 rounded-lg p-4 space-y-3">
               <h3 className="text-md font-semibold text-gray-300">
                 📝 Textos de ofertas
@@ -354,12 +431,102 @@ export default function AdminProductosPage() {
               />
             </div>
 
-            {/* Configuración Landing */}
-            <div className="border border-gray-700 rounded-lg p-4 space-y-3">
-              <h2 className="text-lg font-bold text-white">
-                ⚙️ Configuración Landing
-              </h2>
+            {/* 👇 ÚNICO selector: elige el diseño de este producto.
+                Al seleccionarlo, se muestra Y edita su configuración abajo.
+                Es lo que se guarda como activo en la tienda al enviar. */}
+            <div className="border-2 border-purple-600 rounded-lg p-4 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="text-lg font-bold text-white">
+                  🎨 Diseño de este producto
+                </h2>
+                <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
+                  <button
+                    type="button"
+                    onClick={() => setDisenoLanding("clasico")}
+                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                      disenoLanding === "clasico"
+                        ? "bg-purple-600 text-white"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Diseño 1 — Clásico
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDisenoLanding("moderno")}
+                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                      disenoLanding === "moderno"
+                        ? "bg-purple-600 text-white"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Diseño 2 — Moderno
+                  </button>
+                </div>
+              </div>
+{/* 🚨 NUEVO: Configuración de Textos del Modal */}
+<div className="border border-purple-500/40 bg-purple-950/20 rounded-lg p-4 space-y-4">
+  <h3 className="text-md font-semibold text-purple-300 flex items-center gap-2">
+    💬 Configuración de Textos del Modal
+  </h3>
 
+  {/* 1. Alerta Superior Modal */}
+  <div className="space-y-2 border-b border-gray-700/60 pb-3">
+    <label className="flex gap-2 items-center text-gray-200 cursor-pointer font-medium">
+      <input
+        type="checkbox"
+        checked={config.mostrarSubtituloModal ?? true}
+        onChange={(e) =>
+          setConfig({ ...config, mostrarSubtituloModal: e.target.checked })
+        }
+        className="w-4 h-4 accent-purple-600"
+      />
+      Mostrar alerta superior en el modal
+    </label>
+
+    {config.mostrarSubtituloModal && (
+      <textarea
+        placeholder="Ej: Por alta demanda, este pedido se reserva por pocos minutos..."
+        value={config.subtituloModal || ""}
+        onChange={(e) =>
+          setConfig({ ...config, subtituloModal: e.target.value })
+        }
+        rows={2}
+        className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 text-sm"
+      />
+    )}
+  </div>
+
+  {/* 2. Bloque Nota Importante Modal */}
+  <div className="space-y-2">
+    <label className="flex gap-2 items-center text-gray-200 cursor-pointer font-medium">
+      <input
+        type="checkbox"
+        checked={config.mostrarTextoImportanteModal ?? true}
+        onChange={(e) =>
+          setConfig({
+            ...config,
+            mostrarTextoImportanteModal: e.target.checked,
+          })
+        }
+        className="w-4 h-4 accent-purple-600"
+      />
+      Mostrar bloque de nota "IMPORTANTE" antes de enviar
+    </label>
+
+    {config.mostrarTextoImportanteModal && (
+      <textarea
+        placeholder="Ej: ⚡IMPORTANTE⚡&#10;📲Confirmar tu pedido por WPP..."
+        value={config.textoImportanteModal || ""}
+        onChange={(e) =>
+          setConfig({ ...config, textoImportanteModal: e.target.value })
+        }
+        rows={3}
+        className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 text-sm"
+      />
+    )}
+  </div>
+</div>
               {/* Contenedor precio/envío */}
               <div className="border border-gray-700 rounded-lg p-4 space-y-3">
                 <h3 className="text-md font-semibold text-gray-300">
@@ -369,43 +536,53 @@ export default function AdminProductosPage() {
                 <label className="flex gap-2 items-center text-gray-300">
                   <input
                     type="checkbox"
-                    name="mostrarInfoCompra"
-                    defaultChecked={editando?.mostrarInfoCompra ?? true}
+                    checked={config.mostrarInfoCompra}
+                    onChange={(e) =>
+                      setConfig({ ...config, mostrarInfoCompra: e.target.checked })
+                    }
                     className="w-4 h-4"
                   />
                   Mostrar contenedor compra
                 </label>
 
                 <input
-                  name="textoDescuento"
                   placeholder="🎯 Texto descuento"
-                  defaultValue={
-                    editando?.textoDescuento ||
-                    "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"
+                  value={config.textoDescuento}
+                  onChange={(e) =>
+                    setConfig({ ...config, textoDescuento: e.target.value })
                   }
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
 
                 <textarea
-                  name="queIncluye"
                   placeholder="📦 ¿Qué incluye?"
-                  defaultValue={editando?.queIncluye || ""}
+                  value={config.queIncluye}
+                  onChange={(e) =>
+                    setConfig({ ...config, queIncluye: e.target.value })
+                  }
                   rows={3}
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
 
                 <textarea
-                  name="informacionEnvio"
                   placeholder="🚚 Información de envío"
-                  defaultValue={editando?.informacionEnvio || ""}
+                  value={config.informacionEnvio}
+                  onChange={(e) =>
+                    setConfig({ ...config, informacionEnvio: e.target.value })
+                  }
                   rows={3}
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
 
                 <textarea
-                  name="devolucionesReembolsos"
                   placeholder="🔄 Devoluciones y reembolsos"
-                  defaultValue={editando?.devolucionesReembolsos || ""}
+                  value={config.devolucionesReembolsos}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      devolucionesReembolsos: e.target.value,
+                    })
+                  }
                   rows={3}
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
@@ -416,18 +593,22 @@ export default function AdminProductosPage() {
                 <label className="flex gap-2 items-center text-gray-300">
                   <input
                     type="checkbox"
-                    name="mostrarContador"
-                    defaultChecked={editando?.mostrarContador ?? true}
+                    checked={config.mostrarContador}
+                    onChange={(e) =>
+                      setConfig({ ...config, mostrarContador: e.target.checked })
+                    }
                     className="w-4 h-4"
                   />
                   ⏱️ Mostrar contador
                 </label>
 
                 <input
-                  name="minutosContador"
                   type="number"
                   placeholder="Minutos contador"
-                  defaultValue={editando?.minutosContador || 28}
+                  value={config.minutosContador}
+                  onChange={(e) =>
+                    setConfig({ ...config, minutosContador: e.target.value })
+                  }
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 />
               </div>
@@ -437,79 +618,185 @@ export default function AdminProductosPage() {
                 <label className="flex gap-2 items-center text-gray-300">
                   <input
                     type="checkbox"
-                    name="mostrarEstrellas"
-                    defaultChecked={editando?.mostrarEstrellas ?? true}
+                    checked={config.mostrarEstrellas}
+                    onChange={(e) =>
+                      setConfig({ ...config, mostrarEstrellas: e.target.checked })
+                    }
                     className="w-4 h-4"
                   />
                   ⭐ Mostrar barra estrellas
                 </label>
 
                 <input
-                  name="textoEstrellas"
-                  placeholder="+100.000 Colombianos arreglaron sus uñas"
-                  defaultValue={editando?.textoEstrellas || ""}
+                  placeholder="+100.000 clientes satisfechos"
+                  value={config.textoEstrellas}
+                  onChange={(e) =>
+                    setConfig({ ...config, textoEstrellas: e.target.value })
+                  }
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 />
               </div>
 
               {/* Botón */}
               <input
-                name="textoBoton"
                 placeholder="🔘 Texto botón"
-                defaultValue={
-                  editando?.textoBoton || "COMPRAR AHORA Y PAGAR AL RECIBIR"
+                value={config.textoBoton}
+                onChange={(e) =>
+                  setConfig({ ...config, textoBoton: e.target.value })
                 }
                 className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
-              {/* Reseñas */}
 
-              <div className="space-y-2 border border-gray-700 rounded-lg p-4">
-                <label className="flex gap-2 items-center text-gray-300">
-                  <input
-                    type="checkbox"
-                    name="mostrarResenas"
-                    defaultChecked={editando?.mostrarResenas ?? true}
-                    className="w-4 h-4"
-                  />
-                  ⭐ Mostrar reseñas
-                </label>
-              </div>
+              {/* Prueba social — SOLO aplica al diseño moderno, se oculta en clásico */}
+              {disenoLanding === "moderno" && (
+                <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+                  <h3 className="text-md font-semibold text-gray-300">
+                    🔥 Prueba social
+                  </h3>
 
-              {/* FAQs */}
-
-              <div className="border border-gray-700 rounded-lg p-4 space-y-4">
-                <h3 className="text-md font-semibold text-gray-300">
-                  ❓ Preguntas frecuentes
-                </h3>
-
-                {[1, 2, 3].map((num, index) => (
-                  <div key={num} className="space-y-2">
+                  <label className="flex gap-2 items-center text-gray-300">
                     <input
-                      name={`faqPregunta${num}`}
-                      placeholder={`Pregunta ${num}`}
-                      defaultValue={
-                        editando?.preguntasFrecuentes?.[index]?.pregunta || ""
+                      type="checkbox"
+                      checked={config.mostrarOrdenesHoy}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          mostrarOrdenesHoy: e.target.checked,
+                        })
                       }
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      className="w-4 h-4"
                     />
+                    Mostrar "X órdenes hoy"
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="137"
+                    value={config.ordenesHoy}
+                    onChange={(e) =>
+                      setConfig({ ...config, ordenesHoy: e.target.value })
+                    }
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
 
-                    <textarea
-                      name={`faqRespuesta${num}`}
-                      placeholder={`Respuesta ${num}`}
-                      defaultValue={
-                        editando?.preguntasFrecuentes?.[index]?.respuesta || ""
+                  <label className="flex gap-2 items-center text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={config.mostrarOpinionesVerificadas}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          mostrarOpinionesVerificadas: e.target.checked,
+                        })
                       }
-                      rows={3}
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      className="w-4 h-4"
                     />
-                  </div>
-                ))}
-              </div>
+                    Mostrar contador de opiniones verificadas
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="1247"
+                    value={config.opinionesVerificadasCount}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        opinionesVerificadasCount: e.target.value,
+                      })
+                    }
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+
+                  <textarea
+                    placeholder="Característica 1 ● Característica 2 ● Característica 3"
+                    value={config.caracteristicasDestacadas}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        caracteristicasDestacadas: e.target.value,
+                      })
+                    }
+                    rows={2}
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+
+                  <p className="text-gray-400 text-sm font-semibold mt-2">
+                    ✓ Checklist de beneficios
+                  </p>
+                  {config.beneficiosChecklist.map((b: any, i: number) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        placeholder="Título"
+                        value={b.titulo}
+                        onChange={(e) => {
+                          const nuevos = [...config.beneficiosChecklist];
+                          nuevos[i] = { ...nuevos[i], titulo: e.target.value };
+                          setConfig({ ...config, beneficiosChecklist: nuevos });
+                        }}
+                        className="w-1/3 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      />
+                      <input
+                        placeholder="Descripción"
+                        value={b.descripcion}
+                        onChange={(e) => {
+                          const nuevos = [...config.beneficiosChecklist];
+                          nuevos[i] = {
+                            ...nuevos[i],
+                            descripcion: e.target.value,
+                          };
+                          setConfig({ ...config, beneficiosChecklist: nuevos });
+                        }}
+                        className="w-2/3 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Imágenes */}
+            {/* Reseñas — compartidas entre diseños (dato real del producto) */}
+            <div className="space-y-2 border border-gray-700 rounded-lg p-4">
+              <label className="flex gap-2 items-center text-gray-300">
+                <input
+                  type="checkbox"
+                  name="mostrarResenas"
+                  defaultChecked={editando?.mostrarResenas ?? true}
+                  className="w-4 h-4"
+                />
+                ⭐ Mostrar reseñas
+              </label>
+            </div>
+
+            {/* FAQs — compartidas entre diseños */}
+            <div className="border border-gray-700 rounded-lg p-4 space-y-4">
+              <h3 className="text-md font-semibold text-gray-300">
+                ❓ Preguntas frecuentes
+              </h3>
+
+              {[1, 2, 3].map((num, index) => (
+                <div key={num} className="space-y-2">
+                  <input
+                    name={`faqPregunta${num}`}
+                    placeholder={`Pregunta ${num}`}
+                    defaultValue={
+                      editando?.preguntasFrecuentes?.[index]?.pregunta || ""
+                    }
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+
+                  <textarea
+                    name={`faqRespuesta${num}`}
+                    placeholder={`Respuesta ${num}`}
+                    defaultValue={
+                      editando?.preguntasFrecuentes?.[index]?.respuesta || ""
+                    }
+                    rows={3}
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Imágenes — compartidas entre diseños */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Imagen Principal */}
               <div className="border border-gray-700 rounded-lg p-4">
                 <h3 className="font-bold text-white mb-2">
                   🖼️ Imagen principal
@@ -538,7 +825,6 @@ export default function AdminProductosPage() {
                 )}
               </div>
 
-              {/* Landing 1 */}
               <div className="border border-gray-700 rounded-lg p-4">
                 <h3 className="font-bold text-white mb-2">📸 Landing 1</h3>
                 <input
@@ -565,7 +851,6 @@ export default function AdminProductosPage() {
                 )}
               </div>
 
-              {/* Landing 2 */}
               <div className="border border-gray-700 rounded-lg p-4">
                 <h3 className="font-bold text-white mb-2">📸 Landing 2</h3>
                 <input
@@ -592,7 +877,6 @@ export default function AdminProductosPage() {
                 )}
               </div>
 
-              {/* Landing 3 */}
               <div className="border border-gray-700 rounded-lg p-4">
                 <h3 className="font-bold text-white mb-2">📸 Landing 3</h3>
                 <input
@@ -619,7 +903,6 @@ export default function AdminProductosPage() {
                 )}
               </div>
 
-              {/* Landing 4 */}
               <div className="border border-gray-700 rounded-lg p-4">
                 <h3 className="font-bold text-white mb-2">📸 Landing 4</h3>
                 <input
@@ -646,7 +929,6 @@ export default function AdminProductosPage() {
                 )}
               </div>
 
-              {/* Landing 5 */}
               <div className="border border-gray-700 rounded-lg p-4">
                 <h3 className="font-bold text-white mb-2">📸 Landing 5</h3>
                 <input
@@ -677,17 +959,7 @@ export default function AdminProductosPage() {
             {imagenSubiendo && (
               <p className="text-blue-400 text-sm">⏳ Subiendo imagen...</p>
             )}
-            <div className="border border-gray-700 rounded-lg p-4 space-y-4">
-              <label className="flex gap-2 items-center text-gray-300">
-                <input
-                  type="checkbox"
-                  name="mostrarResenas"
-                  defaultChecked={editando?.mostrarResenas ?? true}
-                  className="w-4 h-4"
-                />
-                ⭐ Mostrar reseñas automáticas
-              </label>
-            </div>
+
             {/* Botones */}
             <div className="flex gap-3">
               <button
@@ -743,6 +1015,12 @@ export default function AdminProductosPage() {
                         ${producto.precioAntes}
                       </p>
                     )}
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      🎨{" "}
+                      {producto.disenoLanding === "moderno"
+                        ? "Moderno"
+                        : "Clásico"}
+                    </p>
                   </div>
                 </div>
 
