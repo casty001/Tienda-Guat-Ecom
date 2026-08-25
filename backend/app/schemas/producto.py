@@ -35,6 +35,9 @@ class ConfigDiseno(BaseModel):
     mostrarContador: bool = True
     minutosContador: int = 28
 
+    # 🎨 NUEVO: color del banner del contador, editable desde el admin (hex, ej. "#E06000")
+    colorBanner: str = "#E06000"
+
     mostrarEstrellas: bool = True
     textoEstrellas: str = "+100.000 clientes satisfechos"
 

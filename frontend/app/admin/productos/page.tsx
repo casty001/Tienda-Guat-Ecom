@@ -8,11 +8,11 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 
-// 👇 Valores por defecto de un ConfigDiseno (deben calzar con el schema)
 function defaultConfig() {
   return {
     mostrarContador: true,
     minutosContador: "28",
+    colorBanner: "#E06000",
     mostrarEstrellas: true,
     textoEstrellas: "+100.000 clientes satisfechos",
     textoBoton: "COMPRAR AHORA Y PAGAR AL RECIBIR",
@@ -194,6 +194,7 @@ export default function AdminProductosPage() {
   return {
     ...cfg,
     minutosContador: Number(cfg.minutosContador) || 0,
+    colorBanner: cfg.colorBanner || "#E06000",
     ordenesHoy: Number(cfg.ordenesHoy) || 0,
     opinionesVerificadasCount: Number(cfg.opinionesVerificadasCount) || 0,
     mostrarSubtituloModal: cfg.mostrarSubtituloModal ?? true,
@@ -611,6 +612,22 @@ export default function AdminProductosPage() {
                   }
                   className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 />
+
+                {/* 🎨 NUEVO: color del banner del contador, editable desde el admin */}
+                <label className="flex items-center gap-3 text-gray-300 text-sm">
+                  <span>🎨 Color del banner</span>
+                  <input
+                    type="color"
+                    value={config.colorBanner || "#E06000"}
+                    onChange={(e) =>
+                      setConfig({ ...config, colorBanner: e.target.value })
+                    }
+                    className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
+                  />
+                  <span className="text-gray-500 text-xs">
+                    {config.colorBanner || "#E06000"}
+                  </span>
+                </label>
               </div>
 
               {/* Estrellas */}

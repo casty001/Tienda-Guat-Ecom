@@ -73,6 +73,7 @@ function getTtclid(): string | null {
 }
 
 export default function ProductoClient({ producto }: { producto: any }) {
+  const cfg = producto.disenoClasico || {};
   const [modalOpen, setModalOpen] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [errorBackend, setErrorBackend] = useState<string | null>(null);
@@ -131,10 +132,10 @@ export default function ProductoClient({ producto }: { producto: any }) {
   }, [producto]);
 
   useEffect(() => {
-    if (!producto?.mostrarContador) return;
+    if (!cfg.mostrarContador) return;
     setTiempo({
       horas: 0,
-      minutos: Number(producto.minutosContador || 28),
+      minutos: Number(cfg.minutosContador || 28),
       segundos: 59,
     });
     const interval = setInterval(() => {
@@ -152,7 +153,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
               horas--;
             } else {
               horas = 0;
-              minutos = Number(producto.minutosContador || 28);
+              minutos = Number(cfg.minutosContador || 28);
               segundos = 59;
             }
           }
@@ -161,7 +162,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [producto]);
+  }, [producto, cfg.mostrarContador, cfg.minutosContador]);
 
   async function irFormulario() {
     if (typeof window !== "undefined" && producto) {
@@ -327,8 +328,11 @@ export default function ProductoClient({ producto }: { producto: any }) {
 
       <div className="block md:hidden">
         <main className="bg-[#121212] min-h-screen">
-          {producto.mostrarContador && (
-            <section className="bg-red-800 text-white py-3">
+          {cfg.mostrarContador && (
+            <section
+              className="text-white py-3"
+              style={{ backgroundColor: cfg.colorBanner || "#E06000" }}
+            >
               <div className="flex items-center justify-center gap-4">
                 <div className="text-center font-black italic leading-tight text-sm md:text-xl">
                   <p>DESCUENTO POR</p>
@@ -351,10 +355,10 @@ export default function ProductoClient({ producto }: { producto: any }) {
             </section>
           )}
 
-          {producto.mostrarEstrellas && (
+          {cfg.mostrarEstrellas && (
             <div className="bg-white text-black text-center text-sm md:text-base font-bold py-1">
               ⭐⭐⭐⭐⭐{" "}
-              {producto.textoEstrellas || "+100.000 clientes satisfechos"}
+              {cfg.textoEstrellas || "+100.000 clientes satisfechos"}
             </div>
           )}
 
@@ -386,10 +390,10 @@ export default function ProductoClient({ producto }: { producto: any }) {
             </div>
           </button>
 
-          {producto.mostrarInfoCompra && (
+          {cfg.mostrarInfoCompra && (
             <section className="bg-[#121212] text-white p-6 text-center">
               <h2 className="text-2xl md:text-4xl font-black leading-tight">
-                {producto.textoDescuento ||
+                {cfg.textoDescuento ||
                   "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS"}
               </h2>
               <h3 className="text-2xl md:text-4xl font-black mt-3">
@@ -403,7 +407,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
                     <span>▼</span>
                   </summary>
                   <p className="mt-4 text-gray-200">
-                    {producto.queIncluye || "Incluye el producto seleccionado."}
+                    {cfg.queIncluye || "Incluye el producto seleccionado."}
                   </p>
                 </details>
                 <details className="p-5">
@@ -412,7 +416,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
                     <span>▼</span>
                   </summary>
                   <p className="mt-4 text-gray-200">
-                    {producto.informacionEnvio ||
+                    {cfg.informacionEnvio ||
                       "Enviamos a tu ciudad y pagas al recibir."}
                   </p>
                 </details>
@@ -422,7 +426,7 @@ export default function ProductoClient({ producto }: { producto: any }) {
                     <span>▼</span>
                   </summary>
                   <p className="mt-4 text-gray-200">
-                    {producto.devolucionesReembolsos ||
+                    {cfg.devolucionesReembolsos ||
                       "Nuestro equipo te ayudará si tienes inconvenientes."}
                   </p>
                 </details>

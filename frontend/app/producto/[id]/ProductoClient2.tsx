@@ -13,10 +13,6 @@ const DesktopGenericLanding = dynamic(
   { ssr: false },
 );
 
-// ───────────────────────────────────────────────────────────
-// Helpers (idénticos a ProductoClient.tsx — mismo tracking,
-// misma lógica de cookies/pedido. No se toca nada de esto.
-// ───────────────────────────────────────────────────────────
 function getCookie(name: string) {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
@@ -71,8 +67,6 @@ function getOrCreateAnonId(): string {
 }
 
 export default function ProductoClient2({ producto }: { producto: any }) {
-  // 👇 Config exclusiva del diseño moderno. Todo lo que sea texto/comportamiento
-  // configurable desde el admin se lee de aquí, NUNCA de producto.X directo.
   const cfg = producto.disenoModerno || {};
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -331,7 +325,10 @@ export default function ProductoClient2({ producto }: { producto: any }) {
           className={`bg-white min-h-screen ${mostrarFlotante ? "pb-20" : ""}`}
         >
           {cfg.mostrarContador && (
-            <section className="bg-[#E06000] text-white py-2 px-4 flex items-center justify-between text-xs md:text-sm font-extrabold uppercase">
+            <section
+              className="text-white py-2 px-4 flex items-center justify-between text-xs md:text-sm font-extrabold uppercase"
+              style={{ backgroundColor: cfg.colorBanner || "#E06000" }}
+            >
               <div className="leading-tight text-center italic font-black">
                 DESCUENTO POR
                 <br />
@@ -364,21 +361,23 @@ export default function ProductoClient2({ producto }: { producto: any }) {
             </div>
           )}
 
-          <section className="px-6 py-8 text-center">
-            <div>
-              {producto.imagenesLanding?.imagen1 && (
-                <Image
-                  src={producto.imagenesLanding.imagen1}
-                  alt={producto.nombre}
-                  width={600}
-                  height={600}
-                  sizes="90vw"
-                  className="w-full h-auto rounded-2xl mb-4"
-                  priority
-                  fetchPriority="high"
-                />
-              )}
+          {/* Imagen principal: ahora fuera del contenedor con padding,
+              full-bleed (ocupa todo el ancho, borde a borde). */}
+          {producto.imagenesLanding?.imagen1 && (
+            <Image
+              src={producto.imagenesLanding.imagen1}
+              alt={producto.nombre}
+              width={600}
+              height={600}
+              sizes="100vw"
+              className="w-full h-auto block"
+              priority
+              fetchPriority="high"
+            />
+          )}
 
+          <section className="px-6 pt-3 pb-8 text-center">
+            <div>
               {/* ✅ FIX #4: ahora respeta el check mostrarOrdenesHoy del admin */}
               {cfg.mostrarOrdenesHoy && (
                 <div className="flex items-center gap-2 mb-2">
@@ -460,7 +459,7 @@ export default function ProductoClient2({ producto }: { producto: any }) {
 
             <button
               onClick={irFormulario}
-              className="w-[90%] mx-auto my-6 flex items-center justify-center gap-3 bg-[#cb1515] text-white py-4 px-6 rounded-md shadow-lg font-extrabold uppercase relative overflow-hidden btn-shake hover:scale-[1.01] transition"
+              className="w-full my-6 flex items-center justify-center gap-3 bg-[#cb1515] text-white py-4 px-6 rounded-md shadow-lg font-extrabold uppercase relative overflow-hidden btn-shake hover:scale-[1.01] transition"
             >
               {svgCarrito}
               <div className="flex flex-col leading-tight">
