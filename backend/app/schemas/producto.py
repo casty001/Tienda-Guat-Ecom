@@ -2,6 +2,33 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+# ═══════════════════════════════════════════════════════════════
+# 🆕 SISTEMA DE BLOQUES (estilo Shopify)
+# VA PRIMERO — porque ProductoCreate/ProductoUpdate lo usan abajo.
+# ═══════════════════════════════════════════════════════════════
+
+class Bloque(BaseModel):
+    id: str
+    tipo: str
+    props: dict = Field(default_factory=dict)
+
+
+class Tema(BaseModel):
+    colorPrimario: str = "#cb1515"
+    colorFondo: str = "#ffffff"
+    tipografia: str = "Inter"
+    anchoMax: int = 480
+
+
+class Plantilla(BaseModel):
+    version: int = 2
+    bloques: list[Bloque] = Field(default_factory=list)
+    secciones: list[dict] = Field(default_factory=list)   # 👈 NUEVO
+    tema: Tema = Field(default_factory=Tema)
+
+# ═══════════════════════════════════════════════════════════════
+# SCHEMA EXISTENTE (tal cual lo tenías)
+# ═══════════════════════════════════════════════════════════════
 
 class ImagenesLanding(BaseModel):
     imagen1: str = ""
@@ -14,6 +41,7 @@ class PreguntaFrecuente(BaseModel):
     pregunta: str = ""
     respuesta: str = ""
 
+
 class Resena(BaseModel):
     nombre: str = ""
     ciudad: str = ""
@@ -22,20 +50,22 @@ class Resena(BaseModel):
     fecha: str = ""
     verificado: bool = True
 
+
 class Precio2Opcional(BaseModel):
     activo: bool = False
     precio: float = 0
     precioAntes: float = 0
 
+
 class BeneficioChecklist(BaseModel):
     titulo: str = ""
     descripcion: str = ""
+
 
 class ConfigDiseno(BaseModel):
     mostrarContador: bool = True
     minutosContador: int = 28
 
-    # 🎨 NUEVO: color del banner del contador, editable desde el admin (hex, ej. "#E06000")
     colorBanner: str = "#E06000"
 
     mostrarEstrellas: bool = True
@@ -60,14 +90,30 @@ class ConfigDiseno(BaseModel):
     caracteristicasDestacadas: str = ""
 
     mostrarSubtituloModal: bool = True
-    subtituloModal: str = "Por alta demanda, este pedido se reserva por pocos minutos. Finaliza tu compra antes de que se agote."
+    subtituloModal: str = (
+        "Por alta demanda, este pedido se reserva por pocos minutos. "
+        "Finaliza tu compra antes de que se agote."
+    )
 
     mostrarTextoImportanteModal: bool = True
-    textoImportanteModal: str = "⚡IMPORTANTE⚡\n📲Confirmar tu pedido por WPP para poder enviarle\n📍Si prefieres retirar en Servientrega, solicita por WPP"
+    textoImportanteModal: str = (
+        "⚡IMPORTANTE⚡\n"
+        "📲Confirmar tu pedido por WPP para poder enviarle\n"
+        "📍Si prefieres retirar en Servientrega, solicita por WPP"
+    )
 
     beneficiosChecklist: list[BeneficioChecklist] = Field(
         default_factory=list
     )
+    ordenSecciones: list[str] = Field(default_factory=lambda: [
+        "banner_contador",
+        "barra_estrellas",
+        "galeria_y_compra",
+        "faqs",
+        "resenas",
+    ])
+
+
 class ProductoCreate(BaseModel):
 
     nombre: str
@@ -109,6 +155,12 @@ class ProductoCreate(BaseModel):
         default_factory=ConfigDiseno
     )
 
+    # 🆕 campos nuevos — ahora sí funcionan porque Plantilla está arriba
+    plantilla: Optional[Plantilla] = None
+    plantillaPublicada: Optional[Plantilla] = None
+    schemaVersion: int = 1
+
+
 class ProductoUpdate(BaseModel):
 
     nombre: Optional[str] = None
@@ -142,3 +194,8 @@ class ProductoUpdate(BaseModel):
     disenoClasico: Optional[ConfigDiseno] = None
 
     disenoModerno: Optional[ConfigDiseno] = None
+
+    # 🆕 campos nuevos
+    plantilla: Optional[Plantilla] = None
+    plantillaPublicada: Optional[Plantilla] = None
+    schemaVersion: Optional[int] = None

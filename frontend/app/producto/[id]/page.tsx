@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import ProductoClient from "./ProductoClient";
-import ProductoClient2 from "./ProductoClient2";
 
-export const revalidate = 1800;
+export const revalidate = 2;
 
 export async function generateStaticParams() {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`);
@@ -28,11 +27,6 @@ export default async function ProductoPage({
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/productos/${id}`,
-      {
-        //  next: {
-        // revalidate: 1800,
-        //},
-      },
     );
 
     if (!res.ok) {
@@ -40,11 +34,7 @@ export default async function ProductoPage({
     }
 
     const producto = await res.json();
-    return producto.disenoLanding === "moderno" ? ( // 👈 CAMBIAR
-      <ProductoClient2 producto={producto} />
-    ) : (
-      <ProductoClient producto={producto} />
-    );
+    return <ProductoClient producto={producto} />;
   } catch (error) {
     console.error(error);
 

@@ -63,7 +63,7 @@ def editar_producto(
 
     ref.update(data)
 
-    return {"ok": True, "disenoLandingGuardado": data.get("disenoLanding")}
+    return {"ok": True, "actualizado": list(data.keys())}
 
 
 @router.delete("/{producto_id}")
