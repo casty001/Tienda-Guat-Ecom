@@ -1,16 +1,30 @@
 from typing import Literal, Optional
-
 from pydantic import BaseModel, Field
 
 # ═══════════════════════════════════════════════════════════════
 # 🆕 SISTEMA DE BLOQUES (estilo Shopify)
-# VA PRIMERO — porque ProductoCreate/ProductoUpdate lo usan abajo.
 # ═══════════════════════════════════════════════════════════════
+
+class NavLink(BaseModel):
+    label: str = ""
+    href: str = ""
+
+
+class Nav(BaseModel):
+    mostrar: bool = True
+    logoUrl: str = "/logo.svg"
+    logoAltura: int = 40
+    colorFondo: str = "#ffffff"
+    colorIconos: str = "#000000"
+    mostrarHamburguesa: bool = True
+    links: list[NavLink] = Field(default_factory=list)   # 👈 preparado para el paso 2
+
 
 class Bloque(BaseModel):
     id: str
     tipo: str
     props: dict = Field(default_factory=dict)
+    estilos: dict = Field(default_factory=dict)   # 👈 NUEVO — el editor ya lo manda
 
 
 class Tema(BaseModel):
@@ -18,12 +32,33 @@ class Tema(BaseModel):
     colorFondo: str = "#ffffff"
     tipografia: str = "Inter"
     anchoMax: int = 480
+    nav: Nav = Field(default_factory=Nav)   # 👈 NUEVO
+
+
+class AjustesSeccion(BaseModel):
+    ancho: Literal["fill", "ajustar"] = "fill"
+    anchoMax: int = 480
+    colorFondo: Optional[str] = None
+    radioEsquinas: int = 0
+    paddingArriba: int = 0
+    paddingAbajo: int = 0
+    paddingLados: int = 0
+
+
+class Seccion(BaseModel):
+    id: str
+    tipo: str   # "header" | "producto" | "compra" | "testimonios" | "faq" | "custom"
+    nombre: str = ""
+    visible: bool = True
+    colapsada: bool = False
+    bloques: list[Bloque] = Field(default_factory=list)
+    ajustes: AjustesSeccion = Field(default_factory=AjustesSeccion)
 
 
 class Plantilla(BaseModel):
-    version: int = 2
-    bloques: list[Bloque] = Field(default_factory=list)
-    secciones: list[dict] = Field(default_factory=list)   # 👈 NUEVO
+    version: int = 3
+    bloques: list[Bloque] = Field(default_factory=list)   # legacy
+    secciones: list[Seccion] = Field(default_factory=list)
     tema: Tema = Field(default_factory=Tema)
 
 # ═══════════════════════════════════════════════════════════════

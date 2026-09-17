@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import { apiPublica } from "@/lib/api";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
@@ -77,26 +76,31 @@ export default function ProductoClient({
   producto,
   previewMode = false,
   editorMode = false,
+  bloqueHover = null,
+  seleccionado = null,
 }: {
   producto: any;
   previewMode?: boolean;
   editorMode?: boolean;
+  bloqueHover?: string | null;
+  seleccionado?: string | null;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [errorBackend, setErrorBackend] = useState<string | null>(null);
+  const [menuAbierto, setMenuAbierto] = useState(false); // 👈 NUEVO
 
   const plantilla =
-  producto.plantilla?.bloques?.length > 0
-    ? producto.plantilla
-    : construirPlantilla(producto);
+    producto.plantilla?.bloques?.length > 0
+      ? producto.plantilla
+      : construirPlantilla(producto);
 
-    useEffect(() => {
+  useEffect(() => {
     import("@/components/FloatingOrderModal");
   }, []);
 
   useEffect(() => {
-    if (previewMode) return; 
+    if (previewMode) return;
     asegurarFbc();
 
     async function trackViewContent() {
@@ -288,12 +292,43 @@ export default function ProductoClient({
       </div>
 
       <div className="block md:hidden">
-        <main className="bg-[#121212] min-h-screen">
-          <ProductRenderer
+        {/* ─── DRAWER DEL MENÚ ─── */}
+        {menuAbierto && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/40 z-50"
+              onClick={() => setMenuAbierto(false)}
+            />
+            <aside className="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 p-6 shadow-xl">
+              <div className="flex justify-between items-center mb-6">
+                <span className="font-bold">Menú</span>
+                <button
+                  onClick={() => setMenuAbierto(false)}
+                  className="text-gray-500 text-2xl leading-none"
+                  aria-label="Cerrar"
+                >
+                  ×
+                </button>
+              </div>
+              <nav className="space-y-4">
+                <a href="/" className="block text-gray-800">
+                  Inicio
+                </a>
+              </nav>
+            </aside>
+          </>
+        )}
+
+        {/* ─── MAIN ─── */}
+        <main className="bg-[#121212] min-h-screen pb-24">
+<ProductRenderer
   plantilla={plantilla}
   producto={producto}
   onComprar={irFormulario}
+  onMenuClick={() => setMenuAbierto(true)}
   modo={editorMode ? "editor" : "ver"}
+  bloqueHover={bloqueHover}
+  seleccionado={seleccionado}
 />
 
           <FloatingOrderModal

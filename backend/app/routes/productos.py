@@ -23,6 +23,15 @@ def obtener_producto(producto_id: str):
     return {"id": doc.id, **doc.to_dict()}
 
 
+def _limpiar_none(obj):
+    """Elimina recursivamente los valores None para Firestore."""
+    if isinstance(obj, dict):
+        return {k: _limpiar_none(v) for k, v in obj.items() if v is not None}
+    if isinstance(obj, list):
+        return [_limpiar_none(v) for v in obj]
+    return obj
+
+
 @router.post("")
 def crear_producto(producto: ProductoCreate, user=Depends(verificar_admin)):
     data = producto.model_dump()
@@ -33,6 +42,9 @@ def crear_producto(producto: ProductoCreate, user=Depends(verificar_admin)):
         data["resenas"] = []
 
     data["creadoEn"] = datetime.utcnow().isoformat()
+
+    # 👇 Limpiar None antes de guardar (evita errores de Firestore)
+    data = _limpiar_none(data)
 
     ref = db.collection("productos").add(data)
     return {"ok": True, "id": ref[1].id}
@@ -61,10 +73,12 @@ def editar_producto(
 
     data["actualizadoEn"] = datetime.utcnow().isoformat()
 
+    # 👇 Limpiar None antes de guardar
+    data = _limpiar_none(data)
+
     ref.update(data)
 
     return {"ok": True, "actualizado": list(data.keys())}
-
 
 @router.delete("/{producto_id}")
 def eliminar_producto(producto_id: str, user=Depends(verificar_admin)):

@@ -11,6 +11,7 @@ import {
   type Seccion,
   type TipoSeccion,
 } from "./bloques";
+import { NAV_DEFAULT } from "./bloques"; // 👈 agrega este import
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -30,17 +31,21 @@ function clonarPlantilla(p: Plantilla): Plantilla {
       id: b.id,
       tipo: b.tipo,
       props: { ...b.props },
+      estilos: b.estilos ? { ...b.estilos } : undefined,   // 👈 NUEVO
     })),
     secciones: (p.secciones || []).map((s) => ({
       id: s.id,
       tipo: s.tipo,
       nombre: s.nombre,
       visible: s.visible,
-      ajustes: { ...(s as any).ajustes },   // 👈 ESTA LÍNEA FALTA
+            colapsada: s.colapsada ?? false,   // 👈 ESTA LÍNEA FALTA
+
+      ajustes: { ...(s as any).ajustes },
       bloques: s.bloques.map((b) => ({
         id: b.id,
         tipo: b.tipo,
         props: { ...b.props },
+        estilos: b.estilos ? { ...b.estilos } : undefined,   // 👈 NUEVO
       })),
     })),
   };
@@ -84,11 +89,16 @@ type EditorState = {
   duplicarBloque: (id: string) => void;
   eliminarBloque: (id: string) => void;
   actualizarProps: (id: string, props: Record<string, any>) => void;
+    actualizarEstilosBloque: (id: string, estilos: Record<string, any>) => void;
 
   // ─── Secciones ───
   renombrarSeccion: (id: string, nombre: string) => void;
   toggleVisibleSeccion: (id: string) => void;
   actualizarAjustesSeccion: (id: string, ajustes: Partial<any>) => void;
+  agregarSeccion: (tipo: TipoSeccion, index?: number) => void;
+  eliminarSeccion: (id: string) => void;
+  duplicarSeccion: (id: string) => void;
+  moverSeccion: (from: number, to: number) => void;
   // ─── Tema ───
   actualizarTema: (tema: Partial<Plantilla["tema"]>) => void;
 
@@ -108,6 +118,8 @@ const PLANTILLA_VACIA: Plantilla = {
     colorFondo: "#121212",
     tipografia: "Inter",
     anchoMax: 480,
+    nav: { ...NAV_DEFAULT }, // 👈 agregado
+
   },
 };
 
@@ -346,7 +358,19 @@ export const useEditor = create<EditorState>((set, get) => ({
     }));
     set({ plantilla: { ...state.plantilla, secciones: nuevasSecciones } });
   },
-
+  actualizarEstilosBloque: (id, estilos) => {
+    const state = get();
+    const secciones = state.plantilla.secciones || [];
+    const nuevasSecciones = secciones.map((s) => ({
+      ...s,
+      bloques: s.bloques.map((b) =>
+        b.id === id
+          ? { ...b, estilos: { ...(b.estilos || {}), ...estilos } }
+          : b
+      ),
+    }));
+    set({ plantilla: { ...state.plantilla, secciones: nuevasSecciones } });
+  },
   // ──────────────────────────────────────────────────────────────
   // SECCIONES
   // ──────────────────────────────────────────────────────────────
@@ -372,7 +396,113 @@ export const useEditor = create<EditorState>((set, get) => ({
         ? { ...s, ajustes: { ...(s.ajustes || {}), ...ajustes } }
         : s
     );
-    set({ plantilla: { ...state.plantilla, secciones } });
+    set(conHistorial(state, { ...state.plantilla, secciones }));
+  },
+    // ──────────────────────────────────────────────────────────────
+  // AGREGAR SECCIÓN
+  // ──────────────────────────────────────────────────────────────
+  agregarSeccion: (tipo, index) => {
+    const state = get();
+    const def = SECCIONES[tipo];
+    if (!def) return;
+
+    const nueva = crearSeccion(tipo);
+
+    const secciones = [...(state.plantilla.secciones || [])];
+    secciones.splice(index ?? secciones.length, 0, nueva);
+
+    set({
+      ...conHistorial(state, { ...state.plantilla, secciones }),
+      seccionSeleccionada: nueva.id,
+      seleccionado: null,
+    });
+  },
+
+  // ──────────────────────────────────────────────────────────────
+  // ELIMINAR SECCIÓN
+  // ──────────────────────────────────────────────────────────────
+  eliminarSeccion: (id) => {
+    const state = get();
+    const secciones = state.plantilla.secciones || [];
+    const seccion = secciones.find((s) => s.id === id);
+    if (!seccion) return;
+
+    // Verificar si es fija
+    const def = SECCIONES[seccion.tipo];
+    if (def?.fija) {
+      alert(
+        `La sección "${seccion.nombre}" es fija y no se puede eliminar. Podés ocultarla con el botón 👁.`,
+      );
+      return;
+    }
+
+    if (
+      seccion.bloques.length > 0 &&
+      !confirm(
+        `¿Eliminar la sección "${seccion.nombre}" con sus ${seccion.bloques.length} bloque(s)?`,
+      )
+    ) {
+      return;
+    }
+
+    const nuevas = secciones.filter((s) => s.id !== id);
+
+    set({
+      ...conHistorial(state, { ...state.plantilla, secciones: nuevas }),
+      seccionSeleccionada:
+        state.seccionSeleccionada === id ? null : state.seccionSeleccionada,
+    });
+  },
+
+  // ──────────────────────────────────────────────────────────────
+  // DUPLICAR SECCIÓN (con todos sus bloques)
+  // ──────────────────────────────────────────────────────────────
+  duplicarSeccion: (id) => {
+    const state = get();
+    const secciones = state.plantilla.secciones || [];
+    const index = secciones.findIndex((s) => s.id === id);
+    if (index < 0) return;
+
+    const original = secciones[index];
+
+    // Clonar con IDs nuevos
+    const copia: Seccion = {
+      ...original,
+      id: newId(),
+      nombre: `${original.nombre} (copia)`,
+      bloques: original.bloques.map((b) => ({
+        ...b,
+        id: newId(),
+        props: { ...b.props },
+        estilos: b.estilos ? { ...b.estilos } : undefined,
+      })),
+    };
+
+    const nuevas = [...secciones];
+    nuevas.splice(index + 1, 0, copia);
+
+    set({
+      ...conHistorial(state, { ...state.plantilla, secciones: nuevas }),
+      seccionSeleccionada: copia.id,
+    });
+  },
+
+  // ──────────────────────────────────────────────────────────────
+  // MOVER SECCIÓN (reordenar)
+  // ──────────────────────────────────────────────────────────────
+  moverSeccion: (from, to) => {
+    const state = get();
+    if (from === to) return;
+
+    const secciones = state.plantilla.secciones || [];
+    if (from < 0 || to < 0 || from >= secciones.length || to >= secciones.length)
+      return;
+
+    const nuevas = [...secciones];
+    const [item] = nuevas.splice(from, 1);
+    nuevas.splice(to, 0, item);
+
+    set(conHistorial(state, { ...state.plantilla, secciones: nuevas }));
   },
   // ──────────────────────────────────────────────────────────────
   // TEMA

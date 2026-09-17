@@ -8,6 +8,7 @@ import AdminGuard from "@/components/AdminGuard";
 import {
   BLOQUES,
   SECCIONES,
+  NAV_DEFAULT, // 👈 AÑADIR
   construirPlantilla,
   type BloqueDef,
   type Seccion,
@@ -20,8 +21,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDndContext, // 👈 NUEVO
   type DragEndEvent,
-  useDroppable,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -72,7 +73,11 @@ function InputImagen({
       )}
       {value ? (
         <div className="rounded-lg overflow-hidden border border-gray-600 bg-gray-900">
-          <img src={value} alt="preview" className="w-full h-40 object-contain" />
+          <img
+            src={value}
+            alt="preview"
+            className="w-full h-40 object-contain"
+          />
         </div>
       ) : (
         <div className="w-full h-40 rounded-lg border border-dashed border-gray-600 bg-gray-900 flex items-center justify-center">
@@ -156,7 +161,11 @@ function EditorRepeater({
   onChange,
 }: {
   items: any[];
-  campos: { key: string; label: string; tipo: "text" | "textarea" | "number" }[];
+  campos: {
+    key: string;
+    label: string;
+    tipo: "text" | "textarea" | "number";
+  }[];
   onChange: (nuevos: any[]) => void;
 }) {
   const lista = Array.isArray(items) ? items : [];
@@ -193,7 +202,9 @@ function EditorRepeater({
           className="border border-gray-700 rounded-lg p-3 space-y-2 bg-gray-900/50"
         >
           <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400 font-semibold">#{i + 1}</span>
+            <span className="text-xs text-gray-400 font-semibold">
+              #{i + 1}
+            </span>
             <div className="flex gap-1">
               <button
                 type="button"
@@ -240,7 +251,9 @@ function EditorRepeater({
                     actualizarItem(
                       i,
                       c.key,
-                      c.tipo === "number" ? Number(e.target.value) : e.target.value
+                      c.tipo === "number"
+                        ? Number(e.target.value)
+                        : e.target.value,
                     )
                   }
                   className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
@@ -310,14 +323,25 @@ function InputProp({ prop, value, onChange, onSnapshot }: any) {
   const cp = { onFocus: onSnapshot };
 
   if (prop.tipo === "imagen") {
-    return <InputImagen value={value || ""} onChange={onChange} />;
+    return (
+      <InputImagen
+        value={value || ""}
+        onChange={(v) => {
+          onSnapshot?.();
+          onChange(v);
+        }}
+      />
+    );
   }
   if (prop.tipo === "toggle") {
     return (
       <input
         type="checkbox"
         checked={!!value}
-        onChange={(e) => onChange(e.target.checked)}
+        onChange={(e) => {
+          onSnapshot?.();
+          onChange(e.target.checked);
+        }}
         className="w-5 h-5 accent-blue-500"
       />
     );
@@ -328,6 +352,7 @@ function InputProp({ prop, value, onChange, onSnapshot }: any) {
         <input
           type="color"
           value={value || "#000000"}
+          onFocus={onSnapshot}
           onChange={(e) => onChange(e.target.value)}
           className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
         />
@@ -361,7 +386,10 @@ function InputProp({ prop, value, onChange, onSnapshot }: any) {
     return (
       <select
         value={value || prop.options[0]}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onSnapshot?.();
+          onChange(e.target.value);
+        }}
         className={base}
       >
         {prop.options.map((opt: string) => (
@@ -382,7 +410,57 @@ function InputProp({ prop, value, onChange, onSnapshot }: any) {
     />
   );
 }
+// ═══════════════════════════════════════════════════════════════
+// GRUPO DE AJUSTES
+// ═══════════════════════════════════════════════════════════════
+function Grupo({
+  titulo,
+  children,
+}: {
+  titulo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2 pt-3 border-t border-gray-700 first:border-t-0 first:pt-0">
+      <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
+        {titulo}
+      </p>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
 
+// ═══════════════════════════════════════════════════════════════
+// BOTÓN DUAL
+// ═══════════════════════════════════════════════════════════════
+function BotonDual({
+  value,
+  onChange,
+  opciones,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  opciones: { valor: string; label: string }[];
+}) {
+  return (
+    <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
+      {opciones.map((op) => (
+        <button
+          key={op.valor}
+          type="button"
+          onClick={() => onChange(op.valor)}
+          className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+            value === op.valor
+              ? "bg-blue-600 text-white"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          {op.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 // ═══════════════════════════════════════════════════════════════
 // ITEM BLOQUE (arrastrable dentro de sección)
 // ═══════════════════════════════════════════════════════════════
@@ -453,7 +531,56 @@ function ItemBloque({
     </div>
   );
 }
+// ═══════════════════════════════════════════════════════════════
+// BOTÓN + AGREGAR SECCIÓN
+// ═══════════════════════════════════════════════════════════════
+function AgregarSeccionDropdown() {
+  const [abierto, setAbierto] = useState(false);
+  const agregarSeccion = useEditor((s) => s.agregarSeccion);
 
+  const tiposDisponibles = [
+    { tipo: "producto", label: "Producto", icono: "🎯" },
+    { tipo: "compra", label: "Compra", icono: "💰" },
+    { tipo: "testimonios", label: "Testimonios", icono: "⭐" },
+    { tipo: "faq", label: "Preguntas", icono: "❓" },
+    { tipo: "custom", label: "Sección libre", icono: "📄" },
+  ] as const;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setAbierto((v) => !v)}
+        className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+      >
+        ＋ Agregar sección
+      </button>
+
+      {abierto && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setAbierto(false)}
+          />
+          <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1">
+            {tiposDisponibles.map((t) => (
+              <button
+                key={t.tipo}
+                onClick={() => {
+                  agregarSeccion(t.tipo);
+                  setAbierto(false);
+                }}
+                className="w-full px-3 py-2 text-left text-xs text-white hover:bg-gray-700 flex items-center gap-2"
+              >
+                <span className="text-base">{t.icono}</span>
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 // ═══════════════════════════════════════════════════════════════
 // SECCIÓN COLAPSABLE EN SIDEBAR
 // ═══════════════════════════════════════════════════════════════
@@ -472,47 +599,199 @@ function SeccionSidebar({
 }) {
   const [abierta, setAbierta] = useState(true);
   const [agregando, setAgregando] = useState(false);
+  const [renombrando, setRenombrando] = useState(false);
+  const [nombreTemp, setNombreTemp] = useState("");
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const cancelarRenameRef = useRef(false); // 👈 NUEVO
+
   const agregarBloque = useEditor((s) => s.agregarBloque);
   const renombrarSeccion = useEditor((s) => s.renombrarSeccion);
   const toggleVisible = useEditor((s) => s.toggleVisibleSeccion);
   const def = SECCIONES[seccion.tipo];
 
-  // Drop zone de la sección (para drag entre secciones)
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `seccion-${seccion.id}`,
-    data: { seccionId: seccion.id },
-  });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `seccion-${seccion.id}` });
+  const { over } = useDndContext();
+  const isOver = over?.id === `seccion-${seccion.id}` && !isDragging;
 
   return (
     <div
-      ref={setDropRef}
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        backgroundColor: isOver ? undefined : "#1a1d22",
+      }}
       className={`rounded-lg border transition-colors ${
-        isOver ? "border-blue-500 bg-blue-950/30" : "border-gray-700 bg-gray-850"
-      } ${!seccion.visible ? "opacity-50" : ""}`}
-      style={{ backgroundColor: isOver ? undefined : "#1a1d22" }}
+        isOver
+          ? "border-blue-500 bg-blue-950/30"
+          : "border-gray-700 bg-gray-850"
+      } ${!seccion.visible ? "opacity-50" : ""} ${
+        isDragging ? "opacity-50" : ""
+      }`}
     >
-      {/* Header de la sección */}
+      {/* Header */}
       <div className="flex items-center gap-1 px-2 py-1.5">
+        {/* Handle de drag */}
+        <button
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-grab text-gray-500 hover:text-white select-none text-xs"
+          title="Arrastrar para reordenar"
+        >
+          ⠿
+        </button>
         <button
           onClick={() => setAbierta((v) => !v)}
           className="text-gray-400 hover:text-white text-xs w-4"
         >
           {abierta ? "▼" : "▶"}
         </button>
-        <button
-  onClick={onSelectSeccion}
-  className={`text-xs font-semibold flex-1 truncate text-left ${
-    seccionSeleccionada === seccion.id
-      ? "text-blue-400"
-      : "text-white hover:text-blue-300"
-  }`}
->
-  {def.icono} {seccion.nombre}
-</button>
+
+        {renombrando ? (
+          <input
+            autoFocus
+            value={nombreTemp}
+            onChange={(e) => setNombreTemp(e.target.value)}
+            onBlur={() => {
+              // Si el usuario presionó Escape, no guardar
+              if (cancelarRenameRef.current) {
+                cancelarRenameRef.current = false;
+                setRenombrando(false);
+                return;
+              }
+              if (nombreTemp.trim())
+                renombrarSeccion(seccion.id, nombreTemp.trim());
+              setRenombrando(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (nombreTemp.trim())
+                  renombrarSeccion(seccion.id, nombreTemp.trim());
+                setRenombrando(false);
+              }
+              if (e.key === "Escape") {
+                cancelarRenameRef.current = true; // 👈 flag
+                setRenombrando(false);
+              }
+            }}
+            className="flex-1 text-xs bg-gray-700 border border-blue-500 rounded px-1.5 py-0.5 text-white focus:outline-none"
+          />
+        ) : (
+          <button
+            onClick={onSelectSeccion}
+            onDoubleClick={() => {
+              setNombreTemp(seccion.nombre);
+              setRenombrando(true);
+            }}
+            className={`text-xs font-semibold flex-1 truncate text-left ${
+              seccionSeleccionada === seccion.id
+                ? "text-blue-400"
+                : "text-white hover:text-blue-300"
+            }`}
+            title="Doble click para renombrar"
+          >
+            {def.icono} {seccion.nombre}
+          </button>
+        )}
+
+        {/* Menú ⋯ */}
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuAbierto((v) => !v);
+            }}
+            className="text-gray-400 hover:text-white text-xs px-1"
+            title="Opciones"
+          >
+            ⋯
+          </button>
+
+          {menuAbierto && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setMenuAbierto(false)}
+              />
+              <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1 w-40">
+                <button
+                  onClick={() => {
+                    setNombreTemp(seccion.nombre);
+                    setRenombrando(true);
+                    setMenuAbierto(false);
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-white hover:bg-gray-700"
+                >
+                  ✏️ Renombrar
+                </button>
+                <button
+                  onClick={() => {
+                    useEditor.getState().duplicarSeccion(seccion.id);
+                    setMenuAbierto(false);
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-white hover:bg-gray-700"
+                >
+                  ⧉ Duplicar
+                </button>
+                <button
+                  onClick={() => {
+                    const secciones =
+                      useEditor.getState().plantilla.secciones || [];
+                    const idx = secciones.findIndex((s) => s.id === seccion.id);
+                    if (idx > 0)
+                      useEditor.getState().moverSeccion(idx, idx - 1);
+                    setMenuAbierto(false);
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-white hover:bg-gray-700"
+                >
+                  ↑ Mover arriba
+                </button>
+                <button
+                  onClick={() => {
+                    const secciones =
+                      useEditor.getState().plantilla.secciones || [];
+                    const idx = secciones.findIndex((s) => s.id === seccion.id);
+                    if (idx >= 0 && idx < secciones.length - 1)
+                      useEditor.getState().moverSeccion(idx, idx + 1);
+                    setMenuAbierto(false);
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-white hover:bg-gray-700"
+                >
+                  ↓ Mover abajo
+                </button>
+                {!def.fija && (
+                  <>
+                    <div className="border-t border-gray-700 my-1" />
+                    <button
+                      onClick={() => {
+                        useEditor.getState().eliminarSeccion(seccion.id);
+                        setMenuAbierto(false);
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-xs text-red-400 hover:bg-gray-700"
+                    >
+                      🗑 Eliminar
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
         <button
           onClick={() => toggleVisible(seccion.id)}
           className={`text-xs ${
-            seccion.visible ? "text-gray-400 hover:text-white" : "text-yellow-500"
+            seccion.visible
+              ? "text-gray-400 hover:text-white"
+              : "text-yellow-500"
           }`}
           title={seccion.visible ? "Ocultar sección" : "Mostrar sección"}
         >
@@ -522,7 +801,6 @@ function SeccionSidebar({
 
       {abierta && (
         <div className="px-2 pb-2 space-y-1.5">
-          {/* Lista de bloques */}
           <SortableContext
             items={seccion.bloques.map((b) => b.id)}
             strategy={verticalListSortingStrategy}
@@ -548,7 +826,6 @@ function SeccionSidebar({
             </p>
           )}
 
-          {/* Botón añadir bloque */}
           {!agregando ? (
             <button
               onClick={() => setAgregando(true)}
@@ -601,23 +878,26 @@ function SeccionSidebar({
 export default function EditorPage() {
   const { id } = useParams<{ id: string }>();
 
-const {
-  plantilla,
-  seleccionado,
-  seleccionar,
-  cargar,
-  actualizarProps,
-  actualizarTema,
-  actualizarAjustesSeccion,
-  moverBloqueDentroSeccion,
-  moverBloqueEntreSecciones,
-  undo,
-  redo,
-  hayCambios,
-  puedeUndo,
-  puedeRedo,
-  marcarGuardado,
-} = useEditor();
+  const {
+    plantilla,
+    seleccionado,
+    seleccionar,
+    cargar,
+    actualizarProps,
+    actualizarEstilosBloque, // 👈 NUEVO
+    actualizarTema,
+    actualizarAjustesSeccion,
+    moverBloqueDentroSeccion,
+    moverBloqueEntreSecciones,
+    moverSeccion, // 👈 NUEVO
+
+    undo,
+    redo,
+    hayCambios,
+    puedeUndo,
+    puedeRedo,
+    marcarGuardado,
+  } = useEditor();
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [producto, setProducto] = useState<any>(null);
@@ -626,7 +906,14 @@ const {
   const [dirty, setDirty] = useState(false);
   const [verComoCliente, setVerComoCliente] = useState(false);
   const [tab, setTab] = useState<"producto" | "landing">("landing");
-const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(null);
+  const [tabInterna, setTabInterna] = useState<"contenido" | "estilo">(
+    "contenido",
+  );
+  const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(
+    null,
+  );
+
+  const [bloqueHoverId, setBloqueHoverId] = useState<string | null>(null);
 
   // Panel Producto (mismo de antes)
   const [pNombre, setPNombre] = useState("");
@@ -645,7 +932,7 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
   const [pMostrarResenas, setPMostrarResenas] = useState(true);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
   // Cargar producto
@@ -682,14 +969,47 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
   }, [id, cargar, marcarGuardado]);
 
   // Listener iframe
+  // Listener iframe
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
-      if (e.data?.type === "PREVIEW_READY") setPreviewListo(true);
+
+      if (e.data?.type === "PREVIEW_READY") {
+        setPreviewListo(true);
+      }
+
+      if (e.data?.type === "BLOQUE_HOVER") {
+        setBloqueHoverId(e.data.id);
+      }
+
+      if (e.data?.type === "BLOQUE_LEAVE") {
+        setBloqueHoverId(null);
+      }
+
+      if (e.data?.type === "BLOQUE_SELECT") {
+        seleccionar(e.data.id);
+        setSeccionSeleccionada(null);
+      }
+
+      if (e.data?.type === "BLOQUE_DUPLICAR") {
+        useEditor.getState().duplicarBloque(e.data.id);
+      }
+
+      if (e.data?.type === "BLOQUE_OCULTAR") {
+        if (confirm("¿Ocultar este bloque?")) {
+          useEditor.getState().actualizarProps(e.data.id, { _oculto: true });
+        }
+      }
+
+      if (e.data?.type === "BLOQUE_ELIMINAR") {
+        if (confirm("¿Eliminar este bloque?")) {
+          useEditor.getState().eliminarBloque(e.data.id);
+        }
+      }
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, []);
+  }, [seleccionar]);
 
   // Push al iframe
   useEffect(() => {
@@ -713,8 +1033,10 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
           mostrarResenas: pMostrarResenas,
           plantilla,
         },
+        bloqueHover: bloqueHoverId, // 👈 NUEVO
+        seleccionado: seleccionado, // 👈 NUEVO
       },
-      window.location.origin
+      window.location.origin,
     );
   }, [
     plantilla,
@@ -730,12 +1052,49 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
     pTextoOferta1,
     pTextoOferta2,
     pMostrarResenas,
+    bloqueHoverId, // 👈 NUEVO
+    seleccionado, // 👈 NUEVO
   ]);
 
   // Dirty
   useEffect(() => {
-    setDirty(hayCambios());
-  }, [plantilla, hayCambios]);
+    if (!producto) return;
+    const cambiosProducto =
+      pNombre !== (producto.nombre || "") ||
+      pPrecio !== (producto.precio || 0) ||
+      pPrecioAntes !== (producto.precioAntes || 0) ||
+      pImagen !== (producto.imagen || "") ||
+      pPrecio2Activo !== (producto.precio2?.activo || false) ||
+      pPrecio2 !== (producto.precio2?.precio || 0) ||
+      pPrecio2Antes !== (producto.precio2?.precioAntes || 0) ||
+      pTextoOferta1 !== (producto.textoOferta1 || "1 Unidad + Regalo") ||
+      pTextoOferta2 !== (producto.textoOferta2 || "2 Unidades + Regalo") ||
+      pModalMostrarSub !== (producto.modal?.mostrarSubtitulo ?? true) ||
+      pModalSub !== (producto.modal?.subtitulo || "") ||
+      pModalMostrarImp !== (producto.modal?.mostrarTextoImportante ?? true) ||
+      pModalImp !== (producto.modal?.textoImportante || "") ||
+      pMostrarResenas !== (producto.mostrarResenas ?? true);
+
+    setDirty(hayCambios() || cambiosProducto);
+  }, [
+    plantilla,
+    hayCambios,
+    producto,
+    pNombre,
+    pPrecio,
+    pPrecioAntes,
+    pImagen,
+    pPrecio2Activo,
+    pPrecio2,
+    pPrecio2Antes,
+    pTextoOferta1,
+    pTextoOferta2,
+    pModalMostrarSub,
+    pModalSub,
+    pModalMostrarImp,
+    pModalImp,
+    pMostrarResenas,
+  ]);
 
   // Ctrl+Z / Ctrl+Shift+Z
   useEffect(() => {
@@ -783,13 +1142,25 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
   }
 
   // Drag end
+  // Drag end
   function onDragEnd({ active, over }: DragEndEvent) {
     if (!over) return;
 
     const activeId = String(active.id);
     const overId = String(over.id);
 
-    // Buscar el bloque activo y su sección
+    // 👇 Caso 1: mover SECCIÓN
+    if (activeId.startsWith("seccion-") && overId.startsWith("seccion-")) {
+      const secciones = plantilla.secciones || [];
+      const from = secciones.findIndex((s) => `seccion-${s.id}` === activeId);
+      const to = secciones.findIndex((s) => `seccion-${s.id}` === overId);
+      if (from >= 0 && to >= 0) {
+        moverSeccion(from, to);
+      }
+      return;
+    }
+
+    // 👇 Caso 2: mover BLOQUE
     const secciones = plantilla.secciones || [];
     let deSeccion: Seccion | null = null;
     let deIndex = -1;
@@ -813,7 +1184,7 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
         activeId,
         deSeccion.id,
         aSeccionId,
-        aSeccion.bloques.length
+        aSeccion.bloques.length,
       );
       return;
     }
@@ -834,12 +1205,7 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
     if (aSeccion.id === deSeccion.id) {
       moverBloqueDentroSeccion(deSeccion.id, deIndex, aIndex);
     } else {
-      moverBloqueEntreSecciones(
-        activeId,
-        deSeccion.id,
-        aSeccion.id,
-        aIndex
-      );
+      moverBloqueEntreSecciones(activeId, deSeccion.id, aSeccion.id, aIndex);
     }
   }
 
@@ -972,7 +1338,9 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
                       <input
                         type="number"
                         value={pPrecioAntes}
-                        onChange={(e) => setPPrecioAntes(Number(e.target.value))}
+                        onChange={(e) =>
+                          setPPrecioAntes(Number(e.target.value))
+                        }
                         placeholder="Antes"
                         className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
                       />
@@ -1094,27 +1462,38 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
               {/* TAB LANDING — CON SECCIONES */}
               {tab === "landing" && (
                 <div className="p-3 space-y-2">
+                  <AgregarSeccionDropdown />
+
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={onDragEnd}
                   >
-                    {secciones.map((seccion) => (
-  <SeccionSidebar
-    key={seccion.id}
-    seccion={seccion}
-    seleccionado={seleccionado}
-    seccionSeleccionada={seccionSeleccionada}
-    onSelectBloque={(id) => {
-      seleccionar(id);
-      setSeccionSeleccionada(null);
-    }}
-    onSelectSeccion={() => {
-      seleccionar(null);
-      setSeccionSeleccionada(seccion.id);
-    }}
-  />
-))}
+                    <SortableContext
+                      items={secciones.map((s) => `seccion-${s.id}`)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {secciones.map((seccion) => (
+                        <SeccionSidebar
+                          key={seccion.id}
+                          seccion={seccion}
+                          seleccionado={seleccionado}
+                          seccionSeleccionada={seccionSeleccionada}
+                          onSelectBloque={(id) => {
+                            seleccionar(id);
+                            setSeccionSeleccionada(null);
+                          }}
+                          onSelectSeccion={() => {
+                            seleccionar(null);
+                            setSeccionSeleccionada(
+                              seccionSeleccionada === seccion.id
+                                ? null
+                                : seccion.id,
+                            );
+                          }}
+                        />
+                      ))}
+                    </SortableContext>
                   </DndContext>
                 </div>
               )}
@@ -1122,8 +1501,8 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
           )}
 
           {/* PREVIEW */}
-          <main className="bg-gray-950 flex items-center justify-center p-6 overflow-y-auto">
-            <div className="bg-black rounded-[2rem] p-3 border-4 border-gray-700 shadow-2xl">
+          <main className="bg-gray-950 flex items-start justify-center p-6 overflow-y-auto">
+            <div className="bg-black rounded-[2rem] p-3 border-4 border-gray-700 shadow-2xl relative">
               <iframe
                 ref={iframeRef}
                 src="/admin/productos/preview"
@@ -1141,251 +1520,798 @@ const [seccionSeleccionada, setSeccionSeleccionada] = useState<string | null>(nu
               </h2>
 
               {seccionSeleccionada ? (
-  // ─── AJUSTES DE SECCIÓN ───
-  (() => {
-    const seccion = secciones.find((s) => s.id === seccionSeleccionada);
-    if (!seccion) return null;
-    const def = SECCIONES[seccion.tipo];
-    const aj = seccion.ajustes || {
-      ancho: "fill",
-      anchoMax: 480,
-      colorFondo: null,
-      radioEsquinas: 0,
-      paddingArriba: 0,
-      paddingAbajo: 0,
-      paddingLados: 0,
-    };
-    const upd = (cambios: any) =>
-      actualizarAjustesSeccion(seccion.id, cambios);
+                // ─── AJUSTES DE SECCIÓN ───
+                (() => {
+                  const seccion = secciones.find(
+                    (s) => s.id === seccionSeleccionada,
+                  );
+                  if (!seccion) return null;
+                  const def = SECCIONES[seccion.tipo];
+                  const aj = seccion.ajustes || {
+                    ancho: "fill",
+                    anchoMax: 480,
+                    colorFondo: null,
+                    radioEsquinas: 0,
+                    paddingArriba: 0,
+                    paddingAbajo: 0,
+                    paddingLados: 0,
+                  };
+                  const upd = (cambios: any) =>
+                    actualizarAjustesSeccion(seccion.id, cambios);
 
-    return (
-      <div className="space-y-4">
-        <div className="border-b border-gray-700 pb-2">
-          <p className="text-white text-sm font-semibold">
-            {def.icono} {seccion.nombre}
-          </p>
-          <p className="text-gray-500 text-xs">
-            Sección · ID: {seccion.id.slice(0, 8)}
-          </p>
-        </div>
+                  return (
+                    <div className="space-y-4">
+                      <div className="border-b border-gray-700 pb-2 flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-white text-sm font-semibold">
+                            {def.icono} {seccion.nombre}
+                          </p>
+                          <p className="text-gray-500 text-xs">
+                            Sección · ID: {seccion.id.slice(0, 8)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setSeccionSeleccionada(null)}
+                          className="text-gray-500 hover:text-white text-lg leading-none shrink-0"
+                          title="Cerrar panel"
+                        >
+                          ×
+                        </button>
+                      </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
-            📐 Tamaño
-          </p>
-          <label className="block space-y-1">
-            <span className="text-gray-400 text-xs block">Ancho</span>
-            <select
-              value={aj.ancho}
-              onChange={(e) => upd({ ancho: e.target.value })}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
-            >
-              <option value="fill">Rellenar (100%)</option>
-              <option value="ajustar">Ajustar (centrado)</option>
-            </select>
-          </label>
-          {aj.ancho === "ajustar" && (
-            <label className="block space-y-1">
-              <span className="text-gray-400 text-xs block">Ancho máximo</span>
-              <Slider
-                value={aj.anchoMax}
-                onChange={(v) => upd({ anchoMax: v })}
-                min={320}
-                max={1200}
-                step={20}
-              />
-            </label>
-          )}
-        </div>
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
+                          📐 Tamaño
+                        </p>
+                        <label className="block space-y-1">
+                          <span className="text-gray-400 text-xs block">
+                            Ancho
+                          </span>
+                          <select
+                            value={aj.ancho}
+                            onChange={(e) => upd({ ancho: e.target.value })}
+                            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                          >
+                            <option value="fill">Rellenar (100%)</option>
+                            <option value="ajustar">Ajustar (centrado)</option>
+                          </select>
+                        </label>
+                        {aj.ancho === "ajustar" && (
+                          <label className="block space-y-1">
+                            <span className="text-gray-400 text-xs block">
+                              Ancho máximo
+                            </span>
+                            <Slider
+                              value={aj.anchoMax}
+                              onChange={(v) => upd({ anchoMax: v })}
+                              min={320}
+                              max={1200}
+                              step={20}
+                            />
+                          </label>
+                        )}
+                      </div>
 
-        <div className="space-y-2 pt-3 border-t border-gray-700">
-          <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
-            🎨 Apariencia
-          </p>
-          <label className="block space-y-1">
-            <span className="text-gray-400 text-xs block">Color de fondo</span>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={aj.colorFondo || "#ffffff"}
-                onChange={(e) => upd({ colorFondo: e.target.value })}
-                className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
-              />
-              <span className="text-gray-400 text-xs">
-                {aj.colorFondo || "Heredado del tema"}
-              </span>
-              {aj.colorFondo && (
-                <button
-                  onClick={() => upd({ colorFondo: null })}
-                  className="text-[10px] text-gray-500 hover:text-white underline"
-                >
-                  quitar
-                </button>
+                      <div className="space-y-2 pt-3 border-t border-gray-700">
+                        <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
+                          🎨 Apariencia
+                        </p>
+                        <label className="block space-y-1">
+                          <span className="text-gray-400 text-xs block">
+                            Color de fondo
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={aj.colorFondo || "#ffffff"}
+                              onChange={(e) =>
+                                upd({ colorFondo: e.target.value })
+                              }
+                              className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
+                            />
+                            <span className="text-gray-400 text-xs">
+                              {aj.colorFondo || "Heredado del tema"}
+                            </span>
+                            {aj.colorFondo && (
+                              <button
+                                onClick={() => upd({ colorFondo: null })}
+                                className="text-[10px] text-gray-500 hover:text-white underline"
+                              >
+                                quitar
+                              </button>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="space-y-2 pt-3 border-t border-gray-700">
+                        <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
+                          🔲 Bordes
+                        </p>
+                        <label className="block space-y-1">
+                          <span className="text-gray-400 text-xs block">
+                            Radio de esquinas
+                          </span>
+                          <Slider
+                            value={aj.radioEsquinas}
+                            onChange={(v) => upd({ radioEsquinas: v })}
+                            min={0}
+                            max={64}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="space-y-2 pt-3 border-t border-gray-700">
+                        <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
+                          📏 Relleno
+                        </p>
+                        <label className="block space-y-1">
+                          <span className="text-gray-400 text-xs block">
+                            Arriba
+                          </span>
+                          <Slider
+                            value={aj.paddingArriba}
+                            onChange={(v) => upd({ paddingArriba: v })}
+                            min={0}
+                            max={120}
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-gray-400 text-xs block">
+                            Abajo
+                          </span>
+                          <Slider
+                            value={aj.paddingAbajo}
+                            onChange={(v) => upd({ paddingAbajo: v })}
+                            min={0}
+                            max={120}
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-gray-400 text-xs block">
+                            Lados
+                          </span>
+                          <Slider
+                            value={aj.paddingLados}
+                            onChange={(v) => upd({ paddingLados: v })}
+                            min={0}
+                            max={80}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : !defActual ? (
+                <div className="text-gray-400 text-sm space-y-3">
+                  <p>Selecciona un bloque o el nombre de una sección.</p>
+
+                  {/* 🧭 NAVBAR */}
+                  <details open>
+                    <summary className="cursor-pointer text-xs text-gray-400 font-bold uppercase tracking-wide">
+                      🧭 Barra de navegación
+                    </summary>
+                    <div className="mt-3 space-y-3">
+                      <label className="flex items-center gap-2 text-xs text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={plantilla.tema.nav?.mostrar ?? true}
+                          onChange={(e) =>
+                            actualizarTema({
+                              nav: {
+                                ...(plantilla.tema.nav ?? NAV_DEFAULT),
+                                mostrar: e.target.checked,
+                              },
+                            })
+                          }
+                          className="w-4 h-4 accent-blue-500"
+                        />
+                        Mostrar barra de navegación
+                      </label>
+
+                      {plantilla.tema.nav?.mostrar !== false && (
+                        <>
+                          <label className="flex items-center gap-2 text-xs text-gray-300">
+                            <input
+                              type="checkbox"
+                              checked={
+                                plantilla.tema.nav?.mostrarHamburguesa ?? true
+                              }
+                              onChange={(e) =>
+                                actualizarTema({
+                                  nav: {
+                                    ...(plantilla.tema.nav ?? NAV_DEFAULT),
+                                    mostrarHamburguesa: e.target.checked,
+                                  },
+                                })
+                              }
+                              className="w-4 h-4 accent-blue-500"
+                            />
+                            Mostrar menú hamburguesa
+                          </label>
+
+                          <InputImagen
+                            label="Logo"
+                            value={plantilla.tema.nav?.logoUrl || ""}
+                            onChange={(url) =>
+                              actualizarTema({
+                                nav: {
+                                  ...(plantilla.tema.nav ?? NAV_DEFAULT),
+                                  logoUrl: url,
+                                },
+                              })
+                            }
+                          />
+
+                          <label className="block space-y-1">
+                            <span className="text-gray-400 text-xs block">
+                              Altura del logo (px)
+                            </span>
+                            <Slider
+                              value={plantilla.tema.nav?.logoAltura ?? 40}
+                              onChange={(v) =>
+                                actualizarTema({
+                                  nav: {
+                                    ...(plantilla.tema.nav ?? NAV_DEFAULT),
+                                    logoAltura: v,
+                                  },
+                                })
+                              }
+                              min={20}
+                              max={80}
+                            />
+                          </label>
+
+                          <label className="block space-y-1">
+                            <span className="text-gray-400 text-xs block">
+                              Color de fondo
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={
+                                  plantilla.tema.nav?.colorFondo || "#ffffff"
+                                }
+                                onChange={(e) =>
+                                  actualizarTema({
+                                    nav: {
+                                      ...(plantilla.tema.nav ?? NAV_DEFAULT),
+                                      colorFondo: e.target.value,
+                                    },
+                                  })
+                                }
+                                className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
+                              />
+                              <span className="text-gray-400 text-xs">
+                                {plantilla.tema.nav?.colorFondo || "#ffffff"}
+                              </span>
+                            </div>
+                          </label>
+
+                          <label className="block space-y-1">
+                            <span className="text-gray-400 text-xs block">
+                              Color de iconos
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={
+                                  plantilla.tema.nav?.colorIconos || "#000000"
+                                }
+                                onChange={(e) =>
+                                  actualizarTema({
+                                    nav: {
+                                      ...(plantilla.tema.nav ?? NAV_DEFAULT),
+                                      colorIconos: e.target.value,
+                                    },
+                                  })
+                                }
+                                className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
+                              />
+                              <span className="text-gray-400 text-xs">
+                                {plantilla.tema.nav?.colorIconos || "#000000"}
+                              </span>
+                            </div>
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </details>
+
+                  {/* 🎨 TEMA */}
+                  <details>
+                    <summary className="cursor-pointer text-xs text-gray-500">
+                      🎨 Tema del producto
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      <label className="block">
+                        <span className="text-gray-400 text-xs">
+                          Color primario
+                        </span>
+                        <input
+                          type="color"
+                          value={plantilla.tema.colorPrimario}
+                          onChange={(e) =>
+                            actualizarTema({ colorPrimario: e.target.value })
+                          }
+                          className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-gray-400 text-xs">
+                          Color de fondo
+                        </span>
+                        <input
+                          type="color"
+                          value={plantilla.tema.colorFondo}
+                          onChange={(e) =>
+                            actualizarTema({ colorFondo: e.target.value })
+                          }
+                          className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-gray-400 text-xs">
+                          Ancho máximo (px)
+                        </span>
+                        <input
+                          type="number"
+                          value={plantilla.tema.anchoMax}
+                          onChange={(e) =>
+                            actualizarTema({ anchoMax: Number(e.target.value) })
+                          }
+                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                        />
+                      </label>
+                    </div>
+                  </details>
+                </div>
+              ) : (
+                (() => {
+                  const e = bloqueActual!.estilos || {};
+                  const updEstilo = (cambios: any) =>
+                    actualizarEstilosBloque(bloqueActual!.id, cambios);
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="border-b border-gray-700 pb-2 flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-white text-sm font-semibold">
+                            {defActual.icono} {defActual.nombre}
+                          </p>
+                          <p className="text-gray-500 text-xs">
+                            ID: {bloqueActual!.id.slice(0, 8)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => seleccionar(null)}
+                          className="text-gray-500 hover:text-white text-lg leading-none shrink-0"
+                          title="Cerrar panel"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      {/* TABS */}
+                      <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
+                        <button
+                          onClick={() => setTabInterna("contenido")}
+                          className={`flex-1 py-1.5 text-xs font-semibold rounded ${
+                            tabInterna === "contenido"
+                              ? "bg-blue-600 text-white"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          Contenido
+                        </button>
+                        <button
+                          onClick={() => setTabInterna("estilo")}
+                          className={`flex-1 py-1.5 text-xs font-semibold rounded ${
+                            tabInterna === "estilo"
+                              ? "bg-blue-600 text-white"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          Estilo
+                        </button>
+                      </div>
+
+                      {/* TAB CONTENIDO */}
+                      {tabInterna === "contenido" && (
+                        <div className="space-y-3">
+                          {defActual.schema.map((prop) => {
+                            const repeaterKey =
+                              REPEATER_PROP_KEY[bloqueActual!.tipo];
+                            if (
+                              prop.tipo === "repeater" &&
+                              repeaterKey === prop.key
+                            ) {
+                              const campos =
+                                REPEATER_CAMPOS[bloqueActual!.tipo] || [];
+                              return (
+                                <div key={prop.key} className="space-y-2">
+                                  <span className="text-gray-400 text-xs block">
+                                    {prop.label}
+                                  </span>
+                                  <EditorRepeater
+                                    items={bloqueActual!.props[prop.key]}
+                                    campos={campos}
+                                    onChange={(nuevos) =>
+                                      actualizarProps(bloqueActual!.id, {
+                                        [prop.key]: nuevos,
+                                      })
+                                    }
+                                  />
+                                </div>
+                              );
+                            }
+                            return (
+                              <label key={prop.key} className="block space-y-1">
+                                <span className="text-gray-400 text-xs block">
+                                  {prop.label}
+                                </span>
+                                <InputProp
+                                  prop={prop}
+                                  value={bloqueActual!.props[prop.key]}
+                                  onChange={(v: any) =>
+                                    actualizarProps(bloqueActual!.id, {
+                                      [prop.key]: v,
+                                    })
+                                  }
+                                  onSnapshot={() => {
+                                    useEditor.setState((s: any) => ({
+                                      historial: [
+                                        ...s.historial.slice(-50),
+                                        JSON.parse(JSON.stringify(s.plantilla)),
+                                      ],
+                                      futuro: [],
+                                    }));
+                                  }}
+                                />
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* TAB ESTILO */}
+                      {tabInterna === "estilo" && (
+                        <div className="space-y-3">
+                          {/* 🔤 TIPOGRAFÍA */}
+                          <Grupo titulo="🔤 Tipografía">
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Tamaño de fuente
+                              </span>
+                              <Slider
+                                value={e.tamanoFuente ?? 16}
+                                onChange={(v) => updEstilo({ tamanoFuente: v })}
+                                min={8}
+                                max={72}
+                              />
+                            </label>
+
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Peso
+                              </span>
+                              <BotonDual
+                                value={e.pesoFuente || "normal"}
+                                onChange={(v) => updEstilo({ pesoFuente: v })}
+                                opciones={[
+                                  { valor: "normal", label: "Normal" },
+                                  { valor: "bold", label: "Bold" },
+                                  { valor: "black", label: "Black" },
+                                ]}
+                              />
+                            </label>
+
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Interlineado
+                              </span>
+                              <Slider
+                                value={e.interlineado ?? 1.4}
+                                onChange={(v) => updEstilo({ interlineado: v })}
+                                min={1}
+                                max={2.5}
+                                step={0.1}
+                                unit="x"
+                              />
+                            </label>
+
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Espaciado entre letras
+                              </span>
+                              <Slider
+                                value={e.espaciadoLetras ?? 0}
+                                onChange={(v) =>
+                                  updEstilo({ espaciadoLetras: v })
+                                }
+                                min={-2}
+                                max={5}
+                                step={0.1}
+                              />
+                            </label>
+
+                            <label className="flex items-center gap-2 text-xs text-gray-300">
+                              <input
+                                type="checkbox"
+                                checked={!!e.cursiva}
+                                onChange={(ev) =>
+                                  updEstilo({ cursiva: ev.target.checked })
+                                }
+                                className="w-4 h-4 accent-blue-500"
+                              />
+                              Cursiva
+                            </label>
+
+                            <label className="flex items-center gap-2 text-xs text-gray-300">
+                              <input
+                                type="checkbox"
+                                checked={!!e.mayusculas}
+                                onChange={(ev) =>
+                                  updEstilo({ mayusculas: ev.target.checked })
+                                }
+                                className="w-4 h-4 accent-blue-500"
+                              />
+                              MAYÚSCULAS
+                            </label>
+                          </Grupo>
+                          {/* 📐 TAMAÑO */}
+                          <Grupo titulo="📐 Tamaño">
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Ancho
+                              </span>
+                              <BotonDual
+                                value={e.ancho || "auto"}
+                                onChange={(v) => updEstilo({ ancho: v })}
+                                opciones={[
+                                  { valor: "auto", label: "Auto" },
+                                  { valor: "fill", label: "Rellenar" },
+                                  { valor: "ajustar", label: "Ajustar" },
+                                ]}
+                              />
+                            </label>
+                            {e.ancho === "ajustar" && (
+                              <label className="block space-y-1">
+                                <span className="text-gray-400 text-xs block">
+                                  Ancho máximo
+                                </span>
+                                <Slider
+                                  value={e.anchoMax ?? 320}
+                                  onChange={(v) => updEstilo({ anchoMax: v })}
+                                  min={200}
+                                  max={1200}
+                                  step={20}
+                                />
+                              </label>
+                            )}
+                          </Grupo>
+
+                          {/* 🎨 APARIENCIA */}
+                          <Grupo titulo="🎨 Apariencia">
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Color de fondo
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={e.colorFondo || "#ffffff"}
+                                  onChange={(ev) =>
+                                    updEstilo({
+                                      colorFondo: ev.target.value,
+                                    })
+                                  }
+                                  className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
+                                />
+                                <span className="text-gray-400 text-xs">
+                                  {e.colorFondo || "Sin fondo"}
+                                </span>
+                                {e.colorFondo && (
+                                  <button
+                                    onClick={() =>
+                                      updEstilo({ colorFondo: null })
+                                    }
+                                    className="text-[10px] text-gray-500 hover:text-white underline"
+                                  >
+                                    quitar
+                                  </button>
+                                )}
+                              </div>
+                            </label>
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Opacidad (%)
+                              </span>
+                              <Slider
+                                value={e.opacidad ?? 100}
+                                onChange={(v) => updEstilo({ opacidad: v })}
+                                min={0}
+                                max={100}
+                                unit="%"
+                              />
+                            </label>
+                          </Grupo>
+
+                          {/* 🔲 BORDES */}
+                          <Grupo titulo="🔲 Bordes">
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Radio de esquinas
+                              </span>
+                              <Slider
+                                value={e.radioEsquinas ?? 0}
+                                onChange={(v) =>
+                                  updEstilo({ radioEsquinas: v })
+                                }
+                                min={0}
+                                max={64}
+                              />
+                            </label>
+                            <label className="flex items-center gap-2 text-xs text-gray-300">
+                              <input
+                                type="checkbox"
+                                checked={!!e.mostrarBorde}
+                                onChange={(ev) =>
+                                  updEstilo({
+                                    mostrarBorde: ev.target.checked,
+                                  })
+                                }
+                                className="w-4 h-4 accent-blue-500"
+                              />
+                              Mostrar borde
+                            </label>
+                            {e.mostrarBorde && (
+                              <>
+                                <label className="block space-y-1">
+                                  <span className="text-gray-400 text-xs block">
+                                    Grosor
+                                  </span>
+                                  <Slider
+                                    value={e.grosorBorde ?? 1}
+                                    onChange={(v) =>
+                                      updEstilo({ grosorBorde: v })
+                                    }
+                                    min={1}
+                                    max={10}
+                                  />
+                                </label>
+                                <label className="block space-y-1">
+                                  <span className="text-gray-400 text-xs block">
+                                    Color del borde
+                                  </span>
+                                  <input
+                                    type="color"
+                                    value={e.colorBorde || "#e5e7eb"}
+                                    onChange={(ev) =>
+                                      updEstilo({
+                                        colorBorde: ev.target.value,
+                                      })
+                                    }
+                                    className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
+                                  />
+                                </label>
+                              </>
+                            )}
+                          </Grupo>
+
+                          {/* 📏 RELLENO */}
+                          <Grupo titulo="📏 Relleno">
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Arriba
+                              </span>
+                              <Slider
+                                value={e.paddingArriba ?? 0}
+                                onChange={(v) =>
+                                  updEstilo({ paddingArriba: v })
+                                }
+                                min={0}
+                                max={120}
+                              />
+                            </label>
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Abajo
+                              </span>
+                              <Slider
+                                value={e.paddingAbajo ?? 0}
+                                onChange={(v) => updEstilo({ paddingAbajo: v })}
+                                min={0}
+                                max={120}
+                              />
+                            </label>
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Lados
+                              </span>
+                              <Slider
+                                value={e.paddingLados ?? 0}
+                                onChange={(v) => updEstilo({ paddingLados: v })}
+                                min={0}
+                                max={80}
+                              />
+                            </label>
+                          </Grupo>
+
+                          {/* 📐 MARGEN */}
+                          <Grupo titulo="📐 Margen">
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Arriba
+                              </span>
+                              <Slider
+                                value={e.marginArriba ?? 0}
+                                onChange={(v) => updEstilo({ marginArriba: v })}
+                                min={0}
+                                max={120}
+                              />
+                            </label>
+                            <label className="block space-y-1">
+                              <span className="text-gray-400 text-xs block">
+                                Abajo
+                              </span>
+                              <Slider
+                                value={e.marginAbajo ?? 0}
+                                onChange={(v) => updEstilo({ marginAbajo: v })}
+                                min={0}
+                                max={120}
+                              />
+                            </label>
+                          </Grupo>
+
+                          <Grupo titulo="↔️ Alineación">
+                            <BotonDual
+                              value={e.alineacion || "izq"}
+                              onChange={(v) => updEstilo({ alineacion: v })}
+                              opciones={[
+                                { valor: "izq", label: "Izq" },
+                                { valor: "centro", label: "Centro" },
+                                { valor: "der", label: "Der" },
+                              ]}
+                            />
+                          </Grupo>
+
+                          {/* 👁️ VISIBILIDAD */}
+                          <Grupo titulo="👁️ Visibilidad">
+                            <label className="flex items-center gap-2 text-xs text-gray-300">
+                              <input
+                                type="checkbox"
+                                checked={!!e.oculto}
+                                onChange={(ev) =>
+                                  updEstilo({ oculto: ev.target.checked })
+                                }
+                                className="w-4 h-4 accent-blue-500"
+                              />
+                              Ocultar bloque en la landing
+                            </label>
+                          </Grupo>
+                        </div>
+                      )}
+
+                      {/* ELIMINAR */}
+                      <div className="pt-3 border-t border-gray-700">
+                        <button
+                          onClick={() => {
+                            if (confirm("¿Eliminar este bloque?")) {
+                              useEditor
+                                .getState()
+                                .eliminarBloque(bloqueActual!.id);
+                            }
+                          }}
+                          className="w-full py-2 bg-red-900/40 hover:bg-red-900/60 text-red-300 rounded text-sm"
+                        >
+                          🗑 Eliminar bloque
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()
               )}
-            </div>
-          </label>
-        </div>
-
-        <div className="space-y-2 pt-3 border-t border-gray-700">
-          <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
-            🔲 Bordes
-          </p>
-          <label className="block space-y-1">
-            <span className="text-gray-400 text-xs block">
-              Radio de esquinas
-            </span>
-            <Slider
-              value={aj.radioEsquinas}
-              onChange={(v) => upd({ radioEsquinas: v })}
-              min={0}
-              max={64}
-            />
-          </label>
-        </div>
-
-        <div className="space-y-2 pt-3 border-t border-gray-700">
-          <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
-            📏 Relleno
-          </p>
-          <label className="block space-y-1">
-            <span className="text-gray-400 text-xs block">Arriba</span>
-            <Slider
-              value={aj.paddingArriba}
-              onChange={(v) => upd({ paddingArriba: v })}
-              min={0}
-              max={120}
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-gray-400 text-xs block">Abajo</span>
-            <Slider
-              value={aj.paddingAbajo}
-              onChange={(v) => upd({ paddingAbajo: v })}
-              min={0}
-              max={120}
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-gray-400 text-xs block">Lados</span>
-            <Slider
-              value={aj.paddingLados}
-              onChange={(v) => upd({ paddingLados: v })}
-              min={0}
-              max={80}
-            />
-          </label>
-        </div>
-      </div>
-    );
-  })()
-) : !defActual ? (
-  <div className="text-gray-400 text-sm space-y-3">
-    <p>Selecciona un bloque o el nombre de una sección.</p>
-
-    <details>
-      <summary className="cursor-pointer text-xs text-gray-500">
-        🎨 Tema del producto
-      </summary>
-      <div className="mt-2 space-y-2">
-        <label className="block">
-          <span className="text-gray-400 text-xs">Color primario</span>
-          <input
-            type="color"
-            value={plantilla.tema.colorPrimario}
-            onChange={(e) =>
-              actualizarTema({ colorPrimario: e.target.value })
-            }
-            className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
-          />
-        </label>
-        <label className="block">
-          <span className="text-gray-400 text-xs">Color de fondo</span>
-          <input
-            type="color"
-            value={plantilla.tema.colorFondo}
-            onChange={(e) => actualizarTema({ colorFondo: e.target.value })}
-            className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
-          />
-        </label>
-        <label className="block">
-          <span className="text-gray-400 text-xs">Ancho máximo (px)</span>
-          <input
-            type="number"
-            value={plantilla.tema.anchoMax}
-            onChange={(e) =>
-              actualizarTema({ anchoMax: Number(e.target.value) })
-            }
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
-          />
-        </label>
-      </div>
-    </details>
-  </div>
-) : (
-  <div className="space-y-4">
-    <div className="border-b border-gray-700 pb-2">
-      <p className="text-white text-sm font-semibold">
-        {defActual.icono} {defActual.nombre}
-      </p>
-      <p className="text-gray-500 text-xs">
-        ID: {bloqueActual!.id.slice(0, 8)}
-      </p>
-    </div>
-
-    {defActual.schema.map((prop) => {
-      const repeaterKey = REPEATER_PROP_KEY[bloqueActual!.tipo];
-      if (prop.tipo === "repeater" && repeaterKey === prop.key) {
-        const campos = REPEATER_CAMPOS[bloqueActual!.tipo] || [];
-        return (
-          <div key={prop.key} className="space-y-2">
-            <span className="text-gray-400 text-xs block">{prop.label}</span>
-            <EditorRepeater
-              items={bloqueActual!.props[prop.key]}
-              campos={campos}
-              onChange={(nuevos) =>
-                actualizarProps(bloqueActual!.id, { [prop.key]: nuevos })
-              }
-            />
-          </div>
-        );
-      }
-      return (
-        <label key={prop.key} className="block space-y-1">
-          <span className="text-gray-400 text-xs block">{prop.label}</span>
-          <InputProp
-            prop={prop}
-            value={bloqueActual!.props[prop.key]}
-            onChange={(v: any) =>
-              actualizarProps(bloqueActual!.id, { [prop.key]: v })
-            }
-            onSnapshot={() => {
-              useEditor.setState((s: any) => ({
-                historial: [
-                  ...s.historial.slice(-50),
-                  JSON.parse(JSON.stringify(s.plantilla)),
-                ],
-                futuro: [],
-              }));
-            }}
-          />
-        </label>
-      );
-    })}
-
-    <div className="pt-3 border-t border-gray-700">
-      <button
-        onClick={() => {
-          if (confirm("¿Eliminar este bloque?")) {
-            useEditor.getState().eliminarBloque(bloqueActual!.id);
-          }
-        }}
-        className="w-full py-2 bg-red-900/40 hover:bg-red-900/60 text-red-300 rounded text-sm"
-      >
-        🗑 Eliminar bloque
-      </button>
-    </div>
-  </div>
-)}
             </aside>
           )}
         </div>

@@ -7,10 +7,66 @@ import { useEffect, useState } from "react";
 // TIPOS
 // ═══════════════════════════════════════════════════════════════
 
+export type EstilosBloque = {
+  // 📏 Espaciado
+  paddingArriba?: number;
+  paddingAbajo?: number;
+  paddingLados?: number;
+  marginArriba?: number;
+  marginAbajo?: number;
+
+  // 📐 Tamaño
+  ancho?: "auto" | "fill" | "ajustar";
+  anchoMax?: number;
+
+  // 🎨 Apariencia
+  colorFondo?: string | null; // null = sin fondo
+  opacidad?: number; // 0-100
+
+  // 🔲 Bordes
+  radioEsquinas?: number;
+  mostrarBorde?: boolean;
+  grosorBorde?: number;
+  colorBorde?: string;
+
+  // ↔️ Alineación
+  alineacion?: "izq" | "centro" | "der";
+
+  // 🔤 Tipografía
+  tamanoFuente?: number;             // px
+  pesoFuente?: "normal" | "bold" | "black";
+  cursiva?: boolean;
+  mayusculas?: boolean;
+  interlineado?: number;             // 1.0 - 2.5
+  espaciadoLetras?: number;          // px
+
+  // 👁️ Visibilidad
+  oculto?: boolean;
+};
+
 export type Bloque = {
   id: string;
   tipo: string;
   props: Record<string, any>;
+  estilos?: EstilosBloque; // 👈 NUEVO
+};
+
+export type Nav = {
+  mostrar: boolean;
+  logoUrl: string;
+  logoAltura: number;
+  colorFondo: string;
+  colorIconos: string;
+  mostrarHamburguesa: boolean;
+};
+
+export const NAV_DEFAULT: Nav = {
+  mostrar: true,
+  logoUrl: "/logo.svg",
+  logoAltura: 40,
+  colorFondo: "#ffffff",
+  colorIconos: "#000000",
+  mostrarHamburguesa: true,
 };
 
 export type Tema = {
@@ -18,31 +74,39 @@ export type Tema = {
   colorFondo: string;
   tipografia: string;
   anchoMax: number;
+  nav: Nav;               // 👈 NUEVO
 };
 
 export type Plantilla = {
   version: number;
-  bloques: Bloque[];       // legacy (versión 2)
-  secciones?: Seccion[];   // nuevo (versión 3)
+  bloques: Bloque[]; // legacy (versión 2)
+  secciones?: Seccion[]; // nuevo (versión 3)
   tema: Tema;
 };
 
 export type PropSchema = {
   key: string;
   label: string;
-  tipo: "text" | "textarea" | "number" | "toggle" | "color" | "imagen" | "repeater" | "select";
+  tipo:
+    | "text"
+    | "textarea"
+    | "number"
+    | "toggle"
+    | "color"
+    | "imagen"
+    | "repeater"
+    | "select";
   options?: string[];
 };
 
 export type BloqueDef = {
   nombre: string;
   icono: string;
-  max: number;                          // instancias máximas (0 = sin límite)
-  defaults: Record<string, any>;        // props por defecto
-  schema: PropSchema[];                 // para generar el panel de edición
+  max: number; // instancias máximas (0 = sin límite)
+  defaults: Record<string, any>; // props por defecto
+  schema: PropSchema[]; // para generar el panel de edición
   Render: (props: any) => React.ReactNode;
 };
-
 // ═══════════════════════════════════════════════════════════════
 // RENDERERS (componentes puros — sin tracking, sin cookies)
 // ═══════════════════════════════════════════════════════════════
@@ -80,13 +144,146 @@ function useContador(minutosIniciales: number, activo: boolean) {
   }, [minutosIniciales, activo]);
   return tiempo;
 }
+// ═══════════════════════════════════════════════════════════════
+// HELPER: convierte las props de tipografía en CSS
+// ═══════════════════════════════════════════════════════════════
 
-function BannerContador({ minutos, colorBanner, texto }: any) {
+function aplicarTipografia(e: EstilosBloque): React.CSSProperties {
+  return {
+    fontSize: e.tamanoFuente ? `${e.tamanoFuente}px` : undefined,
+    fontWeight:
+      e.pesoFuente === "normal"
+        ? 400
+        : e.pesoFuente === "bold"
+          ? 700
+          : e.pesoFuente === "black"
+            ? 900
+            : undefined,
+    fontStyle: e.cursiva ? "italic" : undefined,
+    textTransform: e.mayusculas ? "uppercase" : undefined,
+    lineHeight: e.interlineado ?? undefined,
+    letterSpacing: e.espaciadoLetras ? `${e.espaciadoLetras}px` : undefined,
+  };
+}
+// ═══════════════════════════════════════════════════════════════
+// NORMALIZAR COLORES
+// Unifica los colores que están en props al objeto estilos
+// ═══════════════════════════════════════════════════════════════
+
+function normalizarColores(bloque: Bloque): Bloque {
+  if (!bloque.estilos?.colorFondo && bloque.props) {
+    const colorProp =
+      bloque.tipo === "banner_contador"
+        ? bloque.props.colorBanner
+        : bloque.tipo === "boton_comprar"
+          ? bloque.props.color
+          : undefined;
+
+    if (colorProp) {
+      return {
+        ...bloque,
+        estilos: { ...(bloque.estilos || {}), colorFondo: colorProp },
+      };
+    }
+  }
+  return bloque;
+}
+// ═══════════════════════════════════════════════════════════════
+// NAVBAR — renderiza el nav configurable desde el tema
+// ═══════════════════════════════════════════════════════════════
+function NavBar({
+  nav,
+  onMenuClick,
+}: {
+  nav: Nav;
+  onMenuClick?: () => void;
+}) {
+  if (!nav?.mostrar) return null;
+
+  return (
+    <header
+      className="sticky top-0 z-30 w-full"
+      style={{
+        backgroundColor: nav.colorFondo || "#ffffff",
+        borderBottom: "1px solid rgba(0,0,0,0.06)",
+      }}
+    >
+      <div className="relative flex items-center justify-center px-4 py-3">
+        {/* Hamburguesa */}
+        {nav.mostrarHamburguesa && (
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center"
+            style={{ color: nav.colorIconos || "#000000" }}
+            aria-label="Menú"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+
+        {/* Logo centrado */}
+        {nav.logoUrl ? (
+          <Image
+            src={nav.logoUrl}
+            alt="Logo"
+            width={240}
+            height={80}
+            priority
+            style={{ height: nav.logoAltura || 40, width: "auto" }}
+            className="object-contain"
+          />
+        ) : (
+          <span
+            className="font-bold text-lg"
+            style={{ color: nav.colorIconos || "#000000" }}
+          >
+            Mi Tienda
+          </span>
+        )}
+      </div>
+    </header>
+  );
+}
+function BannerContador({ minutos, texto, estilos = {} }: any) {
   const tiempo = useContador(Number(minutos ?? 28), true);
+  const sectionStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#E06000",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : undefined,
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : undefined,
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+    maxWidth:
+      estilos.ancho === "ajustar" && estilos.anchoMax
+        ? `${estilos.anchoMax}px`
+        : undefined,
+    marginLeft: estilos.ancho === "ajustar" ? "auto" : undefined,
+    marginRight: estilos.ancho === "ajustar" ? "auto" : undefined,
+    border:
+      estilos.mostrarBorde && estilos.grosorBorde
+        ? `${estilos.grosorBorde}px solid ${estilos.colorBorde || "#e5e7eb"}`
+        : undefined,
+  };
   return (
     <section
       className="text-white py-3"
-      style={{ backgroundColor: colorBanner || "#E06000" }}
+      style={sectionStyle}
     >
       <div className="flex items-center justify-center gap-4">
         <div className="text-center font-black italic leading-tight text-sm md:text-xl whitespace-pre-line">
@@ -110,29 +307,71 @@ function BannerContador({ minutos, colorBanner, texto }: any) {
   );
 }
 
-function BarraEstrellas({ texto }: any) {
+function BarraEstrellas({ texto, estilos = {} }: any) {
+  const style: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#ffffff",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "4px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "4px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
   return (
-    <div className="bg-white text-black text-center text-sm md:text-base font-bold py-1">
+    <div
+      className="text-black text-center text-sm md:text-base font-bold"
+      style={style}
+    >
       ⭐⭐⭐⭐⭐ {texto || "+100.000 clientes satisfechos"}
     </div>
   );
 }
 
-function HeroImagen({ url, alt }: any) {
+function HeroImagen({ url, alt, estilos = {} }: any) {
   if (!url) return null;
+
+  const wrapperStyle: React.CSSProperties = {
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : undefined,
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : undefined,
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    backgroundColor: estilos.colorFondo || undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
+
   return (
-    <Image
-      src={url}
-      alt={alt || ""}
-      width={1200}
-      height={1600}
-      sizes="100vw"
-      className="w-full h-auto"
-    />
+    <div style={wrapperStyle}>
+      <Image
+        src={url}
+        alt={alt || ""}
+        width={1200}
+        height={1600}
+        sizes="100vw"
+        className="w-full h-auto"
+      />
+    </div>
   );
 }
 
-function BotonComprar({ texto, subtitulo, color, onComprar, flotante }: any) {
+function BotonComprar({
+  texto,
+  subtitulo,
+  onComprar,
+  flotante,
+  estilos = {},
+}: any) {
   const svgCarrito = (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -143,6 +382,37 @@ function BotonComprar({ texto, subtitulo, color, onComprar, flotante }: any) {
     </svg>
   );
 
+  // Estilos compartidos del botón real
+  const buttonStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#cb1515",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : undefined,
+    paddingBottom: estilos.paddingAbajo
+      ? `${estilos.paddingAbajo}px`
+      : undefined,
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius:
+      estilos.radioEsquinas !== undefined
+        ? `${estilos.radioEsquinas}px`
+        : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+    maxWidth:
+      estilos.ancho === "ajustar" && estilos.anchoMax
+        ? `${estilos.anchoMax}px`
+        : undefined,
+    width: estilos.ancho === "fill" ? "100%" : undefined,
+    border:
+      estilos.mostrarBorde && estilos.grosorBorde
+        ? `${estilos.grosorBorde}px solid ${estilos.colorBorde || "#e5e7eb"}`
+        : undefined,
+  };
+
   // 👇 Si es flotante → botón fijo abajo
   if (flotante) {
     return (
@@ -150,7 +420,7 @@ function BotonComprar({ texto, subtitulo, color, onComprar, flotante }: any) {
         <button
           onClick={onComprar}
           className="w-full flex items-center justify-center gap-3 text-white py-3.5 rounded-xl font-extrabold uppercase btn-shake hover:scale-[1.01] transition"
-          style={{ backgroundColor: color || "#cb1515" }}
+          style={{ ...buttonStyle, width: "100%" }}
         >
           {svgCarrito}
           <div className="flex flex-col leading-tight">
@@ -168,12 +438,22 @@ function BotonComprar({ texto, subtitulo, color, onComprar, flotante }: any) {
     );
   }
 
-  // 👇 Si NO es flotante → botón inline (como hoy)
+  // 👇 Si NO es flotante → botón inline
   return (
     <button
       onClick={onComprar}
-      className="w-[90%] mx-auto my-6 flex items-center justify-center gap-3 text-white py-4 px-6 rounded-md shadow-lg font-extrabold uppercase relative overflow-hidden btn-shake hover:scale-[1.01] transition"
-      style={{ backgroundColor: color || "#cb1515" }}
+      className="mx-auto flex items-center justify-center gap-3 text-white font-extrabold uppercase shadow-lg relative overflow-hidden btn-shake hover:scale-[1.01] transition"
+      style={{
+        ...buttonStyle,
+        paddingTop: buttonStyle.paddingTop || "16px",
+        paddingBottom: buttonStyle.paddingBottom || "16px",
+        paddingLeft: buttonStyle.paddingLeft || "24px",
+        paddingRight: buttonStyle.paddingRight || "24px",
+        borderRadius: buttonStyle.borderRadius || "6px",
+        width: buttonStyle.width || "90%",
+        marginTop: buttonStyle.marginTop || "24px",
+        marginBottom: buttonStyle.marginBottom || "24px",
+      }}
     >
       {svgCarrito}
       <div className="flex flex-col leading-tight">
@@ -190,9 +470,35 @@ function BotonComprar({ texto, subtitulo, color, onComprar, flotante }: any) {
   );
 }
 
-function BloqueCompra({ textoDescuento, queIncluye, informacionEnvio, devoluciones, precio }: any) {
+function BloqueCompra({
+  textoDescuento,
+  queIncluye,
+  informacionEnvio,
+  devoluciones,
+  precio,
+  estilos = {},
+}: any) {
+  const sectionStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#121212",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "24px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "24px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+    border:
+      estilos.mostrarBorde && estilos.grosorBorde
+        ? `${estilos.grosorBorde}px solid ${estilos.colorBorde || "#e5e7eb"}`
+        : undefined,
+  };
   return (
-    <section className="bg-[#121212] text-white p-6 text-center">
+    <section className="text-white text-center" style={sectionStyle}>
       {textoDescuento && (
         <h2 className="text-2xl md:text-4xl font-black leading-tight">
           {textoDescuento}
@@ -200,7 +506,8 @@ function BloqueCompra({ textoDescuento, queIncluye, informacionEnvio, devolucion
       )}
       {typeof precio === "number" && (
         <h3 className="text-2xl md:text-4xl font-black mt-3">
-          PRECIO FINAL <span className="text-red-600">${precio.toFixed(2)}</span>
+          PRECIO FINAL{" "}
+          <span className="text-red-600">${precio.toFixed(2)}</span>
         </h3>
       )}
       <div className="mt-8 text-left max-w-3xl mx-auto divide-y divide-[#2a2a2a]">
@@ -236,9 +543,30 @@ function BloqueCompra({ textoDescuento, queIncluye, informacionEnvio, devolucion
   );
 }
 
-function PruebaSocial({ ordenesHoy, opinionesVerificadas, caracteristicas, beneficios }: any) {
+function PruebaSocial({
+  ordenesHoy,
+  opinionesVerificadas,
+  caracteristicas,
+  beneficios,
+  estilos = {},
+}: any) {
+  const sectionStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#ffffff",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "12px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "32px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
   return (
-    <section className="px-6 pt-3 pb-8 text-center bg-white">
+    <section className="text-center" style={sectionStyle}>
       {ordenesHoy > 0 && (
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs font-black text-black tracking-tight uppercase">
@@ -249,7 +577,8 @@ function PruebaSocial({ ordenesHoy, opinionesVerificadas, caracteristicas, benef
       {opinionesVerificadas > 0 && (
         <div className="flex flex-col items-start gap-1 mb-3">
           <span className="text-gray-500 text-xs">
-            ({Number(opinionesVerificadas).toLocaleString("es-CO")} Opiniones verificadas)
+            ({Number(opinionesVerificadas).toLocaleString("es-CO")} Opiniones
+            verificadas)
           </span>
         </div>
       )}
@@ -278,10 +607,25 @@ function PruebaSocial({ ordenesHoy, opinionesVerificadas, caracteristicas, benef
   );
 }
 
-function Faqs({ titulo, items }: any) {
+function Faqs({ titulo, items, estilos = {} }: any) {
   if (!Array.isArray(items) || !items.length) return null;
+  const sectionStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#121212",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "24px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "24px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
   return (
-    <section className="bg-[#121212] p-6">
+    <section style={sectionStyle}>
       <h2 className="text-white text-3xl font-bold text-center mb-6">
         {titulo || "Preguntas frecuentes"}
       </h2>
@@ -300,10 +644,26 @@ function Faqs({ titulo, items }: any) {
   );
 }
 
-function Resenas({ titulo, items }: any) {
+function Resenas({ titulo, items, estilos = {} }: any) {
   if (!Array.isArray(items) || !items.length) return null;
+  const sectionStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#ffffff",
+    color: "#000000",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "24px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "24px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
   return (
-    <section className="bg-white text-black p-6">
+    <section style={sectionStyle}>
       <h2 className="text-3xl font-black text-center mb-6">
         {titulo || "Opiniones de clientes"}
       </h2>
@@ -348,6 +708,7 @@ function CabeceraProducto({
   tamanioTitulo,
   alineacion,
   producto,
+  estilos = {},
 }: any) {
   const precio = Number(producto?.precio || 0);
   const precioAntes = Number(producto?.precioAntes || 0);
@@ -382,8 +743,26 @@ function CabeceraProducto({
   };
   const claseAlineacion = alineaciones[alineacion || "izq"] || alineaciones.izq;
 
+  const sectionStyle: React.CSSProperties = {
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "20px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "20px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    backgroundColor: estilos.colorFondo || undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
+
   return (
-    <section className={`px-6 py-5 flex flex-col gap-3 ${claseAlineacion}`}>
+    <section
+      className={`flex flex-col gap-3 ${claseAlineacion}`}
+      style={sectionStyle}
+    >
       <h1
         className={`font-black leading-tight ${claseTitulo}`}
         style={{ color: colorTitulo || "#121212" }}
@@ -432,22 +811,20 @@ function CabeceraProducto({
 // ═══════════════════════════════════════════════════════════════
 
 export const BLOQUES: Record<string, BloqueDef> = {
-  banner_contador: {
-    nombre: "Banner contador",
-    icono: "⏱️",
-    max: 1,
-    defaults: {
-      texto: "DESCUENTO POR\nTIEMPO LIMITADO",
-      minutos: 28,
-      colorBanner: "#E06000",
-    },
-    schema: [
-      { key: "texto", label: "Texto", tipo: "textarea" },
-      { key: "minutos", label: "Minutos", tipo: "number" },
-      { key: "colorBanner", label: "Color del banner", tipo: "color" },
-    ],
-    Render: BannerContador,
+banner_contador: {
+  nombre: "Banner contador",
+  icono: "⏱️",
+  max: 1,
+  defaults: {
+    texto: "DESCUENTO POR\nTIEMPO LIMITADO",
+    minutos: 28,
   },
+  schema: [
+    { key: "texto", label: "Texto", tipo: "textarea" },
+    { key: "minutos", label: "Minutos", tipo: "number" },
+  ],
+  Render: BannerContador,
+},
 
   barra_estrellas: {
     nombre: "Barra de estrellas",
@@ -470,26 +847,22 @@ export const BLOQUES: Record<string, BloqueDef> = {
     Render: HeroImagen,
   },
 
-  boton_comprar: {
-    nombre: "Botón comprar",
-    icono: "🛒",
-    max: 0,
-    defaults: {
-      texto: "PEDIR AHORA Y PAGAR AL RECIBIR",
-      subtitulo: "",
-      color: "#cb1515",
-          flotante: false,             // 👈 NUEVO
-
-    },
-    schema: [
-      { key: "texto", label: "Texto principal", tipo: "text" },
-      { key: "subtitulo", label: "Subtítulo", tipo: "text" },
-      { key: "color", label: "Color", tipo: "color" },
-          { key: "flotante", label: "📌 Fijo abajo (flotante)", tipo: "toggle" },   // 👈 NUEVO
-
-    ],
-    Render: BotonComprar,
+boton_comprar: {
+  nombre: "Botón comprar",
+  icono: "🛒",
+  max: 0,
+  defaults: {
+    texto: "PEDIR AHORA Y PAGAR AL RECIBIR",
+    subtitulo: "",
+    flotante: false,
   },
+  schema: [
+    { key: "texto", label: "Texto principal", tipo: "text" },
+    { key: "subtitulo", label: "Subtítulo", tipo: "text" },
+    { key: "flotante", label: "📌 Fijo abajo (flotante)", tipo: "toggle" },
+  ],
+  Render: BotonComprar,
+},
 
   bloque_compra: {
     nombre: "Bloque de compra (acordeón)",
@@ -504,8 +877,16 @@ export const BLOQUES: Record<string, BloqueDef> = {
     schema: [
       { key: "textoDescuento", label: "Texto descuento", tipo: "textarea" },
       { key: "queIncluye", label: "¿Qué incluye?", tipo: "textarea" },
-      { key: "informacionEnvio", label: "Información de envío", tipo: "textarea" },
-      { key: "devoluciones", label: "Devoluciones y reembolsos", tipo: "textarea" },
+      {
+        key: "informacionEnvio",
+        label: "Información de envío",
+        tipo: "textarea",
+      },
+      {
+        key: "devoluciones",
+        label: "Devoluciones y reembolsos",
+        tipo: "textarea",
+      },
     ],
     Render: BloqueCompra,
   },
@@ -522,8 +903,16 @@ export const BLOQUES: Record<string, BloqueDef> = {
     },
     schema: [
       { key: "ordenesHoy", label: "Órdenes hoy", tipo: "number" },
-      { key: "opinionesVerificadas", label: "Opiniones verificadas", tipo: "number" },
-      { key: "caracteristicas", label: "Características destacadas", tipo: "textarea" },
+      {
+        key: "opinionesVerificadas",
+        label: "Opiniones verificadas",
+        tipo: "number",
+      },
+      {
+        key: "caracteristicas",
+        label: "Características destacadas",
+        tipo: "textarea",
+      },
       { key: "beneficios", label: "Checklist de beneficios", tipo: "repeater" },
     ],
     Render: PruebaSocial,
@@ -552,7 +941,7 @@ export const BLOQUES: Record<string, BloqueDef> = {
     ],
     Render: Resenas,
   },
-    cabecera_producto: {
+  cabecera_producto: {
     nombre: "Cabecera de producto",
     icono: "🏷️",
     max: 1,
@@ -572,15 +961,45 @@ export const BLOQUES: Record<string, BloqueDef> = {
       alineacion: "izq",
     },
     schema: [
-      { key: "titulo", label: "Título (vacío = nombre del producto)", tipo: "text" },
-      { key: "tamanioTitulo", label: "Tamaño del título", tipo: "select", options: ["sm", "md", "lg", "xl"] },
-      { key: "alineacion", label: "Alineación", tipo: "select", options: ["izq", "centro", "der"] },
+      {
+        key: "titulo",
+        label: "Título (vacío = nombre del producto)",
+        tipo: "text",
+      },
+      {
+        key: "tamanioTitulo",
+        label: "Tamaño del título",
+        tipo: "select",
+        options: ["sm", "md", "lg", "xl"],
+      },
+      {
+        key: "alineacion",
+        label: "Alineación",
+        tipo: "select",
+        options: ["izq", "centro", "der"],
+      },
       { key: "mostrarPrecio", label: "Mostrar precio actual", tipo: "toggle" },
       { key: "colorPrecio", label: "Color del precio", tipo: "color" },
-      { key: "mostrarPrecioAntes", label: "Mostrar precio antes", tipo: "toggle" },
-      { key: "colorPrecioAntes", label: "Color del precio antes", tipo: "color" },
-      { key: "mostrarBadge", label: "Mostrar badge de descuento", tipo: "toggle" },
-      { key: "textoBadge", label: 'Texto del badge ("auto" calcula OFF)', tipo: "text" },
+      {
+        key: "mostrarPrecioAntes",
+        label: "Mostrar precio antes",
+        tipo: "toggle",
+      },
+      {
+        key: "colorPrecioAntes",
+        label: "Color del precio antes",
+        tipo: "color",
+      },
+      {
+        key: "mostrarBadge",
+        label: "Mostrar badge de descuento",
+        tipo: "toggle",
+      },
+      {
+        key: "textoBadge",
+        label: 'Texto del badge ("auto" calcula OFF)',
+        tipo: "text",
+      },
       { key: "colorBadgeTexto", label: "Color texto badge", tipo: "color" },
       { key: "colorBadgeBorde", label: "Color borde badge", tipo: "color" },
       { key: "colorBadgeFondo", label: "Color fondo badge", tipo: "color" },
@@ -590,10 +1009,16 @@ export const BLOQUES: Record<string, BloqueDef> = {
   },
 };
 // ═══════════════════════════════════════════════════════════════
-// SECCIONES (agrupan bloques)
+// SECCIONES — tipos, catálogo, ajustes
 // ═══════════════════════════════════════════════════════════════
 
-export type TipoSeccion = "header" | "hero" | "detalles" | "testimonios" | "faq";
+export type TipoSeccion =
+  | "header"
+  | "producto"
+  | "compra"
+  | "testimonios"
+  | "faq"
+  | "custom";
 
 export type AjustesSeccion = {
   // Tamaño
@@ -603,7 +1028,7 @@ export type AjustesSeccion = {
   // Apariencia
   colorFondo: string | null;   // null = hereda del tema
 
-  // Bordes 
+  // Bordes
   radioEsquinas: number;
 
   // Relleno
@@ -617,11 +1042,11 @@ export type Seccion = {
   tipo: TipoSeccion;
   nombre: string;
   visible: boolean;
+  colapsada: boolean;         // 👈 NUEVO
   bloques: Bloque[];
-  ajustes: AjustesSeccion;   // 👈 NUEVO
+  ajustes: AjustesSeccion;
 };
 
-// Valores por defecto para las secciones nuevas o migradas
 export const AJUSTES_DEFAULT: AjustesSeccion = {
   ancho: "fill",
   anchoMax: 480,
@@ -636,48 +1061,75 @@ export type SeccionDef = {
   tipo: TipoSeccion;
   nombre: string;
   icono: string;
-  bloquesPermitidos: string[];   // qué tipos de bloque pueden ir aquí
+  bloquesPermitidos: string[];  // vacío = sin restricción
+  fija: boolean;                // true = no se puede borrar ni mover
+  color: string;                // color del borde en el sidebar
 };
 
-// Catálogo de secciones fijas
-export const SECCIONES: Record<TipoSeccion, SeccionDef> = {
+// Catálogo de tipos de sección
+export const TIPOS_SECCION: Record<TipoSeccion, SeccionDef> = {
   header: {
     tipo: "header",
     nombre: "Encabezado",
     icono: "🧭",
     bloquesPermitidos: ["banner_contador", "barra_estrellas"],
+    fija: true,
+    color: "#f59e0b",    // ámbar para secciones fijas
   },
-  hero: {
-    tipo: "hero",
+  producto: {
+    tipo: "producto",
     nombre: "Producto",
     icono: "🎯",
-    bloquesPermitidos: ["cabecera_producto", "hero_imagen", "prueba_social"],
+    bloquesPermitidos: [
+      "cabecera_producto",
+      "hero_imagen",
+      "prueba_social",
+    ],
+    fija: false,
+    color: "#3b82f6",
   },
-  detalles: {
-    tipo: "detalles",
+  compra: {
+    tipo: "compra",
     nombre: "Compra",
     icono: "💰",
     bloquesPermitidos: ["bloque_compra", "boton_comprar"],
+    fija: false,
+    color: "#10b981",
   },
   testimonios: {
     tipo: "testimonios",
     nombre: "Testimonios",
     icono: "⭐",
     bloquesPermitidos: ["prueba_social", "resenas"],
+    fija: false,
+    color: "#8b5cf6",
   },
   faq: {
     tipo: "faq",
     nombre: "Preguntas",
     icono: "❓",
     bloquesPermitidos: ["faqs"],
+    fija: false,
+    color: "#ec4899",
+  },
+  custom: {
+    tipo: "custom",
+    nombre: "Sección libre",
+    icono: "📄",
+    bloquesPermitidos: [],   // sin restricción
+    fija: false,
+    color: "#6b7280",
   },
 };
 
-// Orden canónico de las secciones en la landing
+// Alias para compatibilidad con código existente
+export const SECCIONES = TIPOS_SECCION;
+
+// Orden canónico (para migración desde formato viejo)
 export const ORDEN_SECCIONES: TipoSeccion[] = [
   "header",
-  "hero",
-  "detalles",
+  "producto",
+  "compra",
   "testimonios",
   "faq",
 ];
@@ -686,11 +1138,11 @@ export const ORDEN_SECCIONES: TipoSeccion[] = [
 const BLOQUE_A_SECCION: Record<string, TipoSeccion> = {
   banner_contador: "header",
   barra_estrellas: "header",
-  cabecera_producto: "hero",
-  hero_imagen: "hero",
-  prueba_social: "hero",
-  bloque_compra: "detalles",
-  boton_comprar: "detalles",
+  cabecera_producto: "producto",
+  hero_imagen: "producto",
+  prueba_social: "producto",
+  bloque_compra: "compra",
+  boton_comprar: "compra",
   resenas: "testimonios",
   faqs: "faq",
 };
@@ -707,9 +1159,12 @@ const ORDEN_DEFAULT = [
 ];
 
 export function construirPlantilla(producto: any): Plantilla {
-  const diseno = producto.disenoLanding === "moderno" ? "disenoModerno" : "disenoClasico";
+  const diseno =
+    producto.disenoLanding === "moderno" ? "disenoModerno" : "disenoClasico";
   const cfg = producto[diseno] || {};
-  const orden: string[] = cfg.ordenSecciones?.length ? cfg.ordenSecciones : ORDEN_DEFAULT;
+  const orden: string[] = cfg.ordenSecciones?.length
+    ? cfg.ordenSecciones
+    : ORDEN_DEFAULT;
   const img = producto.imagenesLanding || {};
   const bloques: Bloque[] = [];
   const newId = () =>
@@ -719,16 +1174,18 @@ export function construirPlantilla(producto: any): Plantilla {
 
   for (const key of orden) {
     if (key === "banner_contador" && cfg.mostrarContador !== false) {
-      bloques.push({
-        id: newId(),
-        tipo: "banner_contador",
-        props: {
-          texto: "DESCUENTO POR\nTIEMPO LIMITADO",
-          minutos: Number(cfg.minutosContador) || 28,
-          colorBanner: cfg.colorBanner || "#E06000",
-        },
-      });
-    }
+  bloques.push({
+    id: newId(),
+    tipo: "banner_contador",
+    props: {
+      texto: "DESCUENTO POR\nTIEMPO LIMITADO",
+      minutos: Number(cfg.minutosContador) || 28,
+    },
+    estilos: {
+      colorFondo: cfg.colorBanner || "#E06000",
+    },
+  });
+}
 
     if (key === "barra_estrellas" && cfg.mostrarEstrellas !== false) {
       bloques.push({
@@ -754,7 +1211,9 @@ export function construirPlantilla(producto: any): Plantilla {
         props: {
           texto: cfg.textoBoton || "PEDIR AHORA Y PAGAR AL RECIBIR",
           subtitulo: "",
-          color: "#cb1515",
+        },
+        estilos: {
+          colorFondo: "#cb1515",   // 👈 color va acá
         },
       });
 
@@ -763,7 +1222,9 @@ export function construirPlantilla(producto: any): Plantilla {
           id: newId(),
           tipo: "bloque_compra",
           props: {
-            textoDescuento: cfg.textoDescuento || "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
+            textoDescuento:
+              cfg.textoDescuento ||
+              "POR HOY CON EL 50% DE DESCUENTO + ENVÍO GRATIS",
             queIncluye: cfg.queIncluye || "",
             informacionEnvio: cfg.informacionEnvio || "",
             devoluciones: cfg.devolucionesReembolsos || "",
@@ -771,14 +1232,16 @@ export function construirPlantilla(producto: any): Plantilla {
         });
 
         bloques.push({
-          id: newId(),
-          tipo: "boton_comprar",
-          props: {
-            texto: cfg.textoBoton || "PEDIR AHORA Y PAGAR AL RECIBIR",
-            subtitulo: "",
-            color: "#cb1515",
-          },
-        });
+  id: newId(),
+  tipo: "boton_comprar",
+  props: {
+    texto: cfg.textoBoton || "PEDIR AHORA Y PAGAR AL RECIBIR",
+    subtitulo: "",
+  },
+  estilos: {
+    colorFondo: "#cb1515",
+  },
+});
       }
 
       // Imágenes 2-5, con botón entre cada una (igual que hoy)
@@ -796,7 +1259,6 @@ export function construirPlantilla(producto: any): Plantilla {
           props: {
             texto: cfg.textoBoton || "PEDIR AHORA Y PAGAR AL RECIBIR",
             subtitulo: "",
-            color: "#cb1515",
           },
         });
       }
@@ -813,7 +1275,11 @@ export function construirPlantilla(producto: any): Plantilla {
       });
     }
 
-    if (key === "resenas" && producto.mostrarResenas !== false && producto.resenas?.length) {
+    if (
+      key === "resenas" &&
+      producto.mostrarResenas !== false &&
+      producto.resenas?.length
+    ) {
       bloques.push({
         id: newId(),
         tipo: "resenas",
@@ -827,7 +1293,9 @@ export function construirPlantilla(producto: any): Plantilla {
 
   // Prueba social (solo si el diseño era moderno o tiene datos)
   if (
-    (cfg.mostrarOrdenesHoy || cfg.mostrarOpinionesVerificadas || cfg.caracteristicasDestacadas) &&
+    (cfg.mostrarOrdenesHoy ||
+      cfg.mostrarOpinionesVerificadas ||
+      cfg.caracteristicasDestacadas) &&
     diseno === "disenoModerno"
   ) {
     // Insertar después del primer botón
@@ -836,13 +1304,16 @@ export function construirPlantilla(producto: any): Plantilla {
       id: newId(),
       tipo: "prueba_social",
       props: {
-        ordenesHoy: cfg.mostrarOrdenesHoy !== false ? Number(cfg.ordenesHoy) || 137 : 0,
+        ordenesHoy:
+          cfg.mostrarOrdenesHoy !== false ? Number(cfg.ordenesHoy) || 137 : 0,
         opinionesVerificadas:
           cfg.mostrarOpinionesVerificadas !== false
             ? Number(cfg.opinionesVerificadasCount) || 1247
             : 0,
         caracteristicas: cfg.caracteristicasDestacadas || "",
-        beneficios: Array.isArray(cfg.beneficiosChecklist) ? cfg.beneficiosChecklist : [],
+        beneficios: Array.isArray(cfg.beneficiosChecklist)
+          ? cfg.beneficiosChecklist
+          : [],
       },
     };
     bloques.splice(idx >= 0 ? idx + 1 : bloques.length, 0, prueba);
@@ -856,6 +1327,7 @@ export function construirPlantilla(producto: any): Plantilla {
       colorFondo: diseno === "disenoModerno" ? "#ffffff" : "#121212",
       tipografia: "Inter",
       anchoMax: 480,
+      nav: { ...NAV_DEFAULT },   // 👈 NUEVO
     },
   };
 }
@@ -871,12 +1343,13 @@ function newId(): string {
 
 // Crea una sección vacía con el nombre por defecto
 export function crearSeccion(tipo: TipoSeccion): Seccion {
-  const def = SECCIONES[tipo];
+  const def = TIPOS_SECCION[tipo];
   return {
     id: newId(),
     tipo,
     nombre: def.nombre,
     visible: true,
+    colapsada: false,           // 👈 NUEVO
     bloques: [],
     ajustes: { ...AJUSTES_DEFAULT },
   };
@@ -887,15 +1360,38 @@ export function crearSeccionesVacias(): Seccion[] {
   return ORDEN_SECCIONES.map((tipo) => crearSeccion(tipo));
 }
 
+// Convierte tipos de sección viejos a los nuevos
+function normalizarTipoSeccion(tipoViejo: string): TipoSeccion {
+  if (tipoViejo === "hero") return "producto";
+  if (tipoViejo === "detalles") return "compra";
+  if (
+    tipoViejo === "header" ||
+    tipoViejo === "producto" ||
+    tipoViejo === "compra" ||
+    tipoViejo === "testimonios" ||
+    tipoViejo === "faq" ||
+    tipoViejo === "custom"
+  ) {
+    return tipoViejo as TipoSeccion;
+  }
+  return "custom";   // fallback
+}
+
 // Toma una plantilla vieja (bloques planos) y devuelve una nueva con secciones
 export function migrarASecciones(plantilla: Plantilla): Plantilla {
-  // Si ya tiene secciones, normalizarlas (agregar ajustes si faltan)
+  // Si ya tiene secciones, normalizarlas
   if (Array.isArray(plantilla.secciones) && plantilla.secciones.length > 0) {
     return {
       ...plantilla,
+      tema: {
+        ...plantilla.tema,
+        nav: { ...NAV_DEFAULT, ...(plantilla.tema?.nav || {}) },
+      },
       secciones: plantilla.secciones.map((s: any) => ({
         ...s,
+        colapsada: s.colapsada ?? false,
         ajustes: { ...AJUSTES_DEFAULT, ...(s.ajustes || {}) },
+        bloques: (s.bloques || []).map((b: Bloque) => normalizarColores(b)),
       })),
     };
   }
@@ -909,11 +1405,11 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
   // Meter cada bloque en su sección correspondiente
   for (const bloque of plantilla.bloques || []) {
     const tipoSeccion = BLOQUE_A_SECCION[bloque.tipo];
+    const normalizado = normalizarColores(bloque);
     if (tipoSeccion && mapa[tipoSeccion]) {
-      mapa[tipoSeccion].bloques.push(bloque);
+      mapa[tipoSeccion].bloques.push(normalizado);
     } else {
-      // Bloque desconocido → lo mandamos a "hero" por defecto
-      mapa.hero.bloques.push(bloque);
+      mapa.producto.bloques.push(normalizado);
     }
   }
 
@@ -921,9 +1417,12 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
     version: 3,
     bloques: plantilla.bloques || [],
     secciones: ORDEN_SECCIONES.map((t) => mapa[t]),
-    tema: plantilla.tema,
+    tema: {
+      ...plantilla.tema,
+      nav: { ...NAV_DEFAULT, ...(plantilla.tema?.nav || {}) },
+    },
   };
-}
+} // 👈 cierre de migrarASecciones que faltaba
 // ═══════════════════════════════════════════════════════════════
 // RENDERER — puro. No dispara tracking, no lee cookies.
 // ═══════════════════════════════════════════════════════════════
@@ -932,73 +1431,92 @@ export function ProductRenderer({
   plantilla,
   producto,
   onComprar,
+    onMenuClick,   // 👈 NUEVO
+
   modo = "ver",
+  bloqueHover = null,
+  seleccionado = null,
 }: {
   plantilla: Plantilla;
   producto: any;
   onComprar?: () => void;
+    onMenuClick?: () => void;   // 👈 NUEVO
+
   modo?: "ver" | "editor";
+  bloqueHover?: string | null;
+  seleccionado?: string | null;
 }) {
   if (!plantilla) return null;
 
   // 👇 Normalizar: si tiene secciones las usa, si no migra los bloques planos
   const plantillaNormalizada = migrarASecciones(plantilla);
-
   const precio = Number(producto?.precio || 0);
+  const nav = plantillaNormalizada.tema?.nav ?? NAV_DEFAULT;  // 👈 NUEVO
+
 
   // Función que renderiza un bloque
-  function renderBloque(b: Bloque) {
+  function renderBloque(bOriginal: Bloque) {
+    const b = normalizarColores(bOriginal);   // 👈 NUEVO
     const def = BLOQUES[b.tipo];
     if (!def) return null;
+
+    // 👇 Si está oculto, no renderizar (solo en modo ver)
+    if (modo === "ver" && b.estilos?.oculto === true) return null;
+
     const props = { ...b.props };
     if (b.tipo === "boton_comprar") props.onComprar = onComprar;
     if (b.tipo === "bloque_compra") props.precio = precio;
 
-    const contenido = <def.Render {...props} producto={producto} />;
+    const contenido = (
+      <def.Render {...props} estilos={b.estilos || {}} producto={producto} />
+    );
 
-    // 👇 Si estamos en modo editor, envolver para detectar hover/click
+    // 👇 Modo editor: envolver con overlay INTERNO (dentro del iframe)
     if (modo === "editor") {
+      const esHover = bloqueHover === b.id;
+      const esSeleccionado = seleccionado === b.id;
+
       return (
         <div
           key={b.id}
           data-bloque-id={b.id}
           style={{ position: "relative" }}
-          onMouseEnter={(e) => {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          onMouseEnter={() => {
             window.parent.postMessage(
-              {
-                type: "BLOQUE_HOVER",
-                id: b.id,
-                rect: {
-                  top: rect.top,
-                  left: rect.left,
-                  width: rect.width,
-                  height: rect.height,
-                },
-              },
-              "*"
+              { type: "BLOQUE_HOVER", id: b.id },
+              window.location.origin,
             );
           }}
           onMouseLeave={() => {
             window.parent.postMessage(
               { type: "BLOQUE_LEAVE", id: b.id },
-              "*"
+              window.location.origin,
             );
           }}
           onClick={(e) => {
             e.stopPropagation();
             window.parent.postMessage(
               { type: "BLOQUE_SELECT", id: b.id },
-              "*"
+              window.location.origin,
             );
           }}
         >
+          {/* Overlay: borde azul cuando hover o seleccionado */}
+          {(esHover || esSeleccionado) && (
+            <div
+              className="absolute inset-0 border-2 border-dashed rounded pointer-events-none z-40"
+              style={{
+                borderColor: esSeleccionado ? "#3b82f6" : "#60a5fa",
+              }}
+            />
+          )}
+
           {contenido}
         </div>
       );
     }
 
-    return <span key={b.id}>{contenido}</span>;
+    return <div key={b.id}>{contenido}</div>;
   }
 
   // Iterar secciones
@@ -1008,12 +1526,15 @@ export function ProductRenderer({
   // Detectar si hay algún botón flotante activo
   const hayBotonFlotante = secciones.some((s) =>
     s.bloques.some(
-      (b) => b.tipo === "boton_comprar" && b.props.flotante === true
-    )
+      (b) => b.tipo === "boton_comprar" && b.props.flotante === true,
+    ),
   );
 
   return (
     <div style={{ paddingBottom: hayBotonFlotante ? "96px" : undefined }}>
+      {/* 👇 NUEVO: NavBar configurable desde el tema */}
+<NavBar nav={nav} onMenuClick={onMenuClick} />
+
       {secciones.map((seccion) => {
         if (!seccion.visible) return null;
         if (!seccion.bloques || seccion.bloques.length === 0) return null;
