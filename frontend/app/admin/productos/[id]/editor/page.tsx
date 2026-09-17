@@ -607,7 +607,6 @@ function SeccionSidebar({
   const agregarBloque = useEditor((s) => s.agregarBloque);
   const renombrarSeccion = useEditor((s) => s.renombrarSeccion);
   const toggleVisible = useEditor((s) => s.toggleVisibleSeccion);
-  const def = SECCIONES[seccion.tipo];
 
   const {
     attributes,
@@ -619,6 +618,10 @@ function SeccionSidebar({
   } = useSortable({ id: `seccion-${seccion.id}` });
   const { over } = useDndContext();
   const isOver = over?.id === `seccion-${seccion.id}` && !isDragging;
+
+  // 👇 GUARD: si el tipo de sección no existe en TIPOS_SECCION, no renderizar
+  const def = SECCIONES[seccion.tipo];
+  if (!def) return null;
 
   return (
     <div
@@ -1527,6 +1530,7 @@ export default function EditorPage() {
                   );
                   if (!seccion) return null;
                   const def = SECCIONES[seccion.tipo];
+                  if (!def) return null;   // 👈 GUARD
                   const aj = seccion.ajustes || {
                     ancho: "fill",
                     anchoMax: 480,

@@ -33,12 +33,12 @@ export type EstilosBloque = {
   alineacion?: "izq" | "centro" | "der";
 
   // 🔤 Tipografía
-  tamanoFuente?: number;             // px
+  tamanoFuente?: number; // px
   pesoFuente?: "normal" | "bold" | "black";
   cursiva?: boolean;
   mayusculas?: boolean;
-  interlineado?: number;             // 1.0 - 2.5
-  espaciadoLetras?: number;          // px
+  interlineado?: number; // 1.0 - 2.5
+  espaciadoLetras?: number; // px
 
   // 👁️ Visibilidad
   oculto?: boolean;
@@ -74,7 +74,7 @@ export type Tema = {
   colorFondo: string;
   tipografia: string;
   anchoMax: number;
-  nav: Nav;               // 👈 NUEVO
+  nav: Nav; // 👈 NUEVO
 };
 
 export type Plantilla = {
@@ -191,13 +191,7 @@ function normalizarColores(bloque: Bloque): Bloque {
 // ═══════════════════════════════════════════════════════════════
 // NAVBAR — renderiza el nav configurable desde el tema
 // ═══════════════════════════════════════════════════════════════
-function NavBar({
-  nav,
-  onMenuClick,
-}: {
-  nav: Nav;
-  onMenuClick?: () => void;
-}) {
+function NavBar({ nav, onMenuClick }: { nav: Nav; onMenuClick?: () => void }) {
   if (!nav?.mostrar) return null;
 
   return (
@@ -258,13 +252,21 @@ function BannerContador({ minutos, texto, estilos = {} }: any) {
   const sectionStyle: React.CSSProperties = {
     ...aplicarTipografia(estilos),
     backgroundColor: estilos.colorFondo || "#E06000",
-    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : undefined,
-    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : undefined,
+    paddingTop: estilos.paddingArriba
+      ? `${estilos.paddingArriba}px`
+      : undefined,
+    paddingBottom: estilos.paddingAbajo
+      ? `${estilos.paddingAbajo}px`
+      : undefined,
     paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
-    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados
+      ? `${estilos.paddingLados}px`
+      : undefined,
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -281,10 +283,7 @@ function BannerContador({ minutos, texto, estilos = {} }: any) {
         : undefined,
   };
   return (
-    <section
-      className="text-white py-3"
-      style={sectionStyle}
-    >
+    <section className="text-white py-3" style={sectionStyle}>
       <div className="flex items-center justify-center gap-4">
         <div className="text-center font-black italic leading-tight text-sm md:text-xl whitespace-pre-line">
           {texto || "DESCUENTO POR\nTIEMPO LIMITADO"}
@@ -314,10 +313,14 @@ function BarraEstrellas({ texto, estilos = {} }: any) {
     paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "4px",
     paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "4px",
     paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
-    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados
+      ? `${estilos.paddingLados}px`
+      : undefined,
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -337,14 +340,22 @@ function HeroImagen({ url, alt, estilos = {} }: any) {
   if (!url) return null;
 
   const wrapperStyle: React.CSSProperties = {
-    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : undefined,
-    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : undefined,
+    paddingTop: estilos.paddingArriba
+      ? `${estilos.paddingArriba}px`
+      : undefined,
+    paddingBottom: estilos.paddingAbajo
+      ? `${estilos.paddingAbajo}px`
+      : undefined,
     paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
-    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados
+      ? `${estilos.paddingLados}px`
+      : undefined,
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
     backgroundColor: estilos.colorFondo || undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -386,12 +397,16 @@ function BotonComprar({
   const buttonStyle: React.CSSProperties = {
     ...aplicarTipografia(estilos),
     backgroundColor: estilos.colorFondo || "#cb1515",
-    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : undefined,
+    paddingTop: estilos.paddingArriba
+      ? `${estilos.paddingArriba}px`
+      : undefined,
     paddingBottom: estilos.paddingAbajo
       ? `${estilos.paddingAbajo}px`
       : undefined,
     paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
-    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados
+      ? `${estilos.paddingLados}px`
+      : undefined,
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
     borderRadius:
@@ -487,7 +502,9 @@ function BloqueCompra({
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -559,7 +576,9 @@ function PruebaSocial({
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -618,7 +637,9 @@ function Faqs({ titulo, items, estilos = {} }: any) {
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -656,7 +677,9 @@ function Resenas({ titulo, items, estilos = {} }: any) {
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -751,7 +774,9 @@ function CabeceraProducto({
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
     backgroundColor: estilos.colorFondo || undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -811,20 +836,20 @@ function CabeceraProducto({
 // ═══════════════════════════════════════════════════════════════
 
 export const BLOQUES: Record<string, BloqueDef> = {
-banner_contador: {
-  nombre: "Banner contador",
-  icono: "⏱️",
-  max: 1,
-  defaults: {
-    texto: "DESCUENTO POR\nTIEMPO LIMITADO",
-    minutos: 28,
+  banner_contador: {
+    nombre: "Banner contador",
+    icono: "⏱️",
+    max: 1,
+    defaults: {
+      texto: "DESCUENTO POR\nTIEMPO LIMITADO",
+      minutos: 28,
+    },
+    schema: [
+      { key: "texto", label: "Texto", tipo: "textarea" },
+      { key: "minutos", label: "Minutos", tipo: "number" },
+    ],
+    Render: BannerContador,
   },
-  schema: [
-    { key: "texto", label: "Texto", tipo: "textarea" },
-    { key: "minutos", label: "Minutos", tipo: "number" },
-  ],
-  Render: BannerContador,
-},
 
   barra_estrellas: {
     nombre: "Barra de estrellas",
@@ -847,22 +872,22 @@ banner_contador: {
     Render: HeroImagen,
   },
 
-boton_comprar: {
-  nombre: "Botón comprar",
-  icono: "🛒",
-  max: 0,
-  defaults: {
-    texto: "PEDIR AHORA Y PAGAR AL RECIBIR",
-    subtitulo: "",
-    flotante: false,
+  boton_comprar: {
+    nombre: "Botón comprar",
+    icono: "🛒",
+    max: 0,
+    defaults: {
+      texto: "PEDIR AHORA Y PAGAR AL RECIBIR",
+      subtitulo: "",
+      flotante: false,
+    },
+    schema: [
+      { key: "texto", label: "Texto principal", tipo: "text" },
+      { key: "subtitulo", label: "Subtítulo", tipo: "text" },
+      { key: "flotante", label: "📌 Fijo abajo (flotante)", tipo: "toggle" },
+    ],
+    Render: BotonComprar,
   },
-  schema: [
-    { key: "texto", label: "Texto principal", tipo: "text" },
-    { key: "subtitulo", label: "Subtítulo", tipo: "text" },
-    { key: "flotante", label: "📌 Fijo abajo (flotante)", tipo: "toggle" },
-  ],
-  Render: BotonComprar,
-},
 
   bloque_compra: {
     nombre: "Bloque de compra (acordeón)",
@@ -1026,7 +1051,7 @@ export type AjustesSeccion = {
   anchoMax: number;
 
   // Apariencia
-  colorFondo: string | null;   // null = hereda del tema
+  colorFondo: string | null; // null = hereda del tema
 
   // Bordes
   radioEsquinas: number;
@@ -1042,7 +1067,7 @@ export type Seccion = {
   tipo: TipoSeccion;
   nombre: string;
   visible: boolean;
-  colapsada: boolean;         // 👈 NUEVO
+  colapsada: boolean; // 👈 NUEVO
   bloques: Bloque[];
   ajustes: AjustesSeccion;
 };
@@ -1061,9 +1086,9 @@ export type SeccionDef = {
   tipo: TipoSeccion;
   nombre: string;
   icono: string;
-  bloquesPermitidos: string[];  // vacío = sin restricción
-  fija: boolean;                // true = no se puede borrar ni mover
-  color: string;                // color del borde en el sidebar
+  bloquesPermitidos: string[]; // vacío = sin restricción
+  fija: boolean; // true = no se puede borrar ni mover
+  color: string; // color del borde en el sidebar
 };
 
 // Catálogo de tipos de sección
@@ -1074,17 +1099,13 @@ export const TIPOS_SECCION: Record<TipoSeccion, SeccionDef> = {
     icono: "🧭",
     bloquesPermitidos: ["banner_contador", "barra_estrellas"],
     fija: true,
-    color: "#f59e0b",    // ámbar para secciones fijas
+    color: "#f59e0b", // ámbar para secciones fijas
   },
   producto: {
     tipo: "producto",
     nombre: "Producto",
     icono: "🎯",
-    bloquesPermitidos: [
-      "cabecera_producto",
-      "hero_imagen",
-      "prueba_social",
-    ],
+    bloquesPermitidos: ["cabecera_producto", "hero_imagen", "prueba_social"],
     fija: false,
     color: "#3b82f6",
   },
@@ -1116,7 +1137,7 @@ export const TIPOS_SECCION: Record<TipoSeccion, SeccionDef> = {
     tipo: "custom",
     nombre: "Sección libre",
     icono: "📄",
-    bloquesPermitidos: [],   // sin restricción
+    bloquesPermitidos: [], // sin restricción
     fija: false,
     color: "#6b7280",
   },
@@ -1174,18 +1195,18 @@ export function construirPlantilla(producto: any): Plantilla {
 
   for (const key of orden) {
     if (key === "banner_contador" && cfg.mostrarContador !== false) {
-  bloques.push({
-    id: newId(),
-    tipo: "banner_contador",
-    props: {
-      texto: "DESCUENTO POR\nTIEMPO LIMITADO",
-      minutos: Number(cfg.minutosContador) || 28,
-    },
-    estilos: {
-      colorFondo: cfg.colorBanner || "#E06000",
-    },
-  });
-}
+      bloques.push({
+        id: newId(),
+        tipo: "banner_contador",
+        props: {
+          texto: "DESCUENTO POR\nTIEMPO LIMITADO",
+          minutos: Number(cfg.minutosContador) || 28,
+        },
+        estilos: {
+          colorFondo: cfg.colorBanner || "#E06000",
+        },
+      });
+    }
 
     if (key === "barra_estrellas" && cfg.mostrarEstrellas !== false) {
       bloques.push({
@@ -1213,7 +1234,7 @@ export function construirPlantilla(producto: any): Plantilla {
           subtitulo: "",
         },
         estilos: {
-          colorFondo: "#cb1515",   // 👈 color va acá
+          colorFondo: "#cb1515", // 👈 color va acá
         },
       });
 
@@ -1232,16 +1253,16 @@ export function construirPlantilla(producto: any): Plantilla {
         });
 
         bloques.push({
-  id: newId(),
-  tipo: "boton_comprar",
-  props: {
-    texto: cfg.textoBoton || "PEDIR AHORA Y PAGAR AL RECIBIR",
-    subtitulo: "",
-  },
-  estilos: {
-    colorFondo: "#cb1515",
-  },
-});
+          id: newId(),
+          tipo: "boton_comprar",
+          props: {
+            texto: cfg.textoBoton || "PEDIR AHORA Y PAGAR AL RECIBIR",
+            subtitulo: "",
+          },
+          estilos: {
+            colorFondo: "#cb1515",
+          },
+        });
       }
 
       // Imágenes 2-5, con botón entre cada una (igual que hoy)
@@ -1327,7 +1348,7 @@ export function construirPlantilla(producto: any): Plantilla {
       colorFondo: diseno === "disenoModerno" ? "#ffffff" : "#121212",
       tipografia: "Inter",
       anchoMax: 480,
-      nav: { ...NAV_DEFAULT },   // 👈 NUEVO
+      nav: { ...NAV_DEFAULT }, // 👈 NUEVO
     },
   };
 }
@@ -1347,9 +1368,9 @@ export function crearSeccion(tipo: TipoSeccion): Seccion {
   return {
     id: newId(),
     tipo,
-    nombre: def.nombre,
+    nombre: def?.nombre ?? "Sección", // 👈 fallback
     visible: true,
-    colapsada: false,           // 👈 NUEVO
+    colapsada: false, // 👈 NUEVO
     bloques: [],
     ajustes: { ...AJUSTES_DEFAULT },
   };
@@ -1374,7 +1395,7 @@ function normalizarTipoSeccion(tipoViejo: string): TipoSeccion {
   ) {
     return tipoViejo as TipoSeccion;
   }
-  return "custom";   // fallback
+  return "custom"; // fallback
 }
 
 // Toma una plantilla vieja (bloques planos) y devuelve una nueva con secciones
@@ -1387,12 +1408,14 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
         ...plantilla.tema,
         nav: { ...NAV_DEFAULT, ...(plantilla.tema?.nav || {}) },
       },
-      secciones: plantilla.secciones.map((s: any) => ({
-        ...s,
-        colapsada: s.colapsada ?? false,
-        ajustes: { ...AJUSTES_DEFAULT, ...(s.ajustes || {}) },
-        bloques: (s.bloques || []).map((b: Bloque) => normalizarColores(b)),
-      })),
+      secciones: plantilla.secciones
+        .filter((s: any) => s && s.tipo && TIPOS_SECCION[s.tipo as TipoSeccion])
+        .map((s: any) => ({
+          ...s,
+          colapsada: s.colapsada ?? false,
+          ajustes: { ...AJUSTES_DEFAULT, ...(s.ajustes || {}) },
+          bloques: (s.bloques || []).map((b: Bloque) => normalizarColores(b)),
+        })),
     };
   }
 
@@ -1402,7 +1425,6 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
     mapa[tipo] = crearSeccion(tipo);
   });
 
-  // Meter cada bloque en su sección correspondiente
   for (const bloque of plantilla.bloques || []) {
     const tipoSeccion = BLOQUE_A_SECCION[bloque.tipo];
     const normalizado = normalizarColores(bloque);
@@ -1422,7 +1444,7 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
       nav: { ...NAV_DEFAULT, ...(plantilla.tema?.nav || {}) },
     },
   };
-} // 👈 cierre de migrarASecciones que faltaba
+}
 // ═══════════════════════════════════════════════════════════════
 // RENDERER — puro. No dispara tracking, no lee cookies.
 // ═══════════════════════════════════════════════════════════════
@@ -1431,7 +1453,7 @@ export function ProductRenderer({
   plantilla,
   producto,
   onComprar,
-    onMenuClick,   // 👈 NUEVO
+  onMenuClick, // 👈 NUEVO
 
   modo = "ver",
   bloqueHover = null,
@@ -1440,7 +1462,7 @@ export function ProductRenderer({
   plantilla: Plantilla;
   producto: any;
   onComprar?: () => void;
-    onMenuClick?: () => void;   // 👈 NUEVO
+  onMenuClick?: () => void; // 👈 NUEVO
 
   modo?: "ver" | "editor";
   bloqueHover?: string | null;
@@ -1451,12 +1473,11 @@ export function ProductRenderer({
   // 👇 Normalizar: si tiene secciones las usa, si no migra los bloques planos
   const plantillaNormalizada = migrarASecciones(plantilla);
   const precio = Number(producto?.precio || 0);
-  const nav = plantillaNormalizada.tema?.nav ?? NAV_DEFAULT;  // 👈 NUEVO
-
+  const nav = plantillaNormalizada.tema?.nav ?? NAV_DEFAULT; // 👈 NUEVO
 
   // Función que renderiza un bloque
   function renderBloque(bOriginal: Bloque) {
-    const b = normalizarColores(bOriginal);   // 👈 NUEVO
+    const b = normalizarColores(bOriginal); // 👈 NUEVO
     const def = BLOQUES[b.tipo];
     if (!def) return null;
 
@@ -1533,7 +1554,7 @@ export function ProductRenderer({
   return (
     <div style={{ paddingBottom: hayBotonFlotante ? "96px" : undefined }}>
       {/* 👇 NUEVO: NavBar configurable desde el tema */}
-<NavBar nav={nav} onMenuClick={onMenuClick} />
+      <NavBar nav={nav} onMenuClick={onMenuClick} />
 
       {secciones.map((seccion) => {
         if (!seccion.visible) return null;
