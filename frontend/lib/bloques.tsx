@@ -99,13 +99,24 @@ export type PropSchema = {
   options?: string[];
 };
 
+export type EstiloGrupo =
+  | "tipografia"
+  | "tamano"
+  | "apariencia"
+  | "bordes"
+  | "relleno"
+  | "margen"
+  | "alineacion"
+  | "visibilidad";
+
 export type BloqueDef = {
   nombre: string;
   icono: string;
-  max: number; // instancias máximas (0 = sin límite)
-  defaults: Record<string, any>; // props por defecto
-  schema: PropSchema[]; // para generar el panel de edición
+  max: number;
+  defaults: Record<string, any>;
+  schema: PropSchema[];
   Render: (props: any) => React.ReactNode;
+  aplicaEstilos?: EstiloGrupo[];   // 👈 NUEVO
 };
 // ═══════════════════════════════════════════════════════════════
 // RENDERERS (componentes puros — sin tracking, sin cookies)
@@ -147,7 +158,6 @@ function useContador(minutosIniciales: number, activo: boolean) {
 // ═══════════════════════════════════════════════════════════════
 // HELPER: convierte las props de tipografía en CSS
 // ═══════════════════════════════════════════════════════════════
-
 function aplicarTipografia(e: EstilosBloque): React.CSSProperties {
   return {
     fontSize: e.tamanoFuente ? `${e.tamanoFuente}px` : undefined,
@@ -164,6 +174,22 @@ function aplicarTipografia(e: EstilosBloque): React.CSSProperties {
     lineHeight: e.interlineado ?? undefined,
     letterSpacing: e.espaciadoLetras ? `${e.espaciadoLetras}px` : undefined,
   };
+}
+// ═══════════════════════════════════════════════════════════════
+// HELPER: detecta si un color es claro u oscuro
+// ═══════════════════════════════════════════════════════════════
+function isColorClaro(hex: string): boolean {
+  if (!hex) return true;
+  const c = hex.replace("#", "");
+  const full =
+    c.length === 3
+      ? c.split("").map((x) => x + x).join("")
+      : c.padEnd(6, "0").slice(0, 6);
+  const r = parseInt(full.substring(0, 2), 16);
+  const g = parseInt(full.substring(2, 4), 16);
+  const b = parseInt(full.substring(4, 6), 16);
+  const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminancia > 0.5;
 }
 // ═══════════════════════════════════════════════════════════════
 // NORMALIZAR COLORES
@@ -381,6 +407,8 @@ function BotonComprar({
   subtitulo,
   onComprar,
   flotante,
+  opcionSeleccionada,
+  tema,   // 👈 NUEVO
   estilos = {},
 }: any) {
   const svgCarrito = (
@@ -396,7 +424,8 @@ function BotonComprar({
   // Estilos compartidos del botón real
   const buttonStyle: React.CSSProperties = {
     ...aplicarTipografia(estilos),
-    backgroundColor: estilos.colorFondo || "#cb1515",
+    backgroundColor:
+      estilos.colorFondo || tema?.colorPrimario || "#cb1515",
     paddingTop: estilos.paddingArriba
       ? `${estilos.paddingArriba}px`
       : undefined,
@@ -427,13 +456,15 @@ function BotonComprar({
         ? `${estilos.grosorBorde}px solid ${estilos.colorBorde || "#e5e7eb"}`
         : undefined,
   };
-
+  const etiquetaPrecio = opcionSeleccionada?.titulo
+    ? ` · ${opcionSeleccionada.titulo}`
+    : "";
   // 👇 Si es flotante → botón fijo abajo
   if (flotante) {
     return (
       <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-white/95 backdrop-blur border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
         <button
-          onClick={onComprar}
+          onClick={() => onComprar?.(opcionSeleccionada)}
           className="w-full flex items-center justify-center gap-3 text-white py-3.5 rounded-xl font-extrabold uppercase btn-shake hover:scale-[1.01] transition"
           style={{ ...buttonStyle, width: "100%" }}
         >
@@ -442,11 +473,11 @@ function BotonComprar({
             <span className="text-[14px] md:text-[16px]">
               {texto || "PEDIR AHORA Y PAGAR AL RECIBIR"}
             </span>
-            {subtitulo && (
-              <span className="text-[10px] md:text-[11px] font-medium opacity-90 normal-case">
-                {subtitulo}
-              </span>
-            )}
+            {(subtitulo || etiquetaPrecio) && (
+  <span className="text-[10px] md:text-[11px] font-medium opacity-90 normal-case">
+    {subtitulo}{etiquetaPrecio}
+  </span>
+)}
           </div>
         </button>
       </div>
@@ -454,9 +485,10 @@ function BotonComprar({
   }
 
   // 👇 Si NO es flotante → botón inline
+   // 👇 Si NO es flotante → botón inline
   return (
     <button
-      onClick={onComprar}
+      onClick={() => onComprar?.(opcionSeleccionada)}
       className="mx-auto flex items-center justify-center gap-3 text-white font-extrabold uppercase shadow-lg relative overflow-hidden btn-shake hover:scale-[1.01] transition"
       style={{
         ...buttonStyle,
@@ -468,15 +500,23 @@ function BotonComprar({
         width: buttonStyle.width || "90%",
         marginTop: buttonStyle.marginTop || "24px",
         marginBottom: buttonStyle.marginBottom || "24px",
+        lineHeight: aplicarTipografia(estilos).lineHeight,   // 👈 hereda el lineHeight
       }}
     >
       {svgCarrito}
       <div className="flex flex-col leading-tight">
-        <span className="text-[15px] md:text-[18px]">
+        <span style={aplicarTipografia(estilos)}>    {/* 👈 aplica los estilos al span */}
           {texto || "PEDIR AHORA Y PAGAR AL RECIBIR"}
         </span>
         {subtitulo && (
-          <span className="text-[11px] md:text-[12px] font-medium opacity-90 normal-case">
+          <span
+            className="font-medium opacity-90 normal-case"
+            style={{
+              fontSize: estilos.tamanoFuente
+                ? `${Math.max(10, estilos.tamanoFuente * 0.7)}px`  // 👈 proporcional
+                : undefined,
+            }}
+          >
             {subtitulo}
           </span>
         )}
@@ -502,9 +542,7 @@ function BloqueCompra({
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas
-      ? `${estilos.radioEsquinas}px`
-      : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -514,45 +552,176 @@ function BloqueCompra({
         ? `${estilos.grosorBorde}px solid ${estilos.colorBorde || "#e5e7eb"}`
         : undefined,
   };
+
+  // 👇 Alineación dinámica
+  const textAlign =
+    estilos.alineacion === "izq"
+      ? "left"
+      : estilos.alineacion === "der"
+        ? "right"
+        : "center";
+
+  // 👇 Tamaños base — si el admin define `tamanoFuente`, se usa
+  const fontBase = estilos.tamanoFuente || 16;
+  const fontTitulo = fontBase * 1.6;   // título principal
+  const fontSubtitulo = fontBase * 1.6; // precio final
+  const fontAcordeon = fontBase * 1.15; // summary del acordeón
+  const fontContenido = fontBase;       // texto dentro del acordeón
+
+  const pesoFuente = estilos.pesoFuente === "normal"
+    ? 400
+    : estilos.pesoFuente === "bold"
+      ? 700
+      : estilos.pesoFuente === "black"
+        ? 900
+        : 900; // default: negro para títulos
+
+  const estilosTipografia: React.CSSProperties = {
+    fontStyle: estilos.cursiva ? "italic" : undefined,
+    textTransform: estilos.mayusculas ? "uppercase" : undefined,
+    lineHeight: estilos.interlineado ?? undefined,
+    letterSpacing: estilos.espaciadoLetras
+      ? `${estilos.espaciadoLetras}px`
+      : undefined,
+  };
+
   return (
-    <section className="text-white text-center" style={sectionStyle}>
+    <section style={{ ...sectionStyle, textAlign }}>
       {textoDescuento && (
-        <h2 className="text-2xl md:text-4xl font-black leading-tight">
+        <h2
+          style={{
+            fontSize: `${fontTitulo}px`,
+            fontWeight: pesoFuente,
+            ...estilosTipografia,
+          }}
+        >
           {textoDescuento}
         </h2>
       )}
+
       {typeof precio === "number" && (
-        <h3 className="text-2xl md:text-4xl font-black mt-3">
+        <h3
+          style={{
+            fontSize: `${fontSubtitulo}px`,
+            fontWeight: pesoFuente,
+            marginTop: "12px",
+            ...estilosTipografia,
+          }}
+        >
           PRECIO FINAL{" "}
-          <span className="text-red-600">${precio.toFixed(2)}</span>
+          <span style={{ color: "#dc2626" }}>${precio.toFixed(2)}</span>
         </h3>
       )}
-      <div className="mt-8 text-left max-w-3xl mx-auto divide-y divide-[#2a2a2a]">
+
+      <div
+        className="mt-8 max-w-3xl mx-auto"
+        style={{
+          textAlign: "left", // el acordeón siempre a la izquierda
+          borderTop: "1px solid #2a2a2a",
+        }}
+      >
         {queIncluye && (
-          <details className="p-5">
-            <summary className="cursor-pointer font-bold text-xl flex justify-between items-center">
+          <details
+            className="p-5"
+            style={{ borderBottom: "1px solid #2a2a2a" }}
+          >
+            <summary
+              className="cursor-pointer flex justify-between items-center"
+              style={{
+                fontSize: `${fontAcordeon}px`,
+                fontWeight: 700,
+                lineHeight: estilos.interlineado ?? undefined,
+                letterSpacing: estilos.espaciadoLetras
+                  ? `${estilos.espaciadoLetras}px`
+                  : undefined,
+                fontStyle: estilos.cursiva ? "italic" : undefined,
+                textTransform: estilos.mayusculas ? "uppercase" : undefined,
+              }}
+            >
               <span>📦 ¿Qué incluye?</span>
               <span>▼</span>
             </summary>
-            <p className="mt-4 text-gray-200">{queIncluye}</p>
+            <p
+              className="mt-4"
+              style={{
+                fontSize: `${fontContenido}px`,
+                color: "#e5e7eb",
+                lineHeight: estilos.interlineado ?? undefined,
+                fontStyle: estilos.cursiva ? "italic" : undefined,
+              }}
+            >
+              {queIncluye}
+            </p>
           </details>
         )}
+
         {informacionEnvio && (
-          <details className="p-5">
-            <summary className="cursor-pointer font-bold text-xl flex justify-between items-center">
+          <details
+            className="p-5"
+            style={{ borderBottom: "1px solid #2a2a2a" }}
+          >
+            <summary
+              className="cursor-pointer flex justify-between items-center"
+              style={{
+                fontSize: `${fontAcordeon}px`,
+                fontWeight: 700,
+                lineHeight: estilos.interlineado ?? undefined,
+                letterSpacing: estilos.espaciadoLetras
+                  ? `${estilos.espaciadoLetras}px`
+                  : undefined,
+                fontStyle: estilos.cursiva ? "italic" : undefined,
+                textTransform: estilos.mayusculas ? "uppercase" : undefined,
+              }}
+            >
               <span>🚚 Información de envío</span>
               <span>▼</span>
             </summary>
-            <p className="mt-4 text-gray-200">{informacionEnvio}</p>
+            <p
+              className="mt-4"
+              style={{
+                fontSize: `${fontContenido}px`,
+                color: "#e5e7eb",
+                lineHeight: estilos.interlineado ?? undefined,
+                fontStyle: estilos.cursiva ? "italic" : undefined,
+              }}
+            >
+              {informacionEnvio}
+            </p>
           </details>
         )}
+
         {devoluciones && (
-          <details className="p-5">
-            <summary className="cursor-pointer font-bold text-xl flex justify-between items-center">
+          <details
+            className="p-5"
+            style={{ borderBottom: "1px solid #2a2a2a" }}
+          >
+            <summary
+              className="cursor-pointer flex justify-between items-center"
+              style={{
+                fontSize: `${fontAcordeon}px`,
+                fontWeight: 700,
+                lineHeight: estilos.interlineado ?? undefined,
+                letterSpacing: estilos.espaciadoLetras
+                  ? `${estilos.espaciadoLetras}px`
+                  : undefined,
+                fontStyle: estilos.cursiva ? "italic" : undefined,
+                textTransform: estilos.mayusculas ? "uppercase" : undefined,
+              }}
+            >
               <span>↩️ Devoluciones y reembolsos</span>
               <span>▼</span>
             </summary>
-            <p className="mt-4 text-gray-200">{devoluciones}</p>
+            <p
+              className="mt-4"
+              style={{
+                fontSize: `${fontContenido}px`,
+                color: "#e5e7eb",
+                lineHeight: estilos.interlineado ?? undefined,
+                fontStyle: estilos.cursiva ? "italic" : undefined,
+              }}
+            >
+              {devoluciones}
+            </p>
           </details>
         )}
       </div>
@@ -576,44 +745,145 @@ function PruebaSocial({
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas
-      ? `${estilos.radioEsquinas}px`
-      : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
         : undefined,
+    border:
+      estilos.mostrarBorde && estilos.grosorBorde
+        ? `${estilos.grosorBorde}px solid ${estilos.colorBorde || "#e5e7eb"}`
+        : undefined,
   };
+
+  const fondo = estilos.colorFondo || "#ffffff";
+  const esClaro = isColorClaro(fondo);
+  const colorTexto = esClaro ? "#121212" : "#ffffff";
+  const colorTextoSuave = esClaro ? "#6b7280" : "rgba(255,255,255,0.65)";
+
+  const textAlign =
+    estilos.alineacion === "izq" ? "left"
+    : estilos.alineacion === "der" ? "right"
+    : "center";
+
+  const fontBase = estilos.tamanoFuente || 14;
+  const pesoBase = estilos.pesoFuente === "bold" ? 700
+    : estilos.pesoFuente === "black" ? 900 : 700;
+
+  const estilosTipografia: React.CSSProperties = {
+    fontStyle: estilos.cursiva ? "italic" : undefined,
+    textTransform: estilos.mayusculas ? "uppercase" : undefined,
+    lineHeight: estilos.interlineado ?? undefined,
+    letterSpacing: estilos.espaciadoLetras
+      ? `${estilos.espaciadoLetras}px`
+      : undefined,
+  };
+
   return (
-    <section className="text-center" style={sectionStyle}>
+    <section style={{ ...sectionStyle, textAlign }}>
       {ordenesHoy > 0 && (
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-black text-black tracking-tight uppercase">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: "8px",
+          }}
+        >
+          <span
+            style={{
+              fontSize: `${fontBase * 0.85}px`,
+              fontWeight: pesoBase,
+              color: colorTexto,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              ...estilosTipografia,
+            }}
+          >
             +{ordenesHoy} ÓRDENES HOY
           </span>
         </div>
       )}
+
       {opinionesVerificadas > 0 && (
-        <div className="flex flex-col items-start gap-1 mb-3">
-          <span className="text-gray-500 text-xs">
-            ({Number(opinionesVerificadas).toLocaleString("es-CO")} Opiniones
-            verificadas)
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: textAlign === "center" ? "center" : textAlign === "right" ? "flex-end" : "flex-start",
+            marginBottom: "12px",
+          }}
+        >
+          <span
+            style={{
+              fontSize: `${fontBase * 0.8}px`,
+              color: colorTextoSuave,
+              ...estilosTipografia,
+            }}
+          >
+            ({Number(opinionesVerificadas).toLocaleString("es-CO")} Opiniones verificadas)
           </span>
         </div>
       )}
+
       {caracteristicas && (
-        <p className="text-[#D66700] font-bold text-sm md:text-base mt-2 whitespace-pre-line text-left">
+        <p
+          style={{
+            fontSize: `${fontBase}px`,
+            fontWeight: pesoBase,
+            color: "#D66700",
+            whiteSpace: "pre-line",
+            marginTop: "8px",
+            textAlign,
+            ...estilosTipografia,
+          }}
+        >
           {caracteristicas}
         </p>
       )}
+
       {Array.isArray(beneficios) && beneficios.length > 0 && (
-        <div className="mt-6 space-y-3 text-left max-w-md mx-auto">
+        <div
+          style={{
+            marginTop: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            maxWidth: "28rem",
+            marginLeft: textAlign === "center" ? "auto" : 0,
+            marginRight: textAlign === "center" ? "auto" : 0,
+            textAlign: "left",
+          }}
+        >
           {beneficios.map((b: any, i: number) => {
             if (!b.titulo && !b.descripcion) return null;
             return (
-              <div key={i} className="flex items-start gap-3">
-                <span className="text-[#D66700] text-lg flex-shrink-0">✓</span>
-                <p className="text-[#181818] text-sm md:text-base">
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "12px",
+                }}
+              >
+                <span
+                  style={{
+                    color: "#D66700",
+                    fontSize: `${fontBase * 1.2}px`,
+                    lineHeight: 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  ✓
+                </span>
+                <p
+                  style={{
+                    fontSize: `${fontBase}px`,
+                    color: colorTexto,
+                    margin: 0,
+                    ...estilosTipografia,
+                  }}
+                >
                   <strong>{b.titulo}</strong>
                   {b.descripcion && <>: {b.descripcion}</>}
                 </p>
@@ -667,51 +937,144 @@ function Faqs({ titulo, items, estilos = {} }: any) {
 
 function Resenas({ titulo, items, estilos = {} }: any) {
   if (!Array.isArray(items) || !items.length) return null;
+
   const sectionStyle: React.CSSProperties = {
     ...aplicarTipografia(estilos),
     backgroundColor: estilos.colorFondo || "#ffffff",
-    color: "#000000",
+    color: estilos.colorFondo
+      ? isColorClaro(estilos.colorFondo)
+        ? "#121212"
+        : "#ffffff"
+      : "#121212",
     paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "24px",
     paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "24px",
     paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas
-      ? `${estilos.radioEsquinas}px`
-      : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
         : undefined,
   };
+
+  const fondo = estilos.colorFondo || "#ffffff";
+  const esClaro = isColorClaro(fondo);
+  const colorTexto = esClaro ? "#121212" : "#ffffff";
+  const colorTextoSuave = esClaro ? "#6b7280" : "rgba(255,255,255,0.65)";
+  const colorBorde = esClaro ? "#e5e7eb" : "rgba(255,255,255,0.15)";
+
+  const textAlign =
+    estilos.alineacion === "izq" ? "left"
+    : estilos.alineacion === "der" ? "right"
+    : "center";
+
+  const fontBase = estilos.tamanoFuente || 14;
+  const pesoBase = estilos.pesoFuente === "bold" ? 700
+    : estilos.pesoFuente === "black" ? 900 : 700;
+
+  const estilosTipografia: React.CSSProperties = {
+    fontStyle: estilos.cursiva ? "italic" : undefined,
+    textTransform: estilos.mayusculas ? "uppercase" : undefined,
+    lineHeight: estilos.interlineado ?? undefined,
+    letterSpacing: estilos.espaciadoLetras
+      ? `${estilos.espaciadoLetras}px`
+      : undefined,
+  };
+
   return (
-    <section style={sectionStyle}>
-      <h2 className="text-3xl font-black text-center mb-6">
+    <section style={{ ...sectionStyle, textAlign }}>
+      <h2
+        style={{
+          fontSize: `${fontBase * 1.6}px`,
+          fontWeight: 900,
+          textAlign,
+          marginBottom: "24px",
+          margin: 0,
+          paddingBottom: "24px",
+          ...estilosTipografia,
+        }}
+      >
         {titulo || "Opiniones de clientes"}
       </h2>
-      <div className="space-y-4">
-        {items.map((r: any, i: number) => (
-          <div key={i} className="border rounded-xl p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <h3 className="font-bold">{r.nombre}</h3>
-                <p className="text-sm text-gray-500">
-                  {r.ciudad} · {r.fecha}
-                </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {items.map((r: any, i: number) => {
+          const puntuacion = Math.min(5, Math.max(1, Number(r.puntuacion || 5)));
+          return (
+            <div
+              key={i}
+              style={{
+                border: `1px solid ${colorBorde}`,
+                borderRadius: "12px",
+                padding: "16px",
+                backgroundColor: esClaro ? "#f9fafb" : "rgba(255,255,255,0.03)",
+                textAlign: "left",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "8px",
+                }}
+              >
+                <div>
+                  <h3
+                    style={{
+                      fontSize: `${fontBase * 1.05}px`,
+                      fontWeight: 700,
+                      margin: 0,
+                      color: colorTexto,
+                      ...estilosTipografia,
+                    }}
+                  >
+                    {r.nombre}
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: `${fontBase * 0.85}px`,
+                      color: colorTextoSuave,
+                      margin: 0,
+                      ...estilosTipografia,
+                    }}
+                  >
+                    {r.ciudad} · {r.fecha}
+                  </p>
+                </div>
+                {r.verificado && (
+                  <span
+                    style={{
+                      fontSize: `${fontBase * 0.75}px`,
+                      backgroundColor: "#dcfce7",
+                      color: "#166534",
+                      padding: "2px 8px",
+                      borderRadius: "9999px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Verificado
+                  </span>
+                )}
               </div>
-              {r.verificado && (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
-                  Verificado
-                </span>
-              )}
+              <div style={{ color: "#f59e0b", marginBottom: "8px" }}>
+                {"⭐".repeat(puntuacion)}
+              </div>
+              <p
+                style={{
+                  fontSize: `${fontBase}px`,
+                  color: colorTexto,
+                  margin: 0,
+                  ...estilosTipografia,
+                }}
+              >
+                {r.resena}
+              </p>
             </div>
-            <div className="text-yellow-500 mb-2">
-              {"⭐".repeat(Number(r.puntuacion || 5))}
-            </div>
-            <p className="text-gray-700">{r.resena}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -751,20 +1114,22 @@ function CabeceraProducto({
         : null
       : textoBadge;
 
-  const tamanios: Record<string, string> = {
-    sm: "text-lg",
-    md: "text-xl md:text-2xl",
-    lg: "text-2xl md:text-3xl",
-    xl: "text-3xl md:text-4xl",
+  // 👇 Si el usuario define `tamanoFuente`, se usa. Si no, fallback al select
+  const tamanios: Record<string, number> = {
+    sm: 18,
+    md: 24,
+    lg: 30,
+    xl: 36,
   };
-  const claseTitulo = tamanios[tamanioTitulo || "lg"] || tamanios.lg;
+  const fontSizeTitulo = estilos.tamanoFuente || tamanios[tamanioTitulo || "lg"] || 30;
 
+  // 👇 Alineación con clases y también inline (por si acaso)
   const alineaciones: Record<string, string> = {
     izq: "items-start text-left",
     centro: "items-center text-center",
     der: "items-end text-right",
   };
-  const claseAlineacion = alineaciones[alineacion || "izq"] || alineaciones.izq;
+  const claseAlineacion = alineaciones[alineacion || estilos.alineacion || "izq"] || alineaciones.izq;
 
   const sectionStyle: React.CSSProperties = {
     paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "20px",
@@ -774,13 +1139,24 @@ function CabeceraProducto({
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
     backgroundColor: estilos.colorFondo || undefined,
-    borderRadius: estilos.radioEsquinas
-      ? `${estilos.radioEsquinas}px`
-      : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
         : undefined,
+    // 👇 TIPOGRAFÍA GLOBAL del bloque (heredada por los hijos)
+    fontWeight:
+      estilos.pesoFuente === "normal"
+        ? 400
+        : estilos.pesoFuente === "bold"
+          ? 700
+          : estilos.pesoFuente === "black"
+            ? 900
+            : undefined,
+    fontStyle: estilos.cursiva ? "italic" : undefined,
+    textTransform: estilos.mayusculas ? "uppercase" : undefined,
+    lineHeight: estilos.interlineado ?? undefined,
+    letterSpacing: estilos.espaciadoLetras ? `${estilos.espaciadoLetras}px` : undefined,
   };
 
   return (
@@ -788,9 +1164,26 @@ function CabeceraProducto({
       className={`flex flex-col gap-3 ${claseAlineacion}`}
       style={sectionStyle}
     >
+      {/* 👇 h1 SIN clases Tailwind de tipografía — todo inline */}
       <h1
-        className={`font-black leading-tight ${claseTitulo}`}
-        style={{ color: colorTitulo || "#121212" }}
+        style={{
+          fontSize: `${fontSizeTitulo}px`,
+          fontWeight:
+            estilos.pesoFuente === "normal"
+              ? 400
+              : estilos.pesoFuente === "bold"
+                ? 700
+                : estilos.pesoFuente === "black"
+                  ? 900
+                  : 900, // fallback: el título suele ser black por defecto
+          fontStyle: estilos.cursiva ? "italic" : undefined,
+          textTransform: estilos.mayusculas ? "uppercase" : undefined,
+          lineHeight: estilos.interlineado ?? 1.2,
+          letterSpacing: estilos.espaciadoLetras
+            ? `${estilos.espaciadoLetras}px`
+            : undefined,
+          color: colorTitulo || "#121212",
+        }}
       >
         {textoFinal}
       </h1>
@@ -798,8 +1191,11 @@ function CabeceraProducto({
       <div className="flex items-center gap-3 flex-wrap">
         {mostrarPrecio !== false && (
           <span
-            className="text-2xl md:text-3xl font-black"
-            style={{ color: colorPrecio || "#1d4ed8" }}
+            style={{
+              fontSize: `${fontSizeTitulo * 0.8}px`,
+              fontWeight: 900,
+              color: colorPrecio || "#1d4ed8",
+            }}
           >
             ${precio.toFixed(2)}
           </span>
@@ -807,8 +1203,12 @@ function CabeceraProducto({
 
         {mostrarPrecioAntes !== false && precioAntes > 0 && (
           <span
-            className="text-lg md:text-xl font-semibold line-through"
-            style={{ color: colorPrecioAntes || "#a1a1a1" }}
+            style={{
+              fontSize: `${fontSizeTitulo * 0.65}px`,
+              fontWeight: 600,
+              textDecoration: "line-through",
+              color: colorPrecioAntes || "#a1a1a1",
+            }}
           >
             ${precioAntes.toFixed(2)}
           </span>
@@ -816,8 +1216,10 @@ function CabeceraProducto({
 
         {mostrarBadge !== false && textoBadgeFinal && (
           <span
-            className="px-3 py-1 rounded-full border-2 border-dashed text-sm font-bold"
+            className="px-3 py-1 rounded-full border-2 border-dashed"
             style={{
+              fontSize: `${Math.max(12, fontSizeTitulo * 0.45)}px`,
+              fontWeight: 700,
               color: colorBadgeTexto || "#cb1515",
               borderColor: colorBadgeBorde || "#cb1515",
               backgroundColor: colorBadgeFondo || "#fef2f2",
@@ -915,7 +1317,48 @@ export const BLOQUES: Record<string, BloqueDef> = {
     ],
     Render: BloqueCompra,
   },
-
+  selector_unidades: {
+    nombre: "Selector de unidades",
+    icono: "🎚️",
+    max: 1,
+   defaults: {
+  tituloSeccion: "Elige tu pack",
+opciones: [
+  {
+    titulo: "1 Unidad + Kit",
+    items: "1 item",
+    precio: 29.9,
+    precioAntes: 0,
+    badge: "",
+    envioGratis: true,
+    beneficios: [
+      { texto: "E-Book: Biohacking Anti-Edad" },
+      { texto: "Calendario de Renovación Celular" },
+      { texto: "Protocolo Dérmico AM/PM" },
+    ],
+  },
+  {
+    titulo: "2 Unidades + 2 Kits",
+    items: "2 items",
+    precio: 46.9,
+    precioAntes: 59.8,
+    badge: "MEJOR OFERTA",
+    envioGratis: true,
+    beneficios: [
+      { texto: "Mascarilla Adulto" },
+      { texto: "Mascarilla Niño" },
+      { texto: "Boquilla Inhaladora" },
+      { texto: "Cable de carga" },
+    ],
+  },
+],
+},
+    schema: [
+  { key: "tituloSeccion", label: "Título de la sección", tipo: "text" },
+  { key: "opciones", label: "Opciones de compra", tipo: "repeater" },
+],
+    Render: SelectorUnidades,
+  },
   prueba_social: {
     nombre: "Prueba social",
     icono: "🔥",
@@ -1113,7 +1556,7 @@ export const TIPOS_SECCION: Record<TipoSeccion, SeccionDef> = {
     tipo: "compra",
     nombre: "Compra",
     icono: "💰",
-    bloquesPermitidos: ["bloque_compra", "boton_comprar"],
+    bloquesPermitidos: ["bloque_compra", "boton_comprar", "selector_unidades"],
     fija: false,
     color: "#10b981",
   },
@@ -1164,6 +1607,7 @@ const BLOQUE_A_SECCION: Record<string, TipoSeccion> = {
   prueba_social: "producto",
   bloque_compra: "compra",
   boton_comprar: "compra",
+  selector_unidades: "compra", 
   resenas: "testimonios",
   faqs: "faq",
 };
@@ -1352,6 +1796,308 @@ export function construirPlantilla(producto: any): Plantilla {
     },
   };
 }
+//selector de unidades 
+function SelectorUnidades({
+  tituloSeccion,
+  opciones,
+  onSeleccionar,
+  seleccionada,
+  tema,
+  estilos = {},
+}: any) {
+  const colorAcento = tema?.colorPrimario || "#16a34a";
+const lista = Array.isArray(opciones) ? opciones : [];
+const [tabActiva, setTabActiva] = useState(0);
+const idx = Math.min(tabActiva, Math.max(lista.length - 1, 0));  // ─── Colores auto-calculados ───
+  const fondo = estilos.colorFondo || "#ffffff";
+  const esClaro = isColorClaro(fondo);
+  const colorTexto = esClaro ? "#121212" : "#ffffff";
+  const colorTextoSuave = esClaro ? "#6b7280" : "rgba(255,255,255,0.65)";
+  const bordeSubtle = esClaro ? "#e5e7eb" : "rgba(255,255,255,0.15)";
+  const fondoTabActivo = `${colorAcento}15`; // color acento muy claro
+
+  // ─── Tamaños proporcionales ───
+  const fontBase = estilos.tamanoFuente || 14;
+  const fontTabTitulo = fontBase * 1.05;
+  const fontTabPrecio = fontBase * 0.95;
+  const fontTituloOpcion = fontBase * 1.5;
+  const fontItems = fontBase * 1.05;
+  const fontBeneficio = fontBase * 1.05;
+  const fontPrecio = fontBase * 1.6;
+
+  const estilosTipografia: React.CSSProperties = {
+    fontStyle: estilos.cursiva ? "italic" : undefined,
+    textTransform: estilos.mayusculas ? "uppercase" : undefined,
+    lineHeight: estilos.interlineado ?? undefined,
+    letterSpacing: estilos.espaciadoLetras
+      ? `${estilos.espaciadoLetras}px`
+      : undefined,
+  };
+
+  const sectionStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: fondo,
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "16px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "16px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "16px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "16px",
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : "12px",
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
+
+  return (
+    <section style={sectionStyle}>
+      {/* Título opcional */}
+      {tituloSeccion && (
+        <h3
+          style={{
+            fontSize: `${fontBase * 0.95}px`,
+            fontWeight: 700,
+            color: colorTextoSuave,
+            textAlign: "center",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            marginBottom: "12px",
+            ...estilosTipografia,
+          }}
+        >
+          {tituloSeccion}
+        </h3>
+      )}
+
+      {/* Contenedor principal con borde redondeado */}
+      <div
+        style={{
+          border: `1px solid ${colorAcento}80`,
+          borderRadius: "12px",
+          overflow: "hidden",
+        }}
+      >
+        {/* ─── TABS SUPERIORES ─── */}
+        <div className="flex" style={{ position: "relative" }}>
+          {lista.map((op: any, i: number) => {
+const activa = idx === i;
+            return (
+              <button
+  key={i}
+  onClick={() => { setTabActiva(i); onSeleccionar?.(i); }}
+  className="flex-1 py-4 px-3 relative"
+  style={{
+    backgroundColor: activa ? `${colorAcento}22` : "transparent",
+    border: activa
+      ? `2px solid ${colorAcento}`
+      : `1px solid ${bordeSubtle}`,
+    borderBottom: activa
+      ? `5px solid ${colorAcento}`
+      : `1px solid ${bordeSubtle}`,
+    borderRadius: "8px 8px 0 0",
+    cursor: "pointer",
+    textAlign: "center",
+    transition: "all 0.2s ease",
+    transform: activa ? "translateY(-2px)" : "none",
+    boxShadow: activa ? `0 4px 12px ${colorAcento}33` : "none",
+    ...estilosTipografia,
+  }}
+>
+                <div
+                  style={{
+                    fontSize: `${fontTabTitulo}px`,
+                    fontWeight: 800,
+                    color: colorTexto,
+                    ...estilosTipografia,
+                  }}
+                >
+                  {op.titulo || `Opción ${i + 1}`}
+                </div>
+                <div
+                  style={{
+                    fontSize: `${fontTabPrecio}px`,
+                    color: colorTextoSuave,
+                    marginTop: "4px",
+                    fontWeight: 500,
+                    ...estilosTipografia,
+                  }}
+                >
+                  ${Number(op.precio || 0).toFixed(2)}
+                </div>
+
+                {/* Badge MEJOR OFERTA */}
+                {op.badge && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-1px",
+                      right: "-1px",
+                      backgroundColor: colorAcento,
+                      color: "#ffffff",
+                      fontSize: `${fontBase * 0.7}px`,
+                      fontWeight: 800,
+                      padding: "4px 10px",
+                      borderRadius: "0 8px 0 8px",
+                      letterSpacing: "0.3px",
+                      textTransform: "uppercase",
+                      ...estilosTipografia,
+                    }}
+                  >
+                    {op.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ─── CONTENIDO DE LA OPCIÓN ACTIVA ─── */}
+        {lista[idx] && (
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              padding: "24px 20px",
+            }}
+          >
+            {(() => {
+              const op = lista[idx];
+              const precio = Number(op.precio || 0);
+              const precioAntes = Number(op.precioAntes || 0);
+
+              return (
+                <div style={{ textAlign: "center" }}>
+                  {/* Título grande */}
+                  <h4
+                    style={{
+                      fontSize: `${fontTituloOpcion}px`,
+                      fontWeight: 900,
+                      color: "#121212",
+                      margin: 0,
+                      marginBottom: "6px",
+                      ...estilosTipografia,
+                    }}
+                  >
+                    {op.titulo}
+                  </h4>
+
+                  {/* Subtítulo items */}
+                  <p
+                    style={{
+                      fontSize: `${fontItems}px`,
+                      color: "#6b7280",
+                      margin: 0,
+                      marginBottom: "20px",
+                      fontWeight: 500,
+                      ...estilosTipografia,
+                    }}
+                  >
+                    {op.items || ""}
+                    {op.envioGratis !== false && (
+                      <span> + Free Shipping</span>
+                    )}
+                  </p>
+
+                  {/* Beneficios */}
+                  {Array.isArray(op.beneficios) &&
+                    op.beneficios.length > 0 && (
+                      <ul
+                        style={{
+                          listStyle: "none",
+                          padding: 0,
+                          margin: "0 auto 20px auto",
+                          maxWidth: "400px",
+                          textAlign: "left",
+                        }}
+                      >
+                        {op.beneficios.map((b: any, j: number) => {
+                          const texto =
+                            typeof b === "string" ? b : b.texto || "";
+                          if (!texto.trim()) return null;
+                          return (
+                            <li
+                              key={j}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                marginBottom: "10px",
+                                fontSize: `${fontBeneficio}px`,
+                                color: "#374151",
+                                ...estilosTipografia,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: colorAcento,
+                                  fontSize: `${fontBeneficio * 1.3}px`,
+                                  lineHeight: 1,
+                                  flexShrink: 0,
+                                  fontWeight: 900,
+                                }}
+                              >
+                                ✓
+                              </span>
+                              <span>{texto}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+
+                  {/* Precio */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    {precioAntes > precio && (
+                      <span
+                        style={{
+                          fontSize: `${fontItems}px`,
+                          color: "#9ca3af",
+                          textDecoration: "line-through",
+                          ...estilosTipografia,
+                        }}
+                      >
+                        ${precioAntes.toFixed(2)}
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontSize: `${fontPrecio}px`,
+                        fontWeight: 900,
+                        color: "#121212",
+                        ...estilosTipografia,
+                      }}
+                    >
+                      ${precio.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ─── FOOTER: garantía + envío ─── */}
+        <div
+          className="flex justify-between items-center"
+          style={{
+            padding: "14px 20px",
+            borderTop: `1px solid ${bordeSubtle}`,
+            fontSize: `${fontBase * 0.95}px`,
+            color: "#9ca3af",
+            ...estilosTipografia,
+          }}
+        >
+          <span>Garantía de devolución de 30 días</span>
+          <span>Envío gratis incluido</span>
+        </div>
+      </div>
+    </section>
+  );}
 // ═══════════════════════════════════════════════════════════════
 // SECCIONES — construcción y normalización
 // ═══════════════════════════════════════════════════════════════
@@ -1437,8 +2183,9 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
 
   return {
     version: 3,
-    bloques: plantilla.bloques || [],
+    bloques: [],
     secciones: ORDEN_SECCIONES.map((t) => mapa[t]),
+
     tema: {
       ...plantilla.tema,
       nav: { ...NAV_DEFAULT, ...(plantilla.tema?.nav || {}) },
@@ -1454,7 +2201,8 @@ export function ProductRenderer({
   producto,
   onComprar,
   onMenuClick, // 👈 NUEVO
-
+opcionSeleccionada = 0,        // 👈 NUEVO
+  onOpcionChange,                 // 👈 NUEVO
   modo = "ver",
   bloqueHover = null,
   seleccionado = null,
@@ -1463,17 +2211,20 @@ export function ProductRenderer({
   producto: any;
   onComprar?: () => void;
   onMenuClick?: () => void; // 👈 NUEVO
-
+opcionSeleccionada?: number;    // 👈 NUEVO
+  onOpcionChange?: (i: number) => void;   // 👈 NUEVO
   modo?: "ver" | "editor";
   bloqueHover?: string | null;
   seleccionado?: string | null;
 }) {
+
   if (!plantilla) return null;
 
   // 👇 Normalizar: si tiene secciones las usa, si no migra los bloques planos
   const plantillaNormalizada = migrarASecciones(plantilla);
   const precio = Number(producto?.precio || 0);
   const nav = plantillaNormalizada.tema?.nav ?? NAV_DEFAULT; // 👈 NUEVO
+  const tema = plantillaNormalizada.tema;   // 👈 AQUÍ, junto a nav
 
   // Función que renderiza un bloque
   function renderBloque(bOriginal: Bloque) {
@@ -1485,11 +2236,34 @@ export function ProductRenderer({
     if (modo === "ver" && b.estilos?.oculto === true) return null;
 
     const props = { ...b.props };
-    if (b.tipo === "boton_comprar") props.onComprar = onComprar;
-    if (b.tipo === "bloque_compra") props.precio = precio;
+    if (b.tipo === "selector_unidades") {
+  props.onSeleccionar = onOpcionChange;    // 👈 usar el callback de afuera
+      props.seleccionada = opcionSeleccionada;
+    }
+    if (b.tipo === "boton_comprar") {
+      props.onComprar = onComprar;
+      // 👇 NUEVO: pasar la opción activa (título + precio + index) al botón
+      const seccionPadre = plantillaNormalizada.secciones?.find((s) =>
+        s.bloques.some((bl) => bl.id === b.id)
+      );
+      const selectorEnSeccion = seccionPadre?.bloques.find(
+        (bl) => bl.tipo === "selector_unidades"
+      );
+      if (selectorEnSeccion) {
+        const opcion = selectorEnSeccion.props.opciones?.[opcionSeleccionada];
+        props.opcionSeleccionada = opcion
+          ? { ...opcion, index: opcionSeleccionada }   // 👈 añadir index
+          : undefined;
+      }
+    }    if (b.tipo === "bloque_compra") props.precio = precio;
 
     const contenido = (
-      <def.Render {...props} estilos={b.estilos || {}} producto={producto} />
+      <def.Render
+        {...props}
+        estilos={b.estilos || {}}
+        producto={producto}
+        tema={tema}   // 👈 NUEVO
+      />
     );
 
     // 👇 Modo editor: envolver con overlay INTERNO (dentro del iframe)
@@ -1552,7 +2326,16 @@ export function ProductRenderer({
   );
 
   return (
-    <div style={{ paddingBottom: hayBotonFlotante ? "96px" : undefined }}>
+    <div
+      style={{
+        paddingBottom: hayBotonFlotante ? "96px" : undefined,
+        backgroundColor: tema?.colorFondo || undefined,
+        minHeight: "100vh",
+        maxWidth: tema?.anchoMax ? `${tema.anchoMax}px` : undefined,
+        margin: tema?.anchoMax ? "0 auto" : undefined,
+        fontFamily: tema?.tipografia || "Inter, system-ui, sans-serif",
+      }}
+    >
       {/* 👇 NUEVO: NavBar configurable desde el tema */}
       <NavBar nav={nav} onMenuClick={onMenuClick} />
 

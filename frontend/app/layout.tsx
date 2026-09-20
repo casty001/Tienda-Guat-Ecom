@@ -1,12 +1,33 @@
 import "./globals.css";
 import Script from "next/script";
-import { Poppins } from "next/font/google";
+import { Poppins, Inter, Roboto, Montserrat } from "next/font/google";
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
+    variable: "--font-poppins",   // 👈 añadir variable
+
+});
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-inter",
 });
 
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+  variable: "--font-roboto",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-montserrat",
+});
 export default function RootLayout({
   children,
 }: {

@@ -88,12 +88,16 @@ export default function ProductoClient({
   const [modalOpen, setModalOpen] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [errorBackend, setErrorBackend] = useState<string | null>(null);
-  const [menuAbierto, setMenuAbierto] = useState(false); // 👈 NUEVO
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [opcionSeleccionadaObj, setOpcionSeleccionadaObj] = useState<any>(null);
+  const [indiceOpcion, setIndiceOpcion] = useState(0);
 
-  const plantilla =
-    producto.plantilla?.bloques?.length > 0
-      ? producto.plantilla
-      : construirPlantilla(producto);
+  const plantilla = (() => {
+    const p = producto.plantilla;
+    const tieneSecciones = (p?.secciones?.length ?? 0) > 0;
+    const tieneBloques = (p?.bloques?.length ?? 0) > 0;
+    return tieneSecciones || tieneBloques ? p : construirPlantilla(producto);
+  })();
 
   useEffect(() => {
     import("@/components/FloatingOrderModal");
@@ -141,7 +145,11 @@ export default function ProductoClient({
   }, [producto, previewMode]);
 
   // ─── Ir al formulario (InitiateCheckout) ───
-  async function irFormulario() {
+  async function irFormulario(opcion?: any) {
+    // 👇 guarda solo si es una opción real, no un evento
+    if (opcion && typeof opcion === "object" && "precio" in opcion) {
+      setOpcionSeleccionadaObj(opcion); // 👈 usar el nuevo nombre
+    }
     if (previewMode) return;
     if (typeof window !== "undefined" && producto) {
       if ((window as any).ttq) {
@@ -187,10 +195,15 @@ export default function ProductoClient({
     setErrorBackend(null);
 
     const form = new FormData(e.currentTarget);
-    const precioTotal = datosEnvio?.precio || producto.precio;
+    const precioTotal =
+      datosEnvio?.precio ?? opcionSeleccionadaObj?.precio ?? producto.precio;
+
+    const precioBase =
+      datosEnvio?.precioBase ??
+      opcionSeleccionadaObj?.precio ??
+      producto.precio;
     const envioPrioritario = datosEnvio?.envioPrioritario || false;
     const costoEnvio = datosEnvio?.costoEnvio || 0;
-    const precioBase = datosEnvio?.precioBase || producto.precio;
 
     const data = {
       nombre: String(form.get("nombre") || ""),
@@ -320,12 +333,14 @@ export default function ProductoClient({
         )}
 
         {/* ─── MAIN ─── */}
-        <main className="bg-[#121212] min-h-screen pb-24">
-<ProductRenderer
+        <main className="bg-[#121212]">
+          <ProductRenderer
   plantilla={plantilla}
   producto={producto}
   onComprar={irFormulario}
   onMenuClick={() => setMenuAbierto(true)}
+  opcionSeleccionada={indiceOpcion}
+  onOpcionChange={setIndiceOpcion}
   modo={editorMode ? "editor" : "ver"}
   bloqueHover={bloqueHover}
   seleccionado={seleccionado}
@@ -335,6 +350,7 @@ export default function ProductoClient({
             open={modalOpen}
             onClose={() => setModalOpen(false)}
             producto={producto}
+            opcionSeleccionada={opcionSeleccionadaObj}
             onSubmit={(e: any, datos: any) => enviarPedido(e, datos)}
             enviando={enviando}
             errorBackend={errorBackend}

@@ -131,7 +131,13 @@ function InputImagen({
 // ═══════════════════════════════════════════════════════════════
 const REPEATER_CAMPOS: Record<
   string,
-  { key: string; label: string; tipo: "text" | "textarea" | "number" }[]
+  {
+    key: string;
+    label: string;
+    tipo: "text" | "textarea" | "number" | "toggle" | "subrepeater";
+    subKey?: string;
+    labelItem?: string;
+  }[]
 > = {
   prueba_social: [
     { key: "titulo", label: "Título", tipo: "text" },
@@ -147,14 +153,110 @@ const REPEATER_CAMPOS: Record<
     { key: "resena", label: "Reseña", tipo: "textarea" },
     { key: "puntuacion", label: "Puntuación (1-5)", tipo: "number" },
   ],
+  selector_unidades: [
+  { key: "titulo", label: "Título", tipo: "text" },
+  { key: "items", label: "Items (1 item / 2 items)", tipo: "text" },
+  { key: "precio", label: "Precio", tipo: "number" },
+  { key: "precioAntes", label: "Precio antes (tachado)", tipo: "number" },
+  { key: "badge", label: "Badge (MEJOR OFERTA)", tipo: "text" },
+  { key: "envioGratis", label: "Envío gratis", tipo: "toggle" },
+  {
+    key: "beneficios",
+    label: "Beneficios",
+    tipo: "subrepeater",
+    subKey: "texto",
+    labelItem: "Beneficio",
+  },
+],
 };
 
 const REPEATER_PROP_KEY: Record<string, string> = {
   prueba_social: "beneficios",
   faqs: "items",
   resenas: "items",
+  selector_unidades: "opciones",
 };
+// ═══════════════════════════════════════════════════════════════
+// SUB-REPEATER — lista de strings dentro de un repeater
+// ═══════════════════════════════════════════════════════════════
+function EditorSubRepeater({
+  items,
+  campoKey,
+  labelItem,
+  onChange,
+}: {
+  items: any[];
+  campoKey: string;
+  labelItem: string;
+  onChange: (nuevos: any[]) => void;
+}) {
+  const lista = Array.isArray(items) ? items : [];
 
+  function actualizar(index: number, valor: string) {
+    const copia = [...lista];
+    copia[index] = { ...copia[index], [campoKey]: valor };
+    onChange(copia);
+  }
+  function eliminar(index: number) {
+    onChange(lista.filter((_, i) => i !== index));
+  }
+  function agregar() {
+    onChange([...lista, { [campoKey]: "" }]);
+  }
+  function mover(index: number, dir: -1 | 1) {
+    const nuevo = index + dir;
+    if (nuevo < 0 || nuevo >= lista.length) return;
+    const copia = [...lista];
+    [copia[index], copia[nuevo]] = [copia[nuevo], copia[index]];
+    onChange(copia);
+  }
+
+  return (
+    <div className="space-y-1.5 bg-gray-950/50 rounded p-2 border border-gray-700">
+      {lista.map((item, i) => (
+        <div key={i} className="flex items-center gap-1">
+          <input
+            type="text"
+            value={item[campoKey] || ""}
+            onChange={(e) => actualizar(i, e.target.value)}
+            placeholder={labelItem}
+            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
+          />
+          <button
+            type="button"
+            onClick={() => mover(i, -1)}
+            disabled={i === 0}
+            className="px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-white rounded text-xs"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            onClick={() => mover(i, 1)}
+            disabled={i === lista.length - 1}
+            className="px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-white rounded text-xs"
+          >
+            ↓
+          </button>
+          <button
+            type="button"
+            onClick={() => eliminar(i)}
+            className="px-1.5 py-0.5 bg-red-900/40 hover:bg-red-900/60 text-red-300 rounded text-xs"
+          >
+            🗑
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={agregar}
+        className="w-full py-1 border border-dashed border-gray-600 hover:border-blue-500 rounded text-[10px] text-gray-400 hover:text-white"
+      >
+        ➕ Añadir {labelItem.toLowerCase()}
+      </button>
+    </div>
+  );
+}
 function EditorRepeater({
   items,
   campos,
@@ -164,7 +266,9 @@ function EditorRepeater({
   campos: {
     key: string;
     label: string;
-    tipo: "text" | "textarea" | "number";
+    tipo: "text" | "textarea" | "number" | "toggle" | "subrepeater";
+    subKey?: string;
+    labelItem?: string;
   }[];
   onChange: (nuevos: any[]) => void;
 }) {
@@ -242,6 +346,20 @@ function EditorRepeater({
                   onChange={(e) => actualizarItem(i, c.key, e.target.value)}
                   rows={2}
                   className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
+                />
+              ) : c.tipo === "toggle" ? (
+                <input
+                  type="checkbox"
+                  checked={!!item[c.key]}
+                  onChange={(e) => actualizarItem(i, c.key, e.target.checked)}
+                  className="w-4 h-4 accent-blue-500"
+                />
+              ) : c.tipo === "subrepeater" ? (
+                <EditorSubRepeater
+                  items={item[c.key]}
+                  campoKey={c.subKey || "texto"}
+                  labelItem={c.labelItem || "Elemento"}
+                  onChange={(nuevos) => actualizarItem(i, c.key, nuevos)}
                 />
               ) : (
                 <input
@@ -1829,6 +1947,7 @@ export default function EditorPage() {
                     </summary>
                     <div className="mt-2 space-y-2">
                       <label className="block">
+                        {/*
                         <span className="text-gray-400 text-xs">
                           Color primario
                         </span>
@@ -1840,6 +1959,7 @@ export default function EditorPage() {
                           }
                           className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
                         />
+                        */}
                       </label>
                       <label className="block">
                         <span className="text-gray-400 text-xs">
@@ -1981,88 +2101,84 @@ export default function EditorPage() {
                       {/* TAB ESTILO */}
                       {tabInterna === "estilo" && (
                         <div className="space-y-3">
-                          {/* 🔤 TIPOGRAFÍA */}
-                          <Grupo titulo="🔤 Tipografía">
-                            <label className="block space-y-1">
-                              <span className="text-gray-400 text-xs block">
-                                Tamaño de fuente
-                              </span>
-                              <Slider
-                                value={e.tamanoFuente ?? 16}
-                                onChange={(v) => updEstilo({ tamanoFuente: v })}
-                                min={8}
-                                max={72}
-                              />
-                            </label>
+{/* 🔤 TIPOGRAFÍA */}
+{bloqueActual!.tipo !== "hero_imagen" && (
+  <Grupo titulo="🔤 Tipografía">
+    <label className="block space-y-1">
+      <span className="text-gray-400 text-xs block">
+        Tamaño de fuente
+      </span>
+      <Slider
+        value={e.tamanoFuente ?? 16}
+        onChange={(v) => updEstilo({ tamanoFuente: v })}
+        min={8}
+        max={72}
+      />
+    </label>
 
-                            <label className="block space-y-1">
-                              <span className="text-gray-400 text-xs block">
-                                Peso
-                              </span>
-                              <BotonDual
-                                value={e.pesoFuente || "normal"}
-                                onChange={(v) => updEstilo({ pesoFuente: v })}
-                                opciones={[
-                                  { valor: "normal", label: "Normal" },
-                                  { valor: "bold", label: "Bold" },
-                                  { valor: "black", label: "Black" },
-                                ]}
-                              />
-                            </label>
+    <label className="block space-y-1">
+      <span className="text-gray-400 text-xs block">
+        Peso
+      </span>
+      <BotonDual
+        value={e.pesoFuente || "normal"}
+        onChange={(v) => updEstilo({ pesoFuente: v })}
+        opciones={[
+          { valor: "normal", label: "Normal" },
+          { valor: "bold", label: "Bold" },
+          { valor: "black", label: "Black" },
+        ]}
+      />
+    </label>
 
-                            <label className="block space-y-1">
-                              <span className="text-gray-400 text-xs block">
-                                Interlineado
-                              </span>
-                              <Slider
-                                value={e.interlineado ?? 1.4}
-                                onChange={(v) => updEstilo({ interlineado: v })}
-                                min={1}
-                                max={2.5}
-                                step={0.1}
-                                unit="x"
-                              />
-                            </label>
+    <label className="block space-y-1">
+      <span className="text-gray-400 text-xs block">
+        Interlineado
+      </span>
+      <Slider
+        value={e.interlineado ?? 1.4}
+        onChange={(v) => updEstilo({ interlineado: v })}
+        min={1}
+        max={2.5}
+        step={0.1}
+        unit="x"
+      />
+    </label>
 
-                            <label className="block space-y-1">
-                              <span className="text-gray-400 text-xs block">
-                                Espaciado entre letras
-                              </span>
-                              <Slider
-                                value={e.espaciadoLetras ?? 0}
-                                onChange={(v) =>
-                                  updEstilo({ espaciadoLetras: v })
-                                }
-                                min={-2}
-                                max={5}
-                                step={0.1}
-                              />
-                            </label>
+    <label className="block space-y-1">
+      <span className="text-gray-400 text-xs block">
+        Espaciado entre letras
+      </span>
+      <Slider
+        value={e.espaciadoLetras ?? 0}
+        onChange={(v) => updEstilo({ espaciadoLetras: v })}
+        min={-2}
+        max={5}
+        step={0.1}
+      />
+    </label>
 
-                            <label className="flex items-center gap-2 text-xs text-gray-300">
-                              <input
-                                type="checkbox"
-                                checked={!!e.cursiva}
-                                onChange={(ev) =>
-                                  updEstilo({ cursiva: ev.target.checked })
-                                }
-                                className="w-4 h-4 accent-blue-500"
-                              />
-                              Cursiva
-                            </label>
+    <label className="flex items-center gap-2 text-xs text-gray-300">
+      <input
+        type="checkbox"
+        checked={!!e.cursiva}
+        onChange={(ev) => updEstilo({ cursiva: ev.target.checked })}
+        className="w-4 h-4 accent-blue-500"
+      />
+      Cursiva
+    </label>
 
-                            <label className="flex items-center gap-2 text-xs text-gray-300">
-                              <input
-                                type="checkbox"
-                                checked={!!e.mayusculas}
-                                onChange={(ev) =>
-                                  updEstilo({ mayusculas: ev.target.checked })
-                                }
-                                className="w-4 h-4 accent-blue-500"
-                              />
-                              MAYÚSCULAS
-                            </label>
-                          </Grupo>
+    <label className="flex items-center gap-2 text-xs text-gray-300">
+      <input
+        type="checkbox"
+        checked={!!e.mayusculas}
+        onChange={(ev) => updEstilo({ mayusculas: ev.target.checked })}
+        className="w-4 h-4 accent-blue-500"
+      />
+      MAYÚSCULAS
+    </label>
+  </Grupo>
+)}
                           {/* 📐 TAMAÑO */}
                           <Grupo titulo="📐 Tamaño">
                             <label className="block space-y-1">
