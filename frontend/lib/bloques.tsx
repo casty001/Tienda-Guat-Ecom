@@ -215,6 +215,28 @@ function normalizarColores(bloque: Bloque): Bloque {
   return bloque;
 }
 // ═══════════════════════════════════════════════════════════════
+// NORMALIZAR ALINEACIÓN
+// Unifica props.alineacion → estilos.alineacion (una sola fuente)
+// ═══════════════════════════════════════════════════════════════
+function normalizarAlineacion(bloque: Bloque): Bloque {
+  const propsAlign = bloque.props?.alineacion;
+  const estilosAlign = bloque.estilos?.alineacion;
+
+  // Si ya está en estilos, no tocar
+  if (estilosAlign) return bloque;
+
+  // Si está en props, moverlo
+  if (propsAlign) {
+    return {
+      ...bloque,
+      estilos: { ...(bloque.estilos || {}), alineacion: propsAlign },
+    };
+  }
+
+  // Ni uno ni otro → sin alineación (el render usará "izq" por defecto)
+  return bloque;
+}
+// ═══════════════════════════════════════════════════════════════
 // NAVBAR — renderiza el nav configurable desde el tema
 // ═══════════════════════════════════════════════════════════════
 function NavBar({ nav, onMenuClick }: { nav: Nav; onMenuClick?: () => void }) {
@@ -339,9 +361,7 @@ function BarraEstrellas({ texto, estilos = {} }: any) {
     paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "4px",
     paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "4px",
     paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
-    paddingRight: estilos.paddingLados
-      ? `${estilos.paddingLados}px`
-      : undefined,
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
     borderRadius: estilos.radioEsquinas
@@ -351,13 +371,38 @@ function BarraEstrellas({ texto, estilos = {} }: any) {
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
         : undefined,
+    border:
+      estilos.mostrarBorde && estilos.grosorBorde
+        ? `${estilos.grosorBorde}px solid ${estilos.colorBorde || "#e5e7eb"}`
+        : undefined,
   };
+
+  // 👇 alineación configurable
+  const textAlign =
+    estilos.alineacion === "izq"
+      ? "left"
+      : estilos.alineacion === "der"
+        ? "right"
+        : "center";
+
+  const textoBase = (texto ?? "").trim();
+  const tieneEstrellas = /⭐/.test(textoBase);
+  const contenido = textoBase
+    ? tieneEstrellas
+      ? textoBase
+      : ` ${textoBase}`
+    : " +100.000 clientes satisfechos";
+
   return (
     <div
-      className="text-black text-center text-sm md:text-base font-bold"
-      style={style}
+      className="text-black text-sm md:text-base font-bold"
+      style={{
+        ...style,
+        textAlign,
+        whiteSpace: "pre-line", // permite saltos de línea si el admin los pone
+      }}
     >
-      ⭐⭐⭐⭐⭐ {texto || "+100.000 clientes satisfechos"}
+      {contenido}
     </div>
   );
 }
@@ -761,14 +806,19 @@ function PruebaSocial({
   const colorTexto = esClaro ? "#121212" : "#ffffff";
   const colorTextoSuave = esClaro ? "#6b7280" : "rgba(255,255,255,0.65)";
 
+  const align = estilos.alineacion || "centro";
   const textAlign =
-    estilos.alineacion === "izq" ? "left"
-    : estilos.alineacion === "der" ? "right"
-    : "center";
+    align === "izq" ? "left" : align === "der" ? "right" : "center";
+  const flexAlign =
+    align === "izq" ? "flex-start" : align === "der" ? "flex-end" : "center";
 
   const fontBase = estilos.tamanoFuente || 14;
-  const pesoBase = estilos.pesoFuente === "bold" ? 700
-    : estilos.pesoFuente === "black" ? 900 : 700;
+  const pesoBase =
+    estilos.pesoFuente === "bold"
+      ? 700
+      : estilos.pesoFuente === "black"
+        ? 900
+        : 700;
 
   const estilosTipografia: React.CSSProperties = {
     fontStyle: estilos.cursiva ? "italic" : undefined,
@@ -786,7 +836,7 @@ function PruebaSocial({
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: flexAlign,
             marginBottom: "8px",
           }}
         >
@@ -810,7 +860,7 @@ function PruebaSocial({
           style={{
             display: "flex",
             flexDirection: "column",
-            alignItems: textAlign === "center" ? "center" : textAlign === "right" ? "flex-end" : "flex-start",
+            alignItems: flexAlign,
             marginBottom: "12px",
           }}
         >
@@ -821,7 +871,8 @@ function PruebaSocial({
               ...estilosTipografia,
             }}
           >
-            ({Number(opinionesVerificadas).toLocaleString("es-CO")} Opiniones verificadas)
+            ({Number(opinionesVerificadas).toLocaleString("es-CO")} Opiniones
+            verificadas)
           </span>
         </div>
       )}
@@ -850,8 +901,8 @@ function PruebaSocial({
             flexDirection: "column",
             gap: "12px",
             maxWidth: "28rem",
-            marginLeft: textAlign === "center" ? "auto" : 0,
-            marginRight: textAlign === "center" ? "auto" : 0,
+            marginLeft: flexAlign === "flex-start" ? 0 : "auto",
+            marginRight: flexAlign === "flex-end" ? 0 : "auto",
             textAlign: "left",
           }}
         >
@@ -896,8 +947,16 @@ function PruebaSocial({
   );
 }
 
-function Faqs({ titulo, items, estilos = {} }: any) {
+function Faqs({
+  titulo,
+  items,
+  colorTitulo,
+  colorPregunta,
+  colorRespuesta,
+  estilos = {},
+}: any) {
   if (!Array.isArray(items) || !items.length) return null;
+
   const sectionStyle: React.CSSProperties = {
     ...aplicarTipografia(estilos),
     backgroundColor: estilos.colorFondo || "#121212",
@@ -915,9 +974,34 @@ function Faqs({ titulo, items, estilos = {} }: any) {
         ? estilos.opacidad / 100
         : undefined,
   };
+
+  const textAlign =
+    estilos.alineacion === "izq"
+      ? "left"
+      : estilos.alineacion === "der"
+        ? "right"
+        : "center";
+
+  // 👇 auto-contraste según el fondo
+  const fondo = estilos.colorFondo || "#121212";
+  const esClaro = isColorClaro(fondo);
+  const colorTituloAuto = esClaro ? "#121212" : "#ffffff";
+  const colorPreguntaAuto = esClaro ? "#121212" : "#ffffff";
+  const colorRespuestaAuto = esClaro ? "#374151" : "#e5e7eb";
+
+  const colorTituloFinal = colorTitulo || colorTituloAuto;
+  const colorPreguntaFinal = colorPregunta || colorPreguntaAuto;
+  const colorRespuestaFinal = colorRespuesta || colorRespuestaAuto;
+
   return (
     <section style={sectionStyle}>
-      <h2 className="text-white text-3xl font-bold text-center mb-6">
+      <h2
+        className="text-3xl font-bold mb-6"
+        style={{
+          textAlign,
+          color: colorTituloFinal,
+        }}
+      >
         {titulo || "Preguntas frecuentes"}
       </h2>
       <div className="space-y-4">
@@ -925,8 +1009,10 @@ function Faqs({ titulo, items, estilos = {} }: any) {
           if (!faq.pregunta) return null;
           return (
             <div key={i} className="bg-white rounded-xl p-4">
-              <h3 className="text-[#121212] font-bold">{faq.pregunta}</h3>
-              <p className="text-[#121212]">{faq.respuesta}</p>
+              <h3 className="font-bold" style={{ color: colorPreguntaFinal }}>
+                {faq.pregunta}
+              </h3>
+              <p style={{ color: colorRespuestaFinal }}>{faq.respuesta}</p>
             </div>
           );
         })}
@@ -934,7 +1020,6 @@ function Faqs({ titulo, items, estilos = {} }: any) {
     </section>
   );
 }
-
 function Resenas({ titulo, items, estilos = {} }: any) {
   if (!Array.isArray(items) || !items.length) return null;
 
@@ -1114,22 +1199,23 @@ function CabeceraProducto({
         : null
       : textoBadge;
 
-  // 👇 Si el usuario define `tamanoFuente`, se usa. Si no, fallback al select
+  // 👇 estilos tiene prioridad, luego la prop (compatibilidad con landings viejas)
+  const align = estilos.alineacion || alineacion || "izq";
+
+  const flexAlign =
+    align === "centro" ? "center" : align === "der" ? "flex-end" : "flex-start";
+
+  const textAlign =
+    align === "centro" ? "center" : align === "der" ? "right" : "left";
+
   const tamanios: Record<string, number> = {
     sm: 18,
     md: 24,
     lg: 30,
     xl: 36,
   };
-  const fontSizeTitulo = estilos.tamanoFuente || tamanios[tamanioTitulo || "lg"] || 30;
-
-  // 👇 Alineación con clases y también inline (por si acaso)
-  const alineaciones: Record<string, string> = {
-    izq: "items-start text-left",
-    centro: "items-center text-center",
-    der: "items-end text-right",
-  };
-  const claseAlineacion = alineaciones[alineacion || estilos.alineacion || "izq"] || alineaciones.izq;
+  const fontSizeTitulo =
+    estilos.tamanoFuente || tamanios[tamanioTitulo || "lg"] || 30;
 
   const sectionStyle: React.CSSProperties = {
     paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "20px",
@@ -1139,12 +1225,13 @@ function CabeceraProducto({
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
     backgroundColor: estilos.colorFondo || undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
         : undefined,
-    // 👇 TIPOGRAFÍA GLOBAL del bloque (heredada por los hijos)
     fontWeight:
       estilos.pesoFuente === "normal"
         ? 400
@@ -1156,15 +1243,20 @@ function CabeceraProducto({
     fontStyle: estilos.cursiva ? "italic" : undefined,
     textTransform: estilos.mayusculas ? "uppercase" : undefined,
     lineHeight: estilos.interlineado ?? undefined,
-    letterSpacing: estilos.espaciadoLetras ? `${estilos.espaciadoLetras}px` : undefined,
+    letterSpacing: estilos.espaciadoLetras
+      ? `${estilos.espaciadoLetras}px`
+      : undefined,
   };
 
   return (
     <section
-      className={`flex flex-col gap-3 ${claseAlineacion}`}
-      style={sectionStyle}
+      className="flex flex-col gap-3"
+      style={{
+        ...sectionStyle,
+        alignItems: flexAlign,
+        textAlign,
+      }}
     >
-      {/* 👇 h1 SIN clases Tailwind de tipografía — todo inline */}
       <h1
         style={{
           fontSize: `${fontSizeTitulo}px`,
@@ -1175,7 +1267,7 @@ function CabeceraProducto({
                 ? 700
                 : estilos.pesoFuente === "black"
                   ? 900
-                  : 900, // fallback: el título suele ser black por defecto
+                  : 900,
           fontStyle: estilos.cursiva ? "italic" : undefined,
           textTransform: estilos.mayusculas ? "uppercase" : undefined,
           lineHeight: estilos.interlineado ?? 1.2,
@@ -1183,12 +1275,17 @@ function CabeceraProducto({
             ? `${estilos.espaciadoLetras}px`
             : undefined,
           color: colorTitulo || "#121212",
+          textAlign,
+          margin: 0,
         }}
       >
         {textoFinal}
       </h1>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div
+        className="flex items-center gap-3 flex-wrap"
+        style={{ justifyContent: flexAlign }}
+      >
         {mostrarPrecio !== false && (
           <span
             style={{
@@ -1201,7 +1298,7 @@ function CabeceraProducto({
           </span>
         )}
 
-        {mostrarPrecioAntes !== false && precioAntes > 0 && (
+        {mostrarPrecioAntes !== false && precioAntes > precio && (
           <span
             style={{
               fontSize: `${fontSizeTitulo * 0.65}px`,
@@ -1253,14 +1350,28 @@ export const BLOQUES: Record<string, BloqueDef> = {
     Render: BannerContador,
   },
 
-  barra_estrellas: {
-    nombre: "Barra de estrellas",
-    icono: "⭐",
-    max: 1,
-    defaults: { texto: "+100.000 clientes satisfechos" },
-    schema: [{ key: "texto", label: "Texto", tipo: "text" }],
-    Render: BarraEstrellas,
-  },
+ barra_estrellas: {
+  nombre: "Barra de estrellas",
+  icono: "⭐",
+  max: 1,
+  defaults: { texto: "⭐⭐⭐⭐⭐ +100.000 clientes satisfechos" },
+  schema: [
+    {
+      key: "texto",
+      label: "Texto",
+      tipo: "textarea",
+    },
+  ],
+  aplicaEstilos: [
+    "tipografia",
+    "apariencia",
+    "bordes",
+    "relleno",
+    "margen",
+    "alineacion",
+  ],
+  Render: BarraEstrellas,
+},
 
   hero_imagen: {
     nombre: "Imagen",
@@ -1386,17 +1497,38 @@ opciones: [
     Render: PruebaSocial,
   },
 
-  faqs: {
-    nombre: "Preguntas frecuentes",
-    icono: "❓",
-    max: 2,
-    defaults: { titulo: "Preguntas frecuentes", items: [] },
-    schema: [
-      { key: "titulo", label: "Título", tipo: "text" },
-      { key: "items", label: "Preguntas", tipo: "repeater" },
-    ],
-    Render: Faqs,
+faqs: {
+  nombre: "Preguntas frecuentes",
+  icono: "❓",
+  max: 2,
+  defaults: {
+    titulo: "Preguntas frecuentes",
+    items: [],
+    colorTitulo: "",
+    colorPregunta: "#121212",
+    colorRespuesta: "#374151",
   },
+  schema: [
+    { key: "titulo", label: "Título", tipo: "text" },
+    {
+      key: "colorTitulo",
+      label: "Color del título (vacío = auto)",
+      tipo: "color",
+    },
+    { key: "colorPregunta", label: "Color de la pregunta", tipo: "color" },
+    { key: "colorRespuesta", label: "Color de la respuesta", tipo: "color" },
+    { key: "items", label: "Preguntas", tipo: "repeater" },
+  ],
+  aplicaEstilos: [
+    "tipografia",
+    "apariencia",
+    "bordes",
+    "relleno",
+    "margen",
+    "alineacion",
+  ],
+  Render: Faqs,
+},
 
   resenas: {
     nombre: "Reseñas",
@@ -1540,7 +1672,7 @@ export const TIPOS_SECCION: Record<TipoSeccion, SeccionDef> = {
     tipo: "header",
     nombre: "Encabezado",
     icono: "🧭",
-    bloquesPermitidos: ["banner_contador", "barra_estrellas"],
+    bloquesPermitidos: [], // vacío = sin restricción
     fija: true,
     color: "#f59e0b", // ámbar para secciones fijas
   },
@@ -2160,8 +2292,9 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
           ...s,
           colapsada: s.colapsada ?? false,
           ajustes: { ...AJUSTES_DEFAULT, ...(s.ajustes || {}) },
-          bloques: (s.bloques || []).map((b: Bloque) => normalizarColores(b)),
-        })),
+bloques: (s.bloques || []).map((b: Bloque) =>
+  normalizarAlineacion(normalizarColores(b))
+),        })),
     };
   }
 
@@ -2173,7 +2306,7 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
 
   for (const bloque of plantilla.bloques || []) {
     const tipoSeccion = BLOQUE_A_SECCION[bloque.tipo];
-    const normalizado = normalizarColores(bloque);
+    const normalizado = normalizarAlineacion(normalizarColores(bloque));
     if (tipoSeccion && mapa[tipoSeccion]) {
       mapa[tipoSeccion].bloques.push(normalizado);
     } else {
@@ -2228,7 +2361,7 @@ opcionSeleccionada?: number;    // 👈 NUEVO
 
   // Función que renderiza un bloque
   function renderBloque(bOriginal: Bloque) {
-    const b = normalizarColores(bOriginal); // 👈 NUEVO
+    const b = normalizarAlineacion(normalizarColores(bOriginal)); // 👈 NUEVO
     const def = BLOQUES[b.tipo];
     if (!def) return null;
 

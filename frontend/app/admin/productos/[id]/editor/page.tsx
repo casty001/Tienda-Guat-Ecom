@@ -967,24 +967,52 @@ function SeccionSidebar({
                   ✕
                 </button>
               </div>
-              <div className="grid grid-cols-1 gap-1">
-                {def.bloquesPermitidos.map((tipo) => {
-                  const bdef = BLOQUES[tipo];
-                  if (!bdef) return null;
-                  return (
-                    <button
-                      key={tipo}
-                      onClick={() => {
-                        agregarBloque(tipo, seccion.id);
-                        setAgregando(false);
-                      }}
-                      className="text-left px-2 py-1 text-[10px] text-white bg-gray-800 hover:bg-gray-700 rounded border border-gray-700"
-                    >
-                      {bdef.icono} {bdef.nombre}
-                    </button>
-                  );
-                })}
-              </div>
+<div className="grid grid-cols-1 gap-1">
+  {(() => {
+    // Si bloquesPermitidos está vacío → mostrar TODOS los bloques
+    const tiposDisponibles =
+      def.bloquesPermitidos && def.bloquesPermitidos.length > 0
+        ? def.bloquesPermitidos
+        : Object.keys(BLOQUES);
+
+    // Filtrar los que ya alcanzaron su máximo en esta sección
+    const tiposFiltrados = tiposDisponibles.filter((tipo) => {
+      const bdef = BLOQUES[tipo];
+      if (!bdef) return false;
+      if (bdef.max > 0) {
+        const cuenta = seccion.bloques.filter(
+          (b) => b.tipo === tipo,
+        ).length;
+        if (cuenta >= bdef.max) return false;
+      }
+      return true;
+    });
+
+    if (tiposFiltrados.length === 0) {
+      return (
+        <p className="text-[10px] text-gray-500 italic px-2 py-1">
+          No hay más bloques disponibles
+        </p>
+      );
+    }
+
+    return tiposFiltrados.map((tipo) => {
+      const bdef = BLOQUES[tipo];
+      return (
+        <button
+          key={tipo}
+          onClick={() => {
+            agregarBloque(tipo, seccion.id);
+            setAgregando(false);
+          }}
+          className="text-left px-2 py-1 text-[10px] text-white bg-gray-800 hover:bg-gray-700 rounded border border-gray-700"
+        >
+          {bdef.icono} {bdef.nombre}
+        </button>
+      );
+    });
+  })()}
+</div>
             </div>
           )}
         </div>

@@ -257,11 +257,16 @@ export const useEditor = create<EditorState>((set, get) => ({
     if (!bloque) return;
 
     // Verificar que el bloque puede ir en la sección destino
-    const def = SECCIONES[aSeccion.tipo];
-    if (def && !def.bloquesPermitidos.includes(bloque.tipo)) {
-      alert(`"${BLOQUES[bloque.tipo]?.nombre}" no puede ir en "${def.nombre}"`);
-      return;
-    }
+const def = BLOQUES[bloque.tipo];
+if (def && def.max > 0) {
+  const cuenta = aSeccion.bloques.filter((b) => b.tipo === bloque.tipo).length;
+  if (cuenta >= def.max) {
+    alert(
+      `Máximo ${def.max} bloque(s) de "${def.nombre}" en esta sección`,
+    );
+    return;
+  }
+}
 
     const nuevasSecciones = secciones.map((s) => {
       if (s.id === deSeccionId) {
