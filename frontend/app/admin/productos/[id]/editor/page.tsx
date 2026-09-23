@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { revalidarProducto } from "@/lib/actions"; // 👈 nuevo import
 import AdminGuard from "@/components/AdminGuard";
 import {
   BLOQUES,
@@ -1279,6 +1280,8 @@ export default function EditorPage() {
         plantilla,
         version: 3,
       });
+          await revalidarProducto(producto.id); // 👈 acá
+
       marcarGuardado();
       setDirty(false);
       alert("✅ Guardado");

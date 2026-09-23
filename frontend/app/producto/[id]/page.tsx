@@ -1,20 +1,21 @@
 import { notFound } from "next/navigation";
 import ProductoClient from "./ProductoClient";
 
-export const revalidate = 2;
+export const revalidate = 3600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`);
-
-  if (!res.ok) {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/productos`, {
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const productos = await res.json();
+    return productos.map((p: { id: string }) => ({ id: p.id }));
+  } catch (e) {
+    console.error("⚠️ generateStaticParams falló, revisar Render:", e);
     return [];
   }
-
-  const productos = await res.json();
-
-  return productos.map((producto: { id: string }) => ({
-    id: producto.id,
-  }));
 }
 
 export default async function ProductoPage({
@@ -24,20 +25,18 @@ export default async function ProductoPage({
 }) {
   const { id } = await params;
 
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/productos/${id}`,
-    );
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/productos/${id}`,
+    {
+      next: { revalidate: 3600, tags: [`producto-${id}`] },
+      signal: AbortSignal.timeout(20000),
+    },
+  );
 
-    if (!res.ok) {
-      notFound();
-    }
-
-    const producto = await res.json();
-    return <ProductoClient producto={producto} />;
-  } catch (error) {
-    console.error(error);
-
-    return <main className="p-10 text-white">Error cargando producto</main>;
+  if (!res.ok) {
+    notFound();
   }
+
+  const producto = await res.json();
+  return <ProductoClient producto={producto} />;
 }

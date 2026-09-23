@@ -407,7 +407,7 @@ function BarraEstrellas({ texto, estilos = {} }: any) {
   );
 }
 
-function HeroImagen({ url, alt, estilos = {} }: any) {
+function HeroImagen({ url, alt, estilos = {}, esPrimera = false }: any) {
   if (!url) return null;
 
   const wrapperStyle: React.CSSProperties = {
@@ -442,6 +442,9 @@ function HeroImagen({ url, alt, estilos = {} }: any) {
         height={1600}
         sizes="100vw"
         className="w-full h-auto"
+        priority={esPrimera}
+        loading={esPrimera ? undefined : "lazy"}
+        fetchPriority={esPrimera ? "high" : undefined}
       />
     </div>
   );
@@ -2369,6 +2372,9 @@ opcionSeleccionada?: number;    // 👈 NUEVO
     if (modo === "ver" && b.estilos?.oculto === true) return null;
 
     const props = { ...b.props };
+    if (b.tipo === "hero_imagen") {
+      props.esPrimera = b.id === primerHeroImagenId;
+    }
     if (b.tipo === "selector_unidades") {
   props.onSeleccionar = onOpcionChange;    // 👈 usar el callback de afuera
       props.seleccionada = opcionSeleccionada;
@@ -2451,12 +2457,18 @@ opcionSeleccionada?: number;    // 👈 NUEVO
   const secciones = plantillaNormalizada.secciones || [];
   if (secciones.length === 0) return null;
 
+  // 👇 NUEVO: id del primer hero_imagen de toda la plantilla (para priority)
+  const primerHeroImagenId = secciones
+    .flatMap((s) => s.bloques)
+    .find((b) => b.tipo === "hero_imagen")?.id;
+
   // Detectar si hay algún botón flotante activo
   const hayBotonFlotante = secciones.some((s) =>
     s.bloques.some(
       (b) => b.tipo === "boton_comprar" && b.props.flotante === true,
     ),
   );
+  
 
   return (
     <div
