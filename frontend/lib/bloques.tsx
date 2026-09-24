@@ -116,7 +116,7 @@ export type BloqueDef = {
   defaults: Record<string, any>;
   schema: PropSchema[];
   Render: (props: any) => React.ReactNode;
-  aplicaEstilos?: EstiloGrupo[];   // 👈 NUEVO
+  aplicaEstilos?: EstiloGrupo[]; // 👈 NUEVO
 };
 // ═══════════════════════════════════════════════════════════════
 // RENDERERS (componentes puros — sin tracking, sin cookies)
@@ -183,7 +183,10 @@ function isColorClaro(hex: string): boolean {
   const c = hex.replace("#", "");
   const full =
     c.length === 3
-      ? c.split("").map((x) => x + x).join("")
+      ? c
+          .split("")
+          .map((x) => x + x)
+          .join("")
       : c.padEnd(6, "0").slice(0, 6);
   const r = parseInt(full.substring(0, 2), 16);
   const g = parseInt(full.substring(2, 4), 16);
@@ -361,7 +364,9 @@ function BarraEstrellas({ texto, estilos = {} }: any) {
     paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "4px",
     paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "4px",
     paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
-    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : undefined,
+    paddingRight: estilos.paddingLados
+      ? `${estilos.paddingLados}px`
+      : undefined,
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
     borderRadius: estilos.radioEsquinas
@@ -456,7 +461,7 @@ function BotonComprar({
   onComprar,
   flotante,
   opcionSeleccionada,
-  tema,   // 👈 NUEVO
+  tema, // 👈 NUEVO
   estilos = {},
 }: any) {
   const svgCarrito = (
@@ -472,8 +477,7 @@ function BotonComprar({
   // Estilos compartidos del botón real
   const buttonStyle: React.CSSProperties = {
     ...aplicarTipografia(estilos),
-    backgroundColor:
-      estilos.colorFondo || tema?.colorPrimario || "#cb1515",
+    backgroundColor: estilos.colorFondo || tema?.colorPrimario || "#cb1515",
     paddingTop: estilos.paddingArriba
       ? `${estilos.paddingArriba}px`
       : undefined,
@@ -522,10 +526,11 @@ function BotonComprar({
               {texto || "PEDIR AHORA Y PAGAR AL RECIBIR"}
             </span>
             {(subtitulo || etiquetaPrecio) && (
-  <span className="text-[10px] md:text-[11px] font-medium opacity-90 normal-case">
-    {subtitulo}{etiquetaPrecio}
-  </span>
-)}
+              <span className="text-[10px] md:text-[11px] font-medium opacity-90 normal-case">
+                {subtitulo}
+                {etiquetaPrecio}
+              </span>
+            )}
           </div>
         </button>
       </div>
@@ -533,7 +538,7 @@ function BotonComprar({
   }
 
   // 👇 Si NO es flotante → botón inline
-   // 👇 Si NO es flotante → botón inline
+  // 👇 Si NO es flotante → botón inline
   return (
     <button
       onClick={() => onComprar?.(opcionSeleccionada)}
@@ -548,12 +553,14 @@ function BotonComprar({
         width: buttonStyle.width || "90%",
         marginTop: buttonStyle.marginTop || "24px",
         marginBottom: buttonStyle.marginBottom || "24px",
-        lineHeight: aplicarTipografia(estilos).lineHeight,   // 👈 hereda el lineHeight
+        lineHeight: aplicarTipografia(estilos).lineHeight, // 👈 hereda el lineHeight
       }}
     >
       {svgCarrito}
       <div className="flex flex-col leading-tight">
-        <span style={aplicarTipografia(estilos)}>    {/* 👈 aplica los estilos al span */}
+        <span style={aplicarTipografia(estilos)}>
+          {" "}
+          {/* 👈 aplica los estilos al span */}
           {texto || "PEDIR AHORA Y PAGAR AL RECIBIR"}
         </span>
         {subtitulo && (
@@ -561,7 +568,7 @@ function BotonComprar({
             className="font-medium opacity-90 normal-case"
             style={{
               fontSize: estilos.tamanoFuente
-                ? `${Math.max(10, estilos.tamanoFuente * 0.7)}px`  // 👈 proporcional
+                ? `${Math.max(10, estilos.tamanoFuente * 0.7)}px` // 👈 proporcional
                 : undefined,
             }}
           >
@@ -590,7 +597,9 @@ function BloqueCompra({
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -611,18 +620,19 @@ function BloqueCompra({
 
   // 👇 Tamaños base — si el admin define `tamanoFuente`, se usa
   const fontBase = estilos.tamanoFuente || 16;
-  const fontTitulo = fontBase * 1.6;   // título principal
+  const fontTitulo = fontBase * 1.6; // título principal
   const fontSubtitulo = fontBase * 1.6; // precio final
   const fontAcordeon = fontBase * 1.15; // summary del acordeón
-  const fontContenido = fontBase;       // texto dentro del acordeón
+  const fontContenido = fontBase; // texto dentro del acordeón
 
-  const pesoFuente = estilos.pesoFuente === "normal"
-    ? 400
-    : estilos.pesoFuente === "bold"
-      ? 700
-      : estilos.pesoFuente === "black"
-        ? 900
-        : 900; // default: negro para títulos
+  const pesoFuente =
+    estilos.pesoFuente === "normal"
+      ? 400
+      : estilos.pesoFuente === "bold"
+        ? 700
+        : estilos.pesoFuente === "black"
+          ? 900
+          : 900; // default: negro para títulos
 
   const estilosTipografia: React.CSSProperties = {
     fontStyle: estilos.cursiva ? "italic" : undefined,
@@ -793,7 +803,9 @@ function PruebaSocial({
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -1040,7 +1052,9 @@ function Resenas({ titulo, items, estilos = {} }: any) {
     paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
@@ -1054,13 +1068,19 @@ function Resenas({ titulo, items, estilos = {} }: any) {
   const colorBorde = esClaro ? "#e5e7eb" : "rgba(255,255,255,0.15)";
 
   const textAlign =
-    estilos.alineacion === "izq" ? "left"
-    : estilos.alineacion === "der" ? "right"
-    : "center";
+    estilos.alineacion === "izq"
+      ? "left"
+      : estilos.alineacion === "der"
+        ? "right"
+        : "center";
 
   const fontBase = estilos.tamanoFuente || 14;
-  const pesoBase = estilos.pesoFuente === "bold" ? 700
-    : estilos.pesoFuente === "black" ? 900 : 700;
+  const pesoBase =
+    estilos.pesoFuente === "bold"
+      ? 700
+      : estilos.pesoFuente === "black"
+        ? 900
+        : 700;
 
   const estilosTipografia: React.CSSProperties = {
     fontStyle: estilos.cursiva ? "italic" : undefined,
@@ -1089,7 +1109,10 @@ function Resenas({ titulo, items, estilos = {} }: any) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         {items.map((r: any, i: number) => {
-          const puntuacion = Math.min(5, Math.max(1, Number(r.puntuacion || 5)));
+          const puntuacion = Math.min(
+            5,
+            Math.max(1, Number(r.puntuacion || 5)),
+          );
           return (
             <div
               key={i}
@@ -1160,6 +1183,366 @@ function Resenas({ titulo, items, estilos = {} }: any) {
               >
                 {r.resena}
               </p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+function BeneficiosNumerados({
+  badge,
+  titulo,
+  beneficios,
+  colorAcento, // 👈 NUEVO
+  colorFondoIcono, // 👈 NUEVO
+  estilos = {},
+}: any) {
+  if (!Array.isArray(beneficios) || beneficios.length === 0) return null;
+
+  const sectionStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#ffffff",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "32px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "32px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
+
+  const fondo = estilos.colorFondo || "#ffffff";
+  const esClaro = isColorClaro(fondo);
+  const colorTexto = esClaro ? "#121212" : "#ffffff";
+  const colorTextoSuave = esClaro ? "#4b5563" : "rgba(255,255,255,0.7)";
+
+  // 👇 COLORES CONFIGURABLES
+  const colorPrincipal = colorAcento || "#7cb342";
+  const colorFondoCaja = colorFondoIcono || `${colorPrincipal}10`;
+
+  const fontBase = estilos.tamanoFuente || 16;
+
+  return (
+    <section style={sectionStyle}>
+      {badge && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "12px",
+          }}
+        >
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: colorPrincipal,
+              display: "inline-block",
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              fontSize: `${fontBase * 0.85}px`,
+              fontWeight: 800,
+              color: colorPrincipal,
+              textTransform: "uppercase",
+              letterSpacing: "0.8px",
+            }}
+          >
+            {badge}
+          </span>
+        </div>
+      )}
+
+      {titulo && (
+        <h2
+          style={{
+            fontSize: `${fontBase * 2}px`,
+            fontWeight: 900,
+            color: colorTexto,
+            margin: "0 0 32px 0",
+            lineHeight: 1.15,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {titulo}
+        </h2>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+        {beneficios.map((b: any, i: number) => {
+          if (!b.titulo) return null;
+          return (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "18px",
+              }}
+            >
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "14px",
+                  border: `1.5px solid ${colorPrincipal}40`,
+                  backgroundColor: colorFondoCaja,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ fontSize: "26px", lineHeight: 1 }}>
+                  {b.icono || "✓"}
+                </span>
+              </div>
+
+              <div style={{ flex: 1, paddingTop: "4px" }}>
+                <h3
+                  style={{
+                    fontSize: `${fontBase * 1.15}px`,
+                    fontWeight: 800,
+                    color: colorTexto,
+                    margin: "0 0 6px 0",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {i + 1}. {b.titulo}
+                </h3>
+                {b.descripcion && (
+                  <p
+                    style={{
+                      fontSize: `${fontBase}px`,
+                      color: colorTextoSuave,
+                      margin: 0,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    {b.descripcion}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+function TablaComparativa({
+  tituloProducto,
+  tituloCompetencia,
+  filas,
+  colorProducto, // 👈 NUEVO: color del texto verde
+  colorFondoProducto, // 👈 NUEVO: fondo del header verde
+  colorBordeProducto, // 👈 NUEVO: borde superior verde
+  colorFondoFilaProducto, // 👈 NUEVO: fondo de las filas del producto
+  producto, // 👈 NUEVO: para auto-título
+  estilos = {},
+}: any) {
+  if (!Array.isArray(filas) || filas.length === 0) return null;
+
+  const sectionStyle: React.CSSProperties = {
+    ...aplicarTipografia(estilos),
+    backgroundColor: estilos.colorFondo || "#ffffff",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "24px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "24px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "16px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "16px",
+    marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
+    marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
+    borderRadius: estilos.radioEsquinas
+      ? `${estilos.radioEsquinas}px`
+      : undefined,
+    opacity:
+      estilos.opacidad !== undefined && estilos.opacidad < 100
+        ? estilos.opacidad / 100
+        : undefined,
+  };
+
+  // 👇 COLORES CONFIGURABLES
+  const verde = colorProducto || "#2d5f1e";
+  const verdeFondo = colorFondoProducto || "#e8f0e0";
+  const verdeBorde = colorBordeProducto || "#4a7c2c";
+  const verdeFilaFondo = colorFondoFilaProducto || "#f7faf4";
+
+  const grisTexto = "#6b7280";
+  const grisFondo = "#f3f4f6";
+  const grisBorde = "#e5e7eb";
+
+  const fontBase = estilos.tamanoFuente || 15;
+
+  // 👇 Título automático si está vacío
+  const tituloProductoFinal =
+    tituloProducto?.trim() || producto?.nombre?.toUpperCase() || "TU PRODUCTO";
+
+  return (
+    <section style={sectionStyle}>
+      <div
+        style={{
+          border: `1px solid ${grisBorde}`,
+          borderRadius: "16px",
+          overflow: "hidden",
+        }}
+      >
+        {/* HEADER */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          {/* Columna producto */}
+          <div
+            style={{
+              backgroundColor: verdeFondo,
+              padding: "20px 16px",
+              textAlign: "center",
+              borderTop: `4px solid ${verdeBorde}`,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: `${fontBase * 1.1}px`,
+                fontWeight: 900,
+                color: verde,
+                margin: 0,
+                textTransform: "uppercase",
+                letterSpacing: "0.3px",
+                lineHeight: 1.2,
+              }}
+            >
+              {tituloProductoFinal}
+            </h3>
+          </div>
+
+          {/* Columna competencia */}
+          <div
+            style={{
+              backgroundColor: grisFondo,
+              padding: "20px 16px",
+              textAlign: "center",
+              borderTop: "4px solid transparent",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: `${fontBase * 1.05}px`,
+                fontWeight: 900,
+                color: grisTexto,
+                margin: 0,
+                textTransform: "uppercase",
+                letterSpacing: "0.3px",
+                lineHeight: 1.2,
+              }}
+            >
+              {tituloCompetencia || "OTROS PRODUCTOS"}
+            </h3>
+          </div>
+        </div>
+
+        {/* FILAS */}
+        {filas.map((fila: any, i: number) => {
+          if (!fila.texto) return null;
+          return (
+            <div
+              key={i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                borderTop: `1px solid ${grisBorde}`,
+              }}
+            >
+              {/* Columna producto: check verde */}
+              <div
+                style={{
+                  backgroundColor: verdeFilaFondo,
+                  padding: "18px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  borderRight: `1px solid ${grisBorde}`,
+                }}
+              >
+                <span
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    backgroundColor: verde,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ width: "16px", height: "16px" }}
+                  >
+                    <path d="M5 12l5 5L20 7" />
+                  </svg>
+                </span>
+                <span
+                  style={{
+                    fontSize: `${fontBase}px`,
+                    fontWeight: 800,
+                    color: "#121212",
+                    lineHeight: 1.3,
+                    textAlign: "left",
+                  }}
+                >
+                  {fila.texto}
+                </span>
+              </div>
+
+              {/* Columna competencia: X gris */}
+              <div
+                style={{
+                  backgroundColor: "#ffffff",
+                  padding: "18px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <span
+                  style={{
+                    width: "24px",
+                    height: "24px",
+                    borderRadius: "50%",
+                    border: `2px solid ${grisBorde}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={grisTexto}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ width: "12px", height: "12px" }}
+                  >
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </span>
+              </div>
             </div>
           );
         })}
@@ -1353,28 +1736,28 @@ export const BLOQUES: Record<string, BloqueDef> = {
     Render: BannerContador,
   },
 
- barra_estrellas: {
-  nombre: "Barra de estrellas",
-  icono: "⭐",
-  max: 1,
-  defaults: { texto: "⭐⭐⭐⭐⭐ +100.000 clientes satisfechos" },
-  schema: [
-    {
-      key: "texto",
-      label: "Texto",
-      tipo: "textarea",
-    },
-  ],
-  aplicaEstilos: [
-    "tipografia",
-    "apariencia",
-    "bordes",
-    "relleno",
-    "margen",
-    "alineacion",
-  ],
-  Render: BarraEstrellas,
-},
+  barra_estrellas: {
+    nombre: "Barra de estrellas",
+    icono: "⭐",
+    max: 1,
+    defaults: { texto: "⭐⭐⭐⭐⭐ +100.000 clientes satisfechos" },
+    schema: [
+      {
+        key: "texto",
+        label: "Texto",
+        tipo: "textarea",
+      },
+    ],
+    aplicaEstilos: [
+      "tipografia",
+      "apariencia",
+      "bordes",
+      "relleno",
+      "margen",
+      "alineacion",
+    ],
+    Render: BarraEstrellas,
+  },
 
   hero_imagen: {
     nombre: "Imagen",
@@ -1435,42 +1818,42 @@ export const BLOQUES: Record<string, BloqueDef> = {
     nombre: "Selector de unidades",
     icono: "🎚️",
     max: 1,
-   defaults: {
-  tituloSeccion: "Elige tu pack",
-opciones: [
-  {
-    titulo: "1 Unidad + Kit",
-    items: "1 item",
-    precio: 29.9,
-    precioAntes: 0,
-    badge: "",
-    envioGratis: true,
-    beneficios: [
-      { texto: "E-Book: Biohacking Anti-Edad" },
-      { texto: "Calendario de Renovación Celular" },
-      { texto: "Protocolo Dérmico AM/PM" },
-    ],
-  },
-  {
-    titulo: "2 Unidades + 2 Kits",
-    items: "2 items",
-    precio: 46.9,
-    precioAntes: 59.8,
-    badge: "MEJOR OFERTA",
-    envioGratis: true,
-    beneficios: [
-      { texto: "Mascarilla Adulto" },
-      { texto: "Mascarilla Niño" },
-      { texto: "Boquilla Inhaladora" },
-      { texto: "Cable de carga" },
-    ],
-  },
-],
-},
+    defaults: {
+      tituloSeccion: "Elige tu pack",
+      opciones: [
+        {
+          titulo: "1 Unidad + Kit",
+          items: "1 item",
+          precio: 29.9,
+          precioAntes: 0,
+          badge: "",
+          envioGratis: true,
+          beneficios: [
+            { texto: "texto" },
+            { texto: "texto" },
+            { texto: "texto" },
+          ],
+        },
+        {
+          titulo: "2 Unidades + 2 Kits",
+          items: "2 items",
+          precio: 46.9,
+          precioAntes: 59.8,
+          badge: "MEJOR OFERTA",
+          envioGratis: true,
+          beneficios: [
+            { texto: "texto" },
+            { texto: "texto" },
+            { texto: "texto" },
+            { texto: "texto" },
+          ],
+        },
+      ],
+    },
     schema: [
-  { key: "tituloSeccion", label: "Título de la sección", tipo: "text" },
-  { key: "opciones", label: "Opciones de compra", tipo: "repeater" },
-],
+      { key: "tituloSeccion", label: "Título de la sección", tipo: "text" },
+      { key: "opciones", label: "Opciones de compra", tipo: "repeater" },
+    ],
     Render: SelectorUnidades,
   },
   prueba_social: {
@@ -1500,38 +1883,38 @@ opciones: [
     Render: PruebaSocial,
   },
 
-faqs: {
-  nombre: "Preguntas frecuentes",
-  icono: "❓",
-  max: 2,
-  defaults: {
-    titulo: "Preguntas frecuentes",
-    items: [],
-    colorTitulo: "",
-    colorPregunta: "#121212",
-    colorRespuesta: "#374151",
-  },
-  schema: [
-    { key: "titulo", label: "Título", tipo: "text" },
-    {
-      key: "colorTitulo",
-      label: "Color del título (vacío = auto)",
-      tipo: "color",
+  faqs: {
+    nombre: "Preguntas frecuentes",
+    icono: "❓",
+    max: 2,
+    defaults: {
+      titulo: "Preguntas frecuentes",
+      items: [],
+      colorTitulo: "",
+      colorPregunta: "#121212",
+      colorRespuesta: "#374151",
     },
-    { key: "colorPregunta", label: "Color de la pregunta", tipo: "color" },
-    { key: "colorRespuesta", label: "Color de la respuesta", tipo: "color" },
-    { key: "items", label: "Preguntas", tipo: "repeater" },
-  ],
-  aplicaEstilos: [
-    "tipografia",
-    "apariencia",
-    "bordes",
-    "relleno",
-    "margen",
-    "alineacion",
-  ],
-  Render: Faqs,
-},
+    schema: [
+      { key: "titulo", label: "Título", tipo: "text" },
+      {
+        key: "colorTitulo",
+        label: "Color del título (vacío = auto)",
+        tipo: "color",
+      },
+      { key: "colorPregunta", label: "Color de la pregunta", tipo: "color" },
+      { key: "colorRespuesta", label: "Color de la respuesta", tipo: "color" },
+      { key: "items", label: "Preguntas", tipo: "repeater" },
+    ],
+    aplicaEstilos: [
+      "tipografia",
+      "apariencia",
+      "bordes",
+      "relleno",
+      "margen",
+      "alineacion",
+    ],
+    Render: Faqs,
+  },
 
   resenas: {
     nombre: "Reseñas",
@@ -1543,6 +1926,113 @@ faqs: {
       { key: "items", label: "Reseñas", tipo: "repeater" },
     ],
     Render: Resenas,
+  },
+  beneficios_numerados: {
+    nombre: "Beneficios numerados",
+    icono: "🔢",
+    max: 0,
+    defaults: {
+      badge: "MECANISMO CELULAR",
+      titulo: "Cómo rejuvenece tu piel desde la raíz",
+      colorAcento: "#7cb342", // 👈 NUEVO
+      colorFondoIcono: "#f0f7e8", // 👈 NUEVO
+      beneficios: [
+        {
+          icono: "🛡️",
+          titulo: "titulo",
+          descripcion: "descripcion",
+        },
+        {
+          icono: "✨",
+          titulo: "titulo",
+          descripcion: "descripcion",
+        },
+        {
+          icono: "⭐",
+          titulo: "titulo",
+          descripcion: "descripcion",
+        },
+        {
+          icono: "⚡",
+          titulo: "titulo",
+          descripcion: "descripcion",
+        },
+      ],
+    },
+    schema: [
+      { key: "badge", label: "Badge superior (opcional)", tipo: "text" },
+      { key: "titulo", label: "Título de la sección", tipo: "text" },
+      { key: "colorAcento", label: "🎨 Color de acento", tipo: "color" }, // 👈 NUEVO
+      {
+        key: "colorFondoIcono",
+        label: "🎨 Color de fondo del icono",
+        tipo: "color",
+      }, // 👈 NUEVO
+      { key: "beneficios", label: "Beneficios", tipo: "repeater" },
+    ],
+    aplicaEstilos: [
+      "tipografia",
+      "apariencia",
+      "bordes",
+      "relleno",
+      "margen",
+      "alineacion",
+    ],
+    Render: BeneficiosNumerados,
+  },
+  tabla_comparativa: {
+    nombre: "Tabla comparativa",
+    icono: "⚖️",
+    max: 1,
+    defaults: {
+      tituloProducto: "", // 👈 vacío = usa producto.nombre automáticamente
+      tituloCompetencia: "Titulo",
+      colorProducto: "#2d5f1e", // 👈 NUEVO
+      colorFondoProducto: "#e8f0e0", // 👈 NUEVO
+      colorBordeProducto: "#4a7c2c", // 👈 NUEVO
+      colorFondoFilaProducto: "#f7faf4", // 👈 NUEVO
+      filas: [
+        { texto: "texto" },
+        { texto: "texto" },
+        { texto: "texto" },
+        { texto: "texto" },
+      ],
+    },
+    schema: [
+      {
+        key: "tituloProducto",
+        label: "Título columna producto (vacío = nombre del producto)",
+        tipo: "text",
+      },
+      {
+        key: "tituloCompetencia",
+        label: "Título columna competencia",
+        tipo: "text",
+      },
+      {
+        key: "colorProducto",
+        label: "🎨 Color principal (verde)",
+        tipo: "color",
+      }, // 👈 NUEVO
+      {
+        key: "colorFondoProducto",
+        label: "🎨 Color de fondo del header",
+        tipo: "color",
+      }, // 👈 NUEVO
+      {
+        key: "colorBordeProducto",
+        label: "🎨 Color del borde superior",
+        tipo: "color",
+      }, // 👈 NUEVO
+      {
+        key: "colorFondoFilaProducto",
+        label: "🎨 Color de fondo de las filas",
+        tipo: "color",
+      }, // 👈 NUEVO
+      { key: "filas", label: "Filas de comparación", tipo: "repeater" },
+    ],
+    aplicaEstilos: ["tipografia", "apariencia", "bordes", "relleno", "margen"],
+    Render: TablaComparativa,
   },
   cabecera_producto: {
     nombre: "Cabecera de producto",
@@ -1683,7 +2173,13 @@ export const TIPOS_SECCION: Record<TipoSeccion, SeccionDef> = {
     tipo: "producto",
     nombre: "Producto",
     icono: "🎯",
-    bloquesPermitidos: ["cabecera_producto", "hero_imagen", "prueba_social"],
+    bloquesPermitidos: [
+      "cabecera_producto",
+      "hero_imagen",
+      "prueba_social",
+      "beneficios_numerados",
+      "tabla_comparativa", // 👈 AÑADIR
+    ],
     fija: false,
     color: "#3b82f6",
   },
@@ -1740,9 +2236,11 @@ const BLOQUE_A_SECCION: Record<string, TipoSeccion> = {
   cabecera_producto: "producto",
   hero_imagen: "producto",
   prueba_social: "producto",
+  beneficios_numerados: "producto", // 👈 AÑADIR
+  tabla_comparativa: "producto",
   bloque_compra: "compra",
   boton_comprar: "compra",
-  selector_unidades: "compra", 
+  selector_unidades: "compra",
   resenas: "testimonios",
   faqs: "faq",
 };
@@ -1931,7 +2429,7 @@ export function construirPlantilla(producto: any): Plantilla {
     },
   };
 }
-//selector de unidades 
+//selector de unidades
 function SelectorUnidades({
   tituloSeccion,
   opciones,
@@ -1941,9 +2439,9 @@ function SelectorUnidades({
   estilos = {},
 }: any) {
   const colorAcento = tema?.colorPrimario || "#16a34a";
-const lista = Array.isArray(opciones) ? opciones : [];
-const [tabActiva, setTabActiva] = useState(0);
-const idx = Math.min(tabActiva, Math.max(lista.length - 1, 0));  // ─── Colores auto-calculados ───
+  const lista = Array.isArray(opciones) ? opciones : [];
+  const [tabActiva, setTabActiva] = useState(0);
+  const idx = Math.min(tabActiva, Math.max(lista.length - 1, 0)); // ─── Colores auto-calculados ───
   const fondo = estilos.colorFondo || "#ffffff";
   const esClaro = isColorClaro(fondo);
   const colorTexto = esClaro ? "#121212" : "#ffffff";
@@ -2014,29 +2512,32 @@ const idx = Math.min(tabActiva, Math.max(lista.length - 1, 0));  // ─── Co
         {/* ─── TABS SUPERIORES ─── */}
         <div className="flex" style={{ position: "relative" }}>
           {lista.map((op: any, i: number) => {
-const activa = idx === i;
+            const activa = idx === i;
             return (
               <button
-  key={i}
-  onClick={() => { setTabActiva(i); onSeleccionar?.(i); }}
-  className="flex-1 py-4 px-3 relative"
-  style={{
-    backgroundColor: activa ? `${colorAcento}22` : "transparent",
-    border: activa
-      ? `2px solid ${colorAcento}`
-      : `1px solid ${bordeSubtle}`,
-    borderBottom: activa
-      ? `5px solid ${colorAcento}`
-      : `1px solid ${bordeSubtle}`,
-    borderRadius: "8px 8px 0 0",
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "all 0.2s ease",
-    transform: activa ? "translateY(-2px)" : "none",
-    boxShadow: activa ? `0 4px 12px ${colorAcento}33` : "none",
-    ...estilosTipografia,
-  }}
->
+                key={i}
+                onClick={() => {
+                  setTabActiva(i);
+                  onSeleccionar?.(i);
+                }}
+                className="flex-1 py-4 px-3 relative"
+                style={{
+                  backgroundColor: activa ? `${colorAcento}22` : "transparent",
+                  border: activa
+                    ? `2px solid ${colorAcento}`
+                    : `1px solid ${bordeSubtle}`,
+                  borderBottom: activa
+                    ? `5px solid ${colorAcento}`
+                    : `1px solid ${bordeSubtle}`,
+                  borderRadius: "8px 8px 0 0",
+                  cursor: "pointer",
+                  textAlign: "center",
+                  transition: "all 0.2s ease",
+                  transform: activa ? "translateY(-2px)" : "none",
+                  boxShadow: activa ? `0 4px 12px ${colorAcento}33` : "none",
+                  ...estilosTipografia,
+                }}
+              >
                 <div
                   style={{
                     fontSize: `${fontTabTitulo}px`,
@@ -2126,57 +2627,53 @@ const activa = idx === i;
                     }}
                   >
                     {op.items || ""}
-                    {op.envioGratis !== false && (
-                      <span> + Free Shipping</span>
-                    )}
+                    {op.envioGratis !== false && <span> + Free Shipping</span>}
                   </p>
 
                   {/* Beneficios */}
-                  {Array.isArray(op.beneficios) &&
-                    op.beneficios.length > 0 && (
-                      <ul
-                        style={{
-                          listStyle: "none",
-                          padding: 0,
-                          margin: "0 auto 20px auto",
-                          maxWidth: "400px",
-                          textAlign: "left",
-                        }}
-                      >
-                        {op.beneficios.map((b: any, j: number) => {
-                          const texto =
-                            typeof b === "string" ? b : b.texto || "";
-                          if (!texto.trim()) return null;
-                          return (
-                            <li
-                              key={j}
+                  {Array.isArray(op.beneficios) && op.beneficios.length > 0 && (
+                    <ul
+                      style={{
+                        listStyle: "none",
+                        padding: 0,
+                        margin: "0 auto 20px auto",
+                        maxWidth: "400px",
+                        textAlign: "left",
+                      }}
+                    >
+                      {op.beneficios.map((b: any, j: number) => {
+                        const texto = typeof b === "string" ? b : b.texto || "";
+                        if (!texto.trim()) return null;
+                        return (
+                          <li
+                            key={j}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              marginBottom: "10px",
+                              fontSize: `${fontBeneficio}px`,
+                              color: "#374151",
+                              ...estilosTipografia,
+                            }}
+                          >
+                            <span
                               style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "10px",
-                                marginBottom: "10px",
-                                fontSize: `${fontBeneficio}px`,
-                                color: "#374151",
-                                ...estilosTipografia,
+                                color: colorAcento,
+                                fontSize: `${fontBeneficio * 1.3}px`,
+                                lineHeight: 1,
+                                flexShrink: 0,
+                                fontWeight: 900,
                               }}
                             >
-                              <span
-                                style={{
-                                  color: colorAcento,
-                                  fontSize: `${fontBeneficio * 1.3}px`,
-                                  lineHeight: 1,
-                                  flexShrink: 0,
-                                  fontWeight: 900,
-                                }}
-                              >
-                                ✓
-                              </span>
-                              <span>{texto}</span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
+                              ✓
+                            </span>
+                            <span>{texto}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
 
                   {/* Precio */}
                   <div
@@ -2232,7 +2729,8 @@ const activa = idx === i;
         </div>
       </div>
     </section>
-  );}
+  );
+}
 // ═══════════════════════════════════════════════════════════════
 // SECCIONES — construcción y normalización
 // ═══════════════════════════════════════════════════════════════
@@ -2295,9 +2793,10 @@ export function migrarASecciones(plantilla: Plantilla): Plantilla {
           ...s,
           colapsada: s.colapsada ?? false,
           ajustes: { ...AJUSTES_DEFAULT, ...(s.ajustes || {}) },
-bloques: (s.bloques || []).map((b: Bloque) =>
-  normalizarAlineacion(normalizarColores(b))
-),        })),
+          bloques: (s.bloques || []).map((b: Bloque) =>
+            normalizarAlineacion(normalizarColores(b)),
+          ),
+        })),
     };
   }
 
@@ -2337,8 +2836,8 @@ export function ProductRenderer({
   producto,
   onComprar,
   onMenuClick, // 👈 NUEVO
-opcionSeleccionada = 0,        // 👈 NUEVO
-  onOpcionChange,                 // 👈 NUEVO
+  opcionSeleccionada = 0, // 👈 NUEVO
+  onOpcionChange, // 👈 NUEVO
   modo = "ver",
   bloqueHover = null,
   seleccionado = null,
@@ -2347,20 +2846,19 @@ opcionSeleccionada = 0,        // 👈 NUEVO
   producto: any;
   onComprar?: () => void;
   onMenuClick?: () => void; // 👈 NUEVO
-opcionSeleccionada?: number;    // 👈 NUEVO
-  onOpcionChange?: (i: number) => void;   // 👈 NUEVO
+  opcionSeleccionada?: number; // 👈 NUEVO
+  onOpcionChange?: (i: number) => void; // 👈 NUEVO
   modo?: "ver" | "editor";
   bloqueHover?: string | null;
   seleccionado?: string | null;
 }) {
-
   if (!plantilla) return null;
 
   // 👇 Normalizar: si tiene secciones las usa, si no migra los bloques planos
   const plantillaNormalizada = migrarASecciones(plantilla);
   const precio = Number(producto?.precio || 0);
   const nav = plantillaNormalizada.tema?.nav ?? NAV_DEFAULT; // 👈 NUEVO
-  const tema = plantillaNormalizada.tema;   // 👈 AQUÍ, junto a nav
+  const tema = plantillaNormalizada.tema; // 👈 AQUÍ, junto a nav
 
   // Función que renderiza un bloque
   function renderBloque(bOriginal: Bloque) {
@@ -2376,32 +2874,33 @@ opcionSeleccionada?: number;    // 👈 NUEVO
       props.esPrimera = b.id === primerHeroImagenId;
     }
     if (b.tipo === "selector_unidades") {
-  props.onSeleccionar = onOpcionChange;    // 👈 usar el callback de afuera
+      props.onSeleccionar = onOpcionChange; // 👈 usar el callback de afuera
       props.seleccionada = opcionSeleccionada;
     }
     if (b.tipo === "boton_comprar") {
       props.onComprar = onComprar;
       // 👇 NUEVO: pasar la opción activa (título + precio + index) al botón
       const seccionPadre = plantillaNormalizada.secciones?.find((s) =>
-        s.bloques.some((bl) => bl.id === b.id)
+        s.bloques.some((bl) => bl.id === b.id),
       );
       const selectorEnSeccion = seccionPadre?.bloques.find(
-        (bl) => bl.tipo === "selector_unidades"
+        (bl) => bl.tipo === "selector_unidades",
       );
       if (selectorEnSeccion) {
         const opcion = selectorEnSeccion.props.opciones?.[opcionSeleccionada];
         props.opcionSeleccionada = opcion
-          ? { ...opcion, index: opcionSeleccionada }   // 👈 añadir index
+          ? { ...opcion, index: opcionSeleccionada } // 👈 añadir index
           : undefined;
       }
-    }    if (b.tipo === "bloque_compra") props.precio = precio;
+    }
+    if (b.tipo === "bloque_compra") props.precio = precio;
 
     const contenido = (
       <def.Render
         {...props}
         estilos={b.estilos || {}}
         producto={producto}
-        tema={tema}   // 👈 NUEVO
+        tema={tema} // 👈 NUEVO
       />
     );
 
@@ -2468,7 +2967,6 @@ opcionSeleccionada?: number;    // 👈 NUEVO
       (b) => b.tipo === "boton_comprar" && b.props.flotante === true,
     ),
   );
-  
 
   return (
     <div

@@ -154,6 +154,7 @@ const REPEATER_CAMPOS: Record<
     { key: "resena", label: "Reseña", tipo: "textarea" },
     { key: "puntuacion", label: "Puntuación (1-5)", tipo: "number" },
   ],
+  
   selector_unidades: [
   { key: "titulo", label: "Título", tipo: "text" },
   { key: "items", label: "Items (1 item / 2 items)", tipo: "text" },
@@ -169,13 +170,28 @@ const REPEATER_CAMPOS: Record<
     labelItem: "Beneficio",
   },
 ],
+// 👇 NUEVO
+  beneficios_numerados: [
+    { key: "icono", label: "Emoji/Icono", tipo: "text" },
+    { key: "titulo", label: "Título", tipo: "text" },
+    { key: "descripcion", label: "Descripción", tipo: "textarea" },
+  ],
+ // 👇 NUEVO
+  tabla_comparativa: [
+    { key: "texto", label: "Texto de la fila", tipo: "text" },
+  ],
 };
+
 
 const REPEATER_PROP_KEY: Record<string, string> = {
   prueba_social: "beneficios",
   faqs: "items",
   resenas: "items",
   selector_unidades: "opciones",
+    beneficios_numerados: "beneficios",   // 👈 AÑADIR
+      tabla_comparativa: "filas",   // 👈 AÑADIR
+
+
 };
 // ═══════════════════════════════════════════════════════════════
 // SUB-REPEATER — lista de strings dentro de un repeater
@@ -465,20 +481,20 @@ function InputProp({ prop, value, onChange, onSnapshot }: any) {
       />
     );
   }
-  if (prop.tipo === "color") {
-    return (
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={value || "#000000"}
-          onFocus={onSnapshot}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
-        />
-        <span className="text-gray-400 text-xs">{value || "#000000"}</span>
-      </div>
-    );
-  }
+if (prop.tipo === "color") {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="color"
+        value={value || "#000000"}
+        onFocus={onSnapshot}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 w-14 rounded border border-gray-600 bg-gray-700 cursor-pointer"
+      />
+      <span className="text-gray-400 text-xs">{value || "#000000"}</span>
+    </div>
+  );
+}
   if (prop.tipo === "number") {
     return (
       <input
