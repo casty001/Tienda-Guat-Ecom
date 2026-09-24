@@ -968,17 +968,20 @@ function Faqs({
   colorTitulo,
   colorPregunta,
   colorRespuesta,
+  colorAcento,        // 👈 NUEVO
+  colorFondo,         // 👈 NUEVO
+  colorSeparador,     // 👈 NUEVO
   estilos = {},
 }: any) {
   if (!Array.isArray(items) || !items.length) return null;
 
   const sectionStyle: React.CSSProperties = {
     ...aplicarTipografia(estilos),
-    backgroundColor: estilos.colorFondo || "#121212",
-    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "24px",
-    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "24px",
-    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
-    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    backgroundColor: estilos.colorFondo || colorFondo || "#ffffff",
+    paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "32px",
+    paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "32px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "20px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "20px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
     borderRadius: estilos.radioEsquinas
@@ -990,203 +993,423 @@ function Faqs({
         : undefined,
   };
 
-  const textAlign =
-    estilos.alineacion === "izq"
-      ? "left"
-      : estilos.alineacion === "der"
-        ? "right"
-        : "center";
-
-  // 👇 auto-contraste según el fondo
-  const fondo = estilos.colorFondo || "#121212";
+  const fondo = estilos.colorFondo || colorFondo || "#ffffff";
   const esClaro = isColorClaro(fondo);
-  const colorTituloAuto = esClaro ? "#121212" : "#ffffff";
-  const colorPreguntaAuto = esClaro ? "#121212" : "#ffffff";
-  const colorRespuestaAuto = esClaro ? "#374151" : "#e5e7eb";
+  const colorTexto = esClaro ? "#121212" : "#ffffff";
+  const colorTextoSuave = esClaro ? "#4b5563" : "rgba(255,255,255,0.7)";
+  const separador = colorSeparador || (esClaro ? "#e5e7eb" : "rgba(255,255,255,0.15)");
+  const acento = colorAcento || "#2d5f1e"; // verde oscuro como en la imagen
 
-  const colorTituloFinal = colorTitulo || colorTituloAuto;
-  const colorPreguntaFinal = colorPregunta || colorPreguntaAuto;
-  const colorRespuestaFinal = colorRespuesta || colorRespuestaAuto;
+  const fontBase = estilos.tamanoFuente || 15;
 
   return (
     <section style={sectionStyle}>
-      <h2
-        className="text-3xl font-bold mb-6"
-        style={{
-          textAlign,
-          color: colorTituloFinal,
-        }}
-      >
-        {titulo || "Preguntas frecuentes"}
-      </h2>
-      <div className="space-y-4">
+      {/* Título con líneas a los lados */}
+      {titulo && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "14px",
+            marginBottom: "28px",
+          }}
+        >
+          <span
+            style={{
+              flex: "0 0 auto",
+              width: "32px",
+              height: "3px",
+              backgroundColor: acento,
+              borderRadius: "9999px",
+            }}
+          />
+          <h2
+            style={{
+              fontSize: `${fontBase * 1.3}px`,
+              fontWeight: 900,
+              color: colorTitulo || acento,
+              margin: 0,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              textAlign: "center",
+              lineHeight: 1.2,
+            }}
+          >
+            {titulo}
+          </h2>
+          <span
+            style={{
+              flex: "0 0 auto",
+              width: "32px",
+              height: "3px",
+              backgroundColor: acento,
+              borderRadius: "9999px",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Lista de preguntas */}
+      <div>
         {items.map((faq: any, i: number) => {
           if (!faq.pregunta) return null;
           return (
-            <div key={i} className="bg-white rounded-xl p-4">
-              <h3 className="font-bold" style={{ color: colorPreguntaFinal }}>
-                {faq.pregunta}
-              </h3>
-              <p style={{ color: colorRespuestaFinal }}>{faq.respuesta}</p>
-            </div>
+            <details
+              key={i}
+              open={i === 0}  // 👈 primera abierta por defecto
+              style={{
+                borderTop: i === 0 ? "none" : `1px solid ${separador}`,
+              }}
+            >
+              <summary
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  padding: "18px 0",
+                  cursor: "pointer",
+                  listStyle: "none",
+                  userSelect: "none",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: `${fontBase * 1.05}px`,
+                    fontWeight: 800,
+                    color: colorPregunta || colorTexto,
+                    lineHeight: 1.35,
+                    textAlign: "left",
+                  }}
+                >
+                  {faq.pregunta}
+                </span>
+                <span
+                  style={{
+                    fontSize: `${fontBase * 1.5}px`,
+                    fontWeight: 300,
+                    color: acento,
+                    lineHeight: 1,
+                    flexShrink: 0,
+                    transition: "transform 0.2s",
+                  }}
+                  className="faq-icono"
+                >
+                  <span className="faq-mas">＋</span>
+                  <span className="faq-menos" style={{ display: "none" }}>✕</span>
+                </span>
+              </summary>
+              {faq.respuesta && (
+                <p
+                  style={{
+                    fontSize: `${fontBase}px`,
+                    color: colorRespuesta || colorTextoSuave,
+                    lineHeight: 1.6,
+                    margin: "0 0 20px 0",
+                    textAlign: "left",
+                    paddingRight: "32px",
+                  }}
+                >
+                  {faq.respuesta}
+                </p>
+              )}
+            </details>
           );
         })}
       </div>
+
+      {/* Estilos para el toggle del icono */}
+      <style jsx>{`
+        details[open] .faq-mas {
+          display: none;
+        }
+        details[open] .faq-menos {
+          display: inline !important;
+        }
+        summary::-webkit-details-marker {
+          display: none;
+        }
+      `}</style>
     </section>
   );
 }
-function Resenas({ titulo, items, estilos = {} }: any) {
-  if (!Array.isArray(items) || !items.length) return null;
+function Resenas({
+  titulo,
+  promedio,
+  totalResenas,
+  mostrarBotonResena,
+  textoBotonResena,
+  colorAcento,
+  colorEstrella,
+  colorBarra,
+  colorBarraFondo,
+  distribucion,
+  items,
+  estilos = {},
+}: any) {
+  const listaDistribucion = Array.isArray(distribucion) ? distribucion : [];
+  const listaItems = Array.isArray(items) ? items : [];
+
+  // No renderizar si no hay nada
+  if (listaDistribucion.length === 0 && listaItems.length === 0) return null;
 
   const sectionStyle: React.CSSProperties = {
     ...aplicarTipografia(estilos),
     backgroundColor: estilos.colorFondo || "#ffffff",
-    color: estilos.colorFondo
-      ? isColorClaro(estilos.colorFondo)
-        ? "#121212"
-        : "#ffffff"
-      : "#121212",
     paddingTop: estilos.paddingArriba ? `${estilos.paddingArriba}px` : "24px",
     paddingBottom: estilos.paddingAbajo ? `${estilos.paddingAbajo}px` : "24px",
-    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
-    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "24px",
+    paddingLeft: estilos.paddingLados ? `${estilos.paddingLados}px` : "20px",
+    paddingRight: estilos.paddingLados ? `${estilos.paddingLados}px` : "20px",
     marginTop: estilos.marginArriba ? `${estilos.marginArriba}px` : undefined,
     marginBottom: estilos.marginAbajo ? `${estilos.marginAbajo}px` : undefined,
-    borderRadius: estilos.radioEsquinas
-      ? `${estilos.radioEsquinas}px`
-      : undefined,
+    borderRadius: estilos.radioEsquinas ? `${estilos.radioEsquinas}px` : undefined,
     opacity:
       estilos.opacidad !== undefined && estilos.opacidad < 100
         ? estilos.opacidad / 100
         : undefined,
   };
 
+  const acento = colorAcento || "#1b5e20";
+  const estrellaColor = colorEstrella || acento;
+  const barraColor = colorBarra || "#84cc16";
+  const barraFondo = colorBarraFondo || "#ecfccb";
   const fondo = estilos.colorFondo || "#ffffff";
   const esClaro = isColorClaro(fondo);
   const colorTexto = esClaro ? "#121212" : "#ffffff";
   const colorTextoSuave = esClaro ? "#6b7280" : "rgba(255,255,255,0.65)";
   const colorBorde = esClaro ? "#e5e7eb" : "rgba(255,255,255,0.15)";
+  const colorTarjeta = esClaro ? "#ffffff" : "rgba(255,255,255,0.03)";
 
-  const textAlign =
-    estilos.alineacion === "izq"
-      ? "left"
-      : estilos.alineacion === "der"
-        ? "right"
-        : "center";
+  const fontBase = estilos.tamanoFuente || 15;
 
-  const fontBase = estilos.tamanoFuente || 14;
-  const pesoBase =
-    estilos.pesoFuente === "bold"
-      ? 700
-      : estilos.pesoFuente === "black"
-        ? 900
-        : 700;
+  // 👇 Usar la distribución MANUAL del admin
+const distribucionFinal = listaDistribucion.length > 0
+  ? [...listaDistribucion].sort((a, b) => b.estrellas - a.estrellas)
+  : [
+      { estrellas: 5, cantidad: 0 },
+      { estrellas: 4, cantidad: 0 },
+      { estrellas: 3, cantidad: 0 },
+      { estrellas: 2, cantidad: 0 },
+      { estrellas: 1, cantidad: 0 },
+    ];
 
-  const estilosTipografia: React.CSSProperties = {
-    fontStyle: estilos.cursiva ? "italic" : undefined,
-    textTransform: estilos.mayusculas ? "uppercase" : undefined,
-    lineHeight: estilos.interlineado ?? undefined,
-    letterSpacing: estilos.espaciadoLetras
-      ? `${estilos.espaciadoLetras}px`
-      : undefined,
-  };
+  const maxCantidad = Math.max(...distribucionFinal.map((d) => d.cantidad || 0), 1);
+
+  // Suma de la distribución manual
+  const sumaTotal = distribucionFinal.reduce((acc, d) => acc + (d.cantidad || 0), 0);
+  const totalMostrar = totalResenas || sumaTotal;
 
   return (
-    <section style={{ ...sectionStyle, textAlign }}>
-      <h2
+    <section style={sectionStyle}>
+      <div
         style={{
-          fontSize: `${fontBase * 1.6}px`,
-          fontWeight: 900,
-          textAlign,
-          marginBottom: "24px",
-          margin: 0,
-          paddingBottom: "24px",
-          ...estilosTipografia,
+          border: `1px solid ${colorBorde}`,
+          borderRadius: "16px",
+          padding: "24px 20px",
+          backgroundColor: colorTarjeta,
         }}
       >
-        {titulo || "Opiniones de clientes"}
-      </h2>
+        {titulo && (
+          <h2
+            style={{
+              fontSize: `${fontBase * 1.5}px`,
+              fontWeight: 900,
+              color: acento,
+              margin: "0 0 16px 0",
+              lineHeight: 1.2,
+            }}
+          >
+            {titulo}
+          </h2>
+        )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {items.map((r: any, i: number) => {
-          const puntuacion = Math.min(
-            5,
-            Math.max(1, Number(r.puntuacion || 5)),
-          );
-          return (
-            <div
-              key={i}
-              style={{
-                border: `1px solid ${colorBorde}`,
-                borderRadius: "12px",
-                padding: "16px",
-                backgroundColor: esClaro ? "#f9fafb" : "rgba(255,255,255,0.03)",
-                textAlign: "left",
-              }}
-            >
+        {/* PROMEDIO + ESTRELLAS */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+          <div style={{ display: "flex", gap: "4px" }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span key={"prom-" + n} style={{ fontSize: `${fontBase * 1.6}px`, color: estrellaColor, lineHeight: 1 }}>
+                ★
+              </span>
+            ))}
+          </div>
+          <span style={{ fontSize: `${fontBase * 1.5}px`, fontWeight: 900, color: acento }}>
+            {promedio || "4.9"} de 5
+          </span>
+        </div>
+
+        <p style={{ fontSize: `${fontBase * 0.95}px`, color: colorTextoSuave, margin: "0 0 24px 0" }}>
+          Basado en {totalMostrar} clientes verificados
+        </p>
+
+        {/* DISTRIBUCIÓN MANUAL */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
+          {distribucionFinal.map(({ estrellas, cantidad }, idx) => {
+            const porcentaje = ((cantidad || 0) / maxCantidad) * 100;
+            return (
               <div
+                key={"dist-" + estrellas + "-" + idx}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
+                  display: "grid",
+                  gridTemplateColumns: "80px 1fr 40px",
                   alignItems: "center",
-                  marginBottom: "8px",
+                  gap: "12px",
                 }}
               >
-                <div>
+                {/* Estrellas */}
+                <div style={{ display: "flex", gap: "2px" }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <span
+                      key={"fila-" + estrellas + "-" + n}
+                      style={{
+                        fontSize: `${fontBase * 0.9}px`,
+                        color: n <= estrellas ? estrellaColor : "#e5e7eb",
+                        lineHeight: 1,
+                      }}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+
+                {/* Barra */}
+                <div
+                  style={{
+                    height: "12px",
+                    backgroundColor: barraFondo,
+                    borderRadius: "9999px",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.max(porcentaje, cantidad > 0 ? 4 : 0)}%`,
+                      height: "100%",
+                      backgroundColor: barraColor,
+                      borderRadius: "9999px",
+                      transition: "width 0.3s ease",
+                    }}
+                  />
+                </div>
+
+                {/* Cantidad */}
+                <span
+                  style={{
+                    fontSize: `${fontBase * 1.05}px`,
+                    fontWeight: 800,
+                    color: acento,
+                    textAlign: "right",
+                  }}
+                >
+                  {cantidad || 0}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* BOTÓN ESCRIBIR RESEÑA */}
+        {mostrarBotonResena !== false && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              // Solo demo, no guarda nada
+            }}
+            style={{
+              width: "100%",
+              padding: "16px",
+              backgroundColor: acento,
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "10px",
+              fontSize: `${fontBase * 1.05}px`,
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "opacity 0.2s",
+            }}
+          >
+            {textoBotonResena || "Escribir una reseña"}
+          </button>
+        )}
+      </div>
+
+      {/* LISTADO DE RESEÑAS */}
+      {listaItems.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "20px" }}>
+          {listaItems.map((r: any, i: number) => {
+            const puntuacion = Math.min(5, Math.max(1, Number(r.estrellas || 5)));
+            return (
+              <div
+                key={i}
+                style={{
+                  border: `1px solid ${colorBorde}`,
+                  borderRadius: "16px",
+                  padding: "20px",
+                  backgroundColor: colorTarjeta,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", gap: "3px" }}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span
+                        key={"resena-" + i + "-" + n}
+                        style={{
+                          fontSize: `${fontBase * 1.1}px`,
+                          color: n <= puntuacion ? estrellaColor : "#e5e7eb",
+                          lineHeight: 1,
+                        }}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  {r.fecha && (
+                    <span style={{ fontSize: `${fontBase * 0.85}px`, color: colorTextoSuave }}>
+                      {r.fecha}
+                    </span>
+                  )}
+                </div>
+
+                {r.titulo && (
                   <h3
                     style={{
-                      fontSize: `${fontBase * 1.05}px`,
-                      fontWeight: 700,
-                      margin: 0,
+                      fontSize: `${fontBase * 1.1}px`,
+                      fontWeight: 800,
                       color: colorTexto,
-                      ...estilosTipografia,
+                      margin: "0 0 8px 0",
+                      lineHeight: 1.35,
                     }}
                   >
-                    {r.nombre}
+                    {r.titulo}
                   </h3>
+                )}
+
+                {r.texto && (
                   <p
                     style={{
-                      fontSize: `${fontBase * 0.85}px`,
+                      fontSize: `${fontBase}px`,
                       color: colorTextoSuave,
                       margin: 0,
-                      ...estilosTipografia,
+                      lineHeight: 1.55,
                     }}
                   >
-                    {r.ciudad} · {r.fecha}
+                    {r.texto}
                   </p>
-                </div>
-                {r.verificado && (
-                  <span
-                    style={{
-                      fontSize: `${fontBase * 0.75}px`,
-                      backgroundColor: "#dcfce7",
-                      color: "#166534",
-                      padding: "2px 8px",
-                      borderRadius: "9999px",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Verificado
-                  </span>
                 )}
               </div>
-              <div style={{ color: "#f59e0b", marginBottom: "8px" }}>
-                {"⭐".repeat(puntuacion)}
-              </div>
-              <p
-                style={{
-                  fontSize: `${fontBase}px`,
-                  color: colorTexto,
-                  margin: 0,
-                  ...estilosTipografia,
-                }}
-              >
-                {r.resena}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -1291,23 +1514,31 @@ function BeneficiosNumerados({
                 gap: "18px",
               }}
             >
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  borderRadius: "14px",
-                  border: `1.5px solid ${colorPrincipal}40`,
-                  backgroundColor: colorFondoCaja,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <span style={{ fontSize: "26px", lineHeight: 1 }}>
-                  {b.icono || "✓"}
-                </span>
-              </div>
+             <div
+  style={{
+    width: "48px",
+    height: "48px",
+    borderRadius: "50%",  // 👈 círculo en vez de cuadrado con esquinas redondeadas
+    border: `2px solid ${colorPrincipal}`,  // 👈 borde más grueso, color sólido
+    backgroundColor: "transparent",  // 👈 sin relleno
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  }}
+>
+  <span
+    style={{
+      fontSize: "22px",  // 👈 emoji grande
+      lineHeight: 1,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    {b.icono || "★"}
+  </span>
+</div>
 
               <div style={{ flex: 1, paddingTop: "4px" }}>
                 <h3
@@ -1820,6 +2051,7 @@ export const BLOQUES: Record<string, BloqueDef> = {
     max: 1,
     defaults: {
       tituloSeccion: "Elige tu pack",
+      colorAcento: "#16a34a",
       opciones: [
         {
           titulo: "1 Unidad + Kit",
@@ -1852,6 +2084,7 @@ export const BLOQUES: Record<string, BloqueDef> = {
     },
     schema: [
       { key: "tituloSeccion", label: "Título de la sección", tipo: "text" },
+          { key: "colorAcento", label: "🎨 Color de acento", tipo: "color" },  // 👈 NUEVO
       { key: "opciones", label: "Opciones de compra", tipo: "repeater" },
     ],
     Render: SelectorUnidades,
@@ -1883,50 +2116,120 @@ export const BLOQUES: Record<string, BloqueDef> = {
     Render: PruebaSocial,
   },
 
-  faqs: {
-    nombre: "Preguntas frecuentes",
-    icono: "❓",
-    max: 2,
-    defaults: {
-      titulo: "Preguntas frecuentes",
-      items: [],
-      colorTitulo: "",
-      colorPregunta: "#121212",
-      colorRespuesta: "#374151",
-    },
-    schema: [
-      { key: "titulo", label: "Título", tipo: "text" },
+ faqs: {
+  nombre: "Preguntas frecuentes",
+  icono: "❓",
+  max: 2,
+  defaults: {
+    titulo: "PREGUNTAS FRECUENTES",
+    items: [
       {
-        key: "colorTitulo",
-        label: "Color del título (vacío = auto)",
-        tipo: "color",
+        pregunta: "¿Por qué es más efectivo que una crema facial?",
+        respuesta:
+          "Las cremas tópicas solo humectan la capa más superficial de la piel. Nuestro producto actúa desde el interior gracias a su absorción liposomal, llevando el NAD+ y Resveratrol directo al torrente sanguíneo para reactivar colágeno, elastina y firmeza celular en la raíz dérmica.",
       },
-      { key: "colorPregunta", label: "Color de la pregunta", tipo: "color" },
-      { key: "colorRespuesta", label: "Color de la respuesta", tipo: "color" },
-      { key: "items", label: "Preguntas", tipo: "repeater" },
+      {
+        pregunta: "¿En cuánto tiempo comenzaré a notar los cambios?",
+        respuesta:
+          "Los primeros resultados se notan a las 2 semanas de uso constante. Entre los días 30 y 60, la piel gana densidad, mayor tonicidad dérmica y una reducción apreciable en líneas de expresión.",
+      },
+      {
+        pregunta: "¿Cómo se toma y en qué momento del día?",
+        respuesta:
+          "Se recomienda tomar 2 cápsulas al día acompañadas con abundante agua, preferiblemente por la mañana junto con el desayuno.",
+      },
+      {
+        pregunta: "¿Tiene efectos secundarios o daña el estómago?",
+        respuesta:
+          "No. Nuestra fórmula utiliza cápsulas 100% vegetales y microesferas liposomales que protegen los ingredientes del ácido gástrico. No produce pesadez ni malestar estomacal.",
+      },
+      {
+        pregunta: "¿Para cuántos días rinde cada frasco?",
+        respuesta:
+          "Cada frasco contiene 60 cápsulas vegetales, dosis completa para 30 días de tratamiento continuo.",
+      },
     ],
-    aplicaEstilos: [
-      "tipografia",
-      "apariencia",
-      "bordes",
-      "relleno",
-      "margen",
-      "alineacion",
-    ],
-    Render: Faqs,
+    colorAcento: "#2d5f1e",
+    colorFondo: "#ffffff",
+    colorSeparador: "#e5e7eb",
+    colorPregunta: "#121212",
+    colorRespuesta: "#4b5563",
   },
+  schema: [
+    { key: "titulo", label: "Título", tipo: "text" },
+    { key: "colorAcento", label: "🎨 Color de acento (verde)", tipo: "color" },
+    { key: "colorFondo", label: "🎨 Color de fondo", tipo: "color" },
+    { key: "colorSeparador", label: "🎨 Color de los separadores", tipo: "color" },
+    { key: "colorPregunta", label: "🎨 Color de la pregunta", tipo: "color" },
+    { key: "colorRespuesta", label: "🎨 Color de la respuesta", tipo: "color" },
+    { key: "items", label: "Preguntas", tipo: "repeater" },
+  ],
+  aplicaEstilos: [
+    "tipografia",
+    "apariencia",
+    "bordes",
+    "relleno",
+    "margen",
+  ],
+  Render: Faqs,
+},
 
-  resenas: {
-    nombre: "Reseñas",
-    icono: "🌟",
-    max: 2,
-    defaults: { titulo: "Opiniones de clientes", items: [] },
-    schema: [
-      { key: "titulo", label: "Título", tipo: "text" },
-      { key: "items", label: "Reseñas", tipo: "repeater" },
+resenas: {
+  nombre: "Reseñas",
+  icono: "🌟",
+  max: 2,
+  defaults: {
+    titulo: "Opiniones y Resultados Reales",
+    promedio: 4.9,
+    totalResenas: 48,
+    mostrarBotonResena: true,
+    textoBotonResena: "Escribir una reseña",
+    colorAcento: "#1b5e20",
+    colorEstrella: "#1b5e20",
+    colorBarra: "#84cc16",
+    colorBarraFondo: "#ecfccb",
+    // 👇 NUEVO: distribución manual
+    distribucion: [
+      { estrellas: 5, cantidad: 43 },
+      { estrellas: 4, cantidad: 5 },
+      { estrellas: 3, cantidad: 0 },
+      { estrellas: 2, cantidad: 0 },
+      { estrellas: 1, cantidad: 0 },
     ],
-    Render: Resenas,
+    items: [
+      {
+        estrellas: 5,
+        titulo: "Mi piel recuperó la firmeza que ninguna crema le dio",
+        texto:
+          "Tengo 44 años y llevaba meses notando el rostro cansado y con pérdida de tonicidad en los pómulos. A las 3 semanas de tomar las 2 cápsulas diarias la diferencia frente al espejo es impresionante: la piel se ve tensa, hidratada y con una luz que no tenía hace años.",
+        fecha: "Hace 3 días",
+      },
+      {
+        estrellas: 5,
+        titulo: "Resultados visibles en menos de un mes",
+        texto:
+          "Llevo 5 semanas usándolo y las líneas de expresión alrededor de los ojos se han suavizado bastante. Lo recomiendo 100%.",
+        fecha: "Hace 1 semana",
+      },
+    ],
   },
+  schema: [
+    { key: "titulo", label: "Título", tipo: "text" },
+    { key: "promedio", label: "Promedio (ej: 4.9)", tipo: "number" },
+    { key: "totalResenas", label: "Total de reseñas", tipo: "number" },
+    { key: "mostrarBotonResena", label: "Mostrar botón 'Escribir reseña'", tipo: "toggle" },
+    { key: "textoBotonResena", label: "Texto del botón", tipo: "text" },
+    { key: "colorAcento", label: "🎨 Color de acento (verde oscuro)", tipo: "color" },
+    { key: "colorEstrella", label: "🎨 Color de las estrellas", tipo: "color" },
+    { key: "colorBarra", label: "🎨 Color de las barras", tipo: "color" },
+    { key: "colorBarraFondo", label: "🎨 Color de fondo de las barras", tipo: "color" },
+    // 👇 NUEVO: el repeater de distribución
+    { key: "distribucion", label: "Distribución de estrellas (5 a 1)", tipo: "repeater" },
+    { key: "items", label: "Reseñas individuales", tipo: "repeater" },
+  ],
+  aplicaEstilos: ["tipografia", "apariencia", "bordes", "relleno", "margen"],
+  Render: Resenas,
+},
   beneficios_numerados: {
     nombre: "Beneficios numerados",
     icono: "🔢",
@@ -2436,9 +2739,10 @@ function SelectorUnidades({
   onSeleccionar,
   seleccionada,
   tema,
+  colorAcento: colorAcentoProp,  // 👈 NUEVO
   estilos = {},
 }: any) {
-  const colorAcento = tema?.colorPrimario || "#16a34a";
+  const colorAcento = colorAcentoProp || tema?.colorPrimario || "#16a34a";  // 👈 NUEVO
   const lista = Array.isArray(opciones) ? opciones : [];
   const [tabActiva, setTabActiva] = useState(0);
   const idx = Math.min(tabActiva, Math.max(lista.length - 1, 0)); // ─── Colores auto-calculados ───

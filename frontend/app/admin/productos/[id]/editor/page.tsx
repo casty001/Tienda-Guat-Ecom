@@ -148,13 +148,25 @@ const REPEATER_CAMPOS: Record<
     { key: "pregunta", label: "Pregunta", tipo: "text" },
     { key: "respuesta", label: "Respuesta", tipo: "textarea" },
   ],
-  resenas: [
-    { key: "nombre", label: "Nombre", tipo: "text" },
-    { key: "ciudad", label: "Ciudad", tipo: "text" },
-    { key: "resena", label: "Reseña", tipo: "textarea" },
-    { key: "puntuacion", label: "Puntuación (1-5)", tipo: "number" },
-  ],
-  
+resenas: [
+  { key: "estrellas", label: "Estrellas (1-5)", tipo: "number" },
+  { key: "titulo", label: "Título de la reseña", tipo: "text" },
+  { key: "texto", label: "Texto de la reseña", tipo: "textarea" },
+  { key: "fecha", label: "Fecha (ej: Hace 3 días)", tipo: "text" },
+],
+  // 👇 NUEVO: campos para el repeater de distribución
+resenas_distribucion: [
+  { key: "estrellas", label: "Estrellas (5, 4, 3, 2, 1)", tipo: "number" },
+  { key: "cantidad", label: "Cantidad de reseñas", tipo: "number" },
+],
+
+// 👇 NUEVO: campos para el repeater de reseñas individuales
+resenas_items: [
+  { key: "estrellas", label: "Estrellas (1-5)", tipo: "number" },
+  { key: "titulo", label: "Título de la reseña", tipo: "text" },
+  { key: "texto", label: "Texto de la reseña", tipo: "textarea" },
+  { key: "fecha", label: "Fecha (ej: Hace 3 días)", tipo: "text" },
+],
   selector_unidades: [
   { key: "titulo", label: "Título", tipo: "text" },
   { key: "items", label: "Items (1 item / 2 items)", tipo: "text" },
@@ -2090,58 +2102,58 @@ export default function EditorPage() {
                       {/* TAB CONTENIDO */}
                       {tabInterna === "contenido" && (
                         <div className="space-y-3">
-                          {defActual.schema.map((prop) => {
-                            const repeaterKey =
-                              REPEATER_PROP_KEY[bloqueActual!.tipo];
-                            if (
-                              prop.tipo === "repeater" &&
-                              repeaterKey === prop.key
-                            ) {
-                              const campos =
-                                REPEATER_CAMPOS[bloqueActual!.tipo] || [];
-                              return (
-                                <div key={prop.key} className="space-y-2">
-                                  <span className="text-gray-400 text-xs block">
-                                    {prop.label}
-                                  </span>
-                                  <EditorRepeater
-                                    items={bloqueActual!.props[prop.key]}
-                                    campos={campos}
-                                    onChange={(nuevos) =>
-                                      actualizarProps(bloqueActual!.id, {
-                                        [prop.key]: nuevos,
-                                      })
-                                    }
-                                  />
-                                </div>
-                              );
-                            }
-                            return (
-                              <label key={prop.key} className="block space-y-1">
-                                <span className="text-gray-400 text-xs block">
-                                  {prop.label}
-                                </span>
-                                <InputProp
-                                  prop={prop}
-                                  value={bloqueActual!.props[prop.key]}
-                                  onChange={(v: any) =>
-                                    actualizarProps(bloqueActual!.id, {
-                                      [prop.key]: v,
-                                    })
-                                  }
-                                  onSnapshot={() => {
-                                    useEditor.setState((s: any) => ({
-                                      historial: [
-                                        ...s.historial.slice(-50),
-                                        JSON.parse(JSON.stringify(s.plantilla)),
-                                      ],
-                                      futuro: [],
-                                    }));
-                                  }}
-                                />
-                              </label>
-                            );
-                          })}
+ {defActual.schema.map((prop) => {
+  // 👇 Si es repeater, buscar campos por clave específica
+  if (prop.tipo === "repeater") {
+    const campos =
+      REPEATER_CAMPOS[`${bloqueActual!.tipo}_${prop.key}`] ||
+      REPEATER_CAMPOS[bloqueActual!.tipo] ||
+      [];
+    return (
+      <div key={prop.key} className="space-y-2">
+        <span className="text-gray-400 text-xs block">
+          {prop.label}
+        </span>
+        <EditorRepeater
+          items={bloqueActual!.props[prop.key]}
+          campos={campos}
+          onChange={(nuevos) =>
+            actualizarProps(bloqueActual!.id, {
+              [prop.key]: nuevos,
+            })
+          }
+        />
+      </div>
+    );
+  }
+  // 👇 Si NO es repeater, render normal
+  return (
+    <label key={prop.key} className="block space-y-1">
+      <span className="text-gray-400 text-xs block">
+        {prop.label}
+      </span>
+      <InputProp
+        prop={prop}
+        value={bloqueActual!.props[prop.key]}
+        onChange={(v: any) =>
+          actualizarProps(bloqueActual!.id, {
+            [prop.key]: v,
+          })
+        }
+        onSnapshot={() => {
+          useEditor.setState((s: any) => ({
+            historial: [
+              ...s.historial.slice(-50),
+              JSON.parse(JSON.stringify(s.plantilla)),
+            ],
+            futuro: [],
+          }));
+        }}
+      />
+    </label>
+  );
+})}
+ 
                         </div>
                       )}
 
