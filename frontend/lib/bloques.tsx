@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useMemo } from "react"; // 👈 agregar este import arriba del archivo, junto a "use client" si no está ya
 
 // ═══════════════════════════════════════════════════════════════
 // TIPOS
@@ -445,7 +446,8 @@ function HeroImagen({ url, alt, estilos = {}, esPrimera = false }: any) {
         alt={alt || ""}
         width={1200}
         height={1600}
-        sizes="100vw"
+ //       sizes="100vw"
+        sizes="(max-width: 480px) 100vw, 480px"
         className="w-full h-auto"
         priority={esPrimera}
         loading={esPrimera ? undefined : "lazy"}
@@ -3159,8 +3161,11 @@ export function ProductRenderer({
   if (!plantilla) return null;
 
   // 👇 Normalizar: si tiene secciones las usa, si no migra los bloques planos
-  const plantillaNormalizada = migrarASecciones(plantilla);
-  const precio = Number(producto?.precio || 0);
+ const plantillaNormalizada = useMemo(
+    () => migrarASecciones(plantilla),
+    [plantilla]
+  );
+    const precio = Number(producto?.precio || 0);
   const nav = plantillaNormalizada.tema?.nav ?? NAV_DEFAULT; // 👈 NUEVO
   const tema = plantillaNormalizada.tema; // 👈 AQUÍ, junto a nav
 

@@ -34,9 +34,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <head>
-      </head>
+<html lang="es">
+  <head>
+    <link rel="preconnect" href="https://res.cloudinary.com" />
+    <link rel="preconnect" href="https://k6-e4e4123be8e54363900a90353991ca93.ecs.us-west-1.on.aws" />
+  </head>
       <body className={poppins.className}>
         <Script id="tiktok-pixel" strategy="afterInteractive">
           {`
