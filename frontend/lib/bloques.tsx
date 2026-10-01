@@ -72,6 +72,8 @@ export const NAV_DEFAULT: Nav = {
 
 export type Tema = {
   colorPrimario: string;
+    colorModal?: string;  // 👈 NUEVO: color del modal (badges, bordes)
+
   colorFondo: string;
   tipografia: string;
   anchoMax: number;
@@ -2727,6 +2729,8 @@ export function construirPlantilla(producto: any): Plantilla {
     bloques,
     tema: {
       colorPrimario: "#cb1515",
+          colorModal: "#9333ea",  // 👈 NUEVO
+
       colorFondo: diseno === "disenoModerno" ? "#ffffff" : "#121212",
       tipografia: "Inter",
       anchoMax: 480,

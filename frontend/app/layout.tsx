@@ -79,7 +79,7 @@ export default function RootLayout({
                 x.parentNode.insertBefore(s,x);
               };
 
-              ttq.load('D8E1PFBC77UANKFS69IG');
+              ttq.load('DAUK9G3C77U88MSODQM0');
 
               function guardarTtclid() {
   var params = new URLSearchParams(w.location.search);

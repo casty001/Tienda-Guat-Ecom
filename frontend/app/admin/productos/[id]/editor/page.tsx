@@ -2000,54 +2000,56 @@ export default function EditorPage() {
                   </details>
 
                   {/* 🎨 TEMA */}
-                  <details>
-                    <summary className="cursor-pointer text-xs text-gray-500">
-                      🎨 Tema del producto
-                    </summary>
-                    <div className="mt-2 space-y-2">
-                      <label className="block">
-                        {/*
-                        <span className="text-gray-400 text-xs">
-                          Color primario
-                        </span>
-                        <input
-                          type="color"
-                          value={plantilla.tema.colorPrimario}
-                          onChange={(e) =>
-                            actualizarTema({ colorPrimario: e.target.value })
-                          }
-                          className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
-                        />
-                        */}
-                      </label>
-                      <label className="block">
-                        <span className="text-gray-400 text-xs">
-                          Color de fondo
-                        </span>
-                        <input
-                          type="color"
-                          value={plantilla.tema.colorFondo}
-                          onChange={(e) =>
-                            actualizarTema({ colorFondo: e.target.value })
-                          }
-                          className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-gray-400 text-xs">
-                          Ancho máximo (px)
-                        </span>
-                        <input
-                          type="number"
-                          value={plantilla.tema.anchoMax}
-                          onChange={(e) =>
-                            actualizarTema({ anchoMax: Number(e.target.value) })
-                          }
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
-                        />
-                      </label>
-                    </div>
-                  </details>
+{/* 🎨 TEMA */}
+<details>
+  <summary className="cursor-pointer text-xs text-gray-500">
+    🎨 Tema del producto
+  </summary>
+  <div className="mt-2 space-y-2">
+    <label className="block">
+      <span className="text-gray-400 text-xs">
+        Color de fondo
+      </span>
+      <input
+        type="color"
+        value={plantilla.tema.colorFondo}
+        onChange={(e) =>
+          actualizarTema({ colorFondo: e.target.value })
+        }
+        className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
+      />
+    </label>
+
+    {/* 👇 NUEVO: Color del modal */}
+    <label className="block">
+      <span className="text-gray-400 text-xs">
+        🎨 Color del modal (badges y bordes)
+      </span>
+      <input
+        type="color"
+        value={plantilla.tema.colorModal || "#9333ea"}
+        onChange={(e) =>
+          actualizarTema({ colorModal: e.target.value })
+        }
+        className="h-9 w-full rounded border border-gray-600 bg-gray-700 cursor-pointer"
+      />
+    </label>
+
+    <label className="block">
+      <span className="text-gray-400 text-xs">
+        Ancho máximo (px)
+      </span>
+      <input
+        type="number"
+        value={plantilla.tema.anchoMax}
+        onChange={(e) =>
+          actualizarTema({ anchoMax: Number(e.target.value) })
+        }
+        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+      />
+    </label>
+  </div>
+</details>
                 </div>
               ) : (
                 (() => {

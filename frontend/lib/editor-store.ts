@@ -115,6 +115,8 @@ const PLANTILLA_VACIA: Plantilla = {
   secciones: crearSeccionesVacias(),
   tema: {
     colorPrimario: "#cb1515",
+        colorModal: "#9333ea",  // 👈 NUEVO: morado por defecto
+
     colorFondo: "#121212",
     tipografia: "Inter",
     anchoMax: 480,

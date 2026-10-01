@@ -29,6 +29,7 @@ class Bloque(BaseModel):
 
 class Tema(BaseModel):
     colorPrimario: str = "#cb1515"
+    colorModal: Optional[str] = "#9333ea"
     colorFondo: str = "#ffffff"
     tipografia: str = "Inter"
     anchoMax: int = 480

@@ -236,21 +236,21 @@ export default function ProductoClient({
       const bloqueado = res?.data?.bloqueado === true;
 
       if (!bloqueado && typeof window !== "undefined") {
-        const telefonoLimpio = String(data.telefono || "").replace(/\D/g, "");
-        const telefonoFinal = telefonoLimpio.startsWith("593")
-          ? telefonoLimpio
-          : `593${telefonoLimpio}`;
+// Normalizar teléfono a E.164 → "+593991234567"
+let tel = String(data.telefono || "").replace(/\D/g, "").replace(/^0+/, "");
+const telefonoE164 = tel.startsWith("593") ? `+${tel}` : `+593${tel}`;
 
-        if ((window as any).ttq) {
-          const externalIdHash = await sha256Hex(getOrCreateAnonId());
-          const ttclid = asegurarTtclid();
-          (window as any).ttq.identify({
-            phone_number: telefonoFinal,
-            external_id: externalIdHash,
-            ...(ttclid && { ttclid }),
-          });
+if ((window as any).ttq) {
+  const externalIdHash = await sha256Hex(getOrCreateAnonId());
+  const telefonoHash = await sha256Hex(telefonoE164);   // 👈 HASH del E.164
+  const ttclid = asegurarTtclid();
+  (window as any).ttq.identify({
+    phone_number: telefonoHash,   // ✅ hash SHA-256 de "+593991234567"
+    external_id: externalIdHash,
+    ...(ttclid && { ttclid }),
+  });
           (window as any).ttq.track(
-            "CompletePayment",
+            "Purchase",
             {
               contents: [
                 {

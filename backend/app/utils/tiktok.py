@@ -35,7 +35,7 @@ def enviar_place_order(pedido: dict, request_meta: dict = None):
         "event_source_id": TIKTOK_PIXEL_ID,
         "data": [
             {
-                "event": "CompletePayment",
+                "event": "Purchase",
                 "event_id": pedido.get("event_id"),
                 "event_time": int(time.time()),
 

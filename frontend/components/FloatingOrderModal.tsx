@@ -50,6 +50,8 @@ export default function FloatingOrderModal({
   const [errores, setErrores] = useState<Record<string, string>>({});
 
   if (!open) return null;
+  const colorModal = producto.plantilla?.tema?.colorModal || "#9333ea";
+  const colorBoton = producto.plantilla?.tema?.colorPrimario || "#cb1515";
 
   // 👇 1. EXTRAER CONFIGURACIÓN Y TEXTOS DINÁMICOS DEL ADMIN
   const config =
@@ -183,23 +185,26 @@ export default function FloatingOrderModal({
           </div>
         )}
 
-        <Image
-          src="/selecciona-tu-oferta.webp"
-          width={400}
-          height={200}
-          className="w-full h-auto"
-          sizes="100vw"
-          alt="Oferta"
-        />
-
         <div className="p-4">
           <div
             onClick={() => setOfertaSeleccionada("1")}
-            className={`border-2 rounded-xl p-3 flex gap-3 items-center mb-3 cursor-pointer transition-all ${
-              ofertaSeleccionada === "1"
-                ? "border-purple-600 bg-purple-100"
-                : "border-gray-200 bg-white hover:border-purple-300"
-            }`}
+            className="border-2 rounded-xl p-3 flex gap-3 items-center mb-3 cursor-pointer transition-all"
+            style={{
+              borderColor:
+                ofertaSeleccionada === "1" ? colorModal : "#e5e7eb",
+              backgroundColor:
+                ofertaSeleccionada === "1" ? `${colorModal}15` : "#ffffff",
+            }}
+            onMouseEnter={(e) => {
+              if (ofertaSeleccionada !== "1") {
+                (e.currentTarget as HTMLElement).style.borderColor = colorModal;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (ofertaSeleccionada !== "1") {
+                (e.currentTarget as HTMLElement).style.borderColor = "#e5e7eb";
+              }
+            }}
           >
             {producto.imagen && (
               <Image
@@ -214,7 +219,10 @@ export default function FloatingOrderModal({
               <p className="font-bold text-gray-900">
                 {producto.textoOferta1 || "1 Unidad + Regalo"}
               </p>
-              <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded">
+              <span
+                className="text-white text-xs px-2 py-1 rounded"
+                style={{ backgroundColor: colorModal }}
+              >
                 Precio Especial 🔥
               </span>
             </div>
@@ -233,11 +241,23 @@ export default function FloatingOrderModal({
           {oferta2Activa && oferta2Precio > 0 && (
             <div
               onClick={() => setOfertaSeleccionada("2")}
-              className={`border-2 rounded-xl p-3 flex gap-3 items-center mb-4 cursor-pointer transition-all ${
-                ofertaSeleccionada === "2"
-                  ? "border-purple-600 bg-purple-100"
-                  : "border-gray-200 bg-white hover:border-purple-300"
-              }`}
+              className="border-2 rounded-xl p-3 flex gap-3 items-center mb-4 cursor-pointer transition-all"
+              style={{
+                borderColor:
+                  ofertaSeleccionada === "2" ? colorModal : "#e5e7eb",
+                backgroundColor:
+                  ofertaSeleccionada === "2" ? `${colorModal}15` : "#ffffff",
+              }}
+              onMouseEnter={(e) => {
+                if (ofertaSeleccionada !== "2") {
+                  (e.currentTarget as HTMLElement).style.borderColor = colorModal;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (ofertaSeleccionada !== "2") {
+                  (e.currentTarget as HTMLElement).style.borderColor = "#e5e7eb";
+                }
+              }}
             >
               {(producto.precio2?.imagen || producto.imagen) && (
                 <Image
@@ -252,7 +272,10 @@ export default function FloatingOrderModal({
                 <p className="font-bold text-gray-900">
                   {producto.textoOferta2 || "2 Unidades + Regalo"}
                 </p>
-                <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded">
+                <span
+                  className="text-white text-xs px-2 py-1 rounded"
+                  style={{ backgroundColor: colorModal }}
+                >
                   🔥 Más Vendido
                 </span>
               </div>
@@ -277,7 +300,10 @@ export default function FloatingOrderModal({
             <div className="flex justify-between text-gray-700">
               <span>Envío</span>
               {envioPrioritario ? (
-                <span className="text-purple-600 font-semibold">
+                <span
+                  className="font-semibold"
+                  style={{ color: colorModal }}
+                >
                   + {formatearPrecio(datosPais.costoEnvioPrioritario)}{" "}
                   (Prioritario)
                 </span>
@@ -294,15 +320,6 @@ export default function FloatingOrderModal({
               </span>
             </div>
           </div>
-
-          <Image
-            src="/ingresa-tus-datos.webp"
-            width={400}
-            height={100}
-            className="w-full h-auto"
-            sizes="100vw"
-            alt="Ingresa tus datos"
-          />
 
           <form
             onSubmit={handleSubmit}
@@ -433,11 +450,11 @@ export default function FloatingOrderModal({
             )}
 
             <div
-              className="border border-purple-500 rounded-lg p-3 mb-4"
+              className="rounded-lg p-3 mb-4"
               style={{
-                backgroundColor: "rgba(238, 217, 255, 1)",
-                backgroundImage:
-                  "linear-gradient(90deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(90deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(0deg, rgba(143, 27, 214, 1) 50%, transparent 50%), linear-gradient(0deg, rgba(143, 27, 214, 1) 50%, transparent 50%)",
+                border: `1px solid ${colorModal}`,
+                backgroundColor: `${colorModal}15`,
+                backgroundImage: `linear-gradient(90deg, ${colorModal} 50%, transparent 50%), linear-gradient(90deg, ${colorModal} 50%, transparent 50%), linear-gradient(0deg, ${colorModal} 50%, transparent 50%), linear-gradient(0deg, ${colorModal} 50%, transparent 50%)`,
                 backgroundRepeat: "repeat-x, repeat-x, repeat-y, repeat-y",
                 backgroundSize: "13px 2px, 13px 2px, 2px 13px, 2px 13px",
                 backgroundPosition:
@@ -470,10 +487,11 @@ export default function FloatingOrderModal({
                 {errorBackend}
               </p>
             )}
-            <button
+                        <button
               type="submit"
               disabled={enviando}
-              className="bg-red-600 text-white p-4 rounded-lg font-bold disabled:opacity-50 hover:bg-red-700 transition-colors"
+              className="text-white p-4 rounded-lg font-bold disabled:opacity-50 transition-colors"
+              style={{ backgroundColor: colorBoton }}
             >
               {enviando
                 ? "Enviando pedido..."
