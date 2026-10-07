@@ -119,6 +119,8 @@ guardarTtclid();
             (window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
 
+            fbq('set', 'autoConfig', false, '904323315400372');
+
             fbq('init', '904323315400372');
 
             fbq('track', 'PageView');
