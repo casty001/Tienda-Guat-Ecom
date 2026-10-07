@@ -487,16 +487,17 @@ export default function FloatingOrderModal({
                 {errorBackend}
               </p>
             )}
-                        <button
-              type="submit"
-              disabled={enviando}
-              className="text-white p-4 rounded-lg font-bold disabled:opacity-50 transition-colors"
-              style={{ backgroundColor: colorBoton }}
-            >
-              {enviando
-                ? "Enviando pedido..."
-                : `COMPLETA TU COMPRA CON PAGO CONTRAENTREGA - ${formatearPrecio(precioTotal)}`}
-            </button>
+<button
+  type="submit"
+  disabled={enviando}
+  data-fbq-ignore="true"
+  className="text-white p-4 rounded-lg font-bold disabled:opacity-50 transition-colors"
+  style={{ backgroundColor: colorBoton }}
+>
+  {enviando
+    ? "Enviando pedido..."
+    : `COMPLETA TU COMPRA - ${formatearPrecio(precioTotal)}`}
+</button>
           </form>
         </div>
       </div>
