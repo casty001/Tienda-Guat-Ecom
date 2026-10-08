@@ -2937,7 +2937,7 @@ function SelectorUnidades({
                     }}
                   >
                     {op.items || ""}
-                    {op.envioGratis !== false && <span> + Free Shipping</span>}
+                    {op.envioGratis !== false}
                   </p>
 
                   {/* Beneficios */}

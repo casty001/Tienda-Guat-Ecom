@@ -1,9 +1,7 @@
-from fastapi import (
-    APIRouter,
-    HTTPException,
-    Depends,
-    Request
-)
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
+from google.api_core.exceptions import NotFound
 
 from app.utils.tiktok import (
     enviar_place_order
@@ -29,7 +27,7 @@ from app.dependencies.auth import (
 from app.utils.blacklist import esta_en_blacklist, normalizar_telefono
 
 router = APIRouter()
-
+ESTADOS_VALIDOS = ["pendiente", "aceptado", "guia_enviada", "entregado", "cancelado"]
 
 @router.post("/")
 def crear_pedido(
@@ -81,17 +79,40 @@ def crear_pedido(
 
 @router.get("/")
 def listar_pedidos(
-    user=Depends(verificar_admin)
+    limit: int = Query(10, ge=1, le=50),
+    cursor: Optional[str] = None,  # creadoEn del último pedido de la página anterior
+    user=Depends(verificar_admin),
 ):
-    docs = db.collection("pedidos")\
-        .order_by("creadoEn", direction="DESCENDING")\
-        .stream()
+    query = db.collection("pedidos").order_by(
+        "creadoEn", direction="DESCENDING"
+    )
 
-    return [
-        {"id": doc.id, **doc.to_dict()}
-        for doc in docs
-    ]
+    if cursor:
+        query = query.start_after({"creadoEn": cursor})
 
+    # limit+1 para saber si hay otra página (1 lectura extra)
+    docs = list(query.limit(limit + 1).stream())
+
+    has_more = len(docs) > limit
+    docs = docs[:limit]
+
+    items = [{"id": d.id, **d.to_dict()} for d in docs]
+    next_cursor = items[-1].get("creadoEn") if (has_more and items) else None
+
+    # El total solo se cuenta en la primera página (1 lectura por cada 1.000 pedidos)
+    total = None
+    if not cursor:
+        try:
+            total = db.collection("pedidos").count().get()[0][0].value
+        except Exception as e:
+            print(f"⚠️ No se pudo contar pedidos: {e}")
+
+    return {
+        "items": items,
+        "next_cursor": next_cursor,
+        "has_more": has_more,
+        "total": total,
+    }
 
 @router.patch("/{pedido_id}/estado")
 def cambiar_estado(
@@ -99,25 +120,24 @@ def cambiar_estado(
     estado: str,
     user=Depends(verificar_admin)
 ):
-    if estado not in ["pendiente", "aceptado", "cancelado"]:
+    if estado not in ESTADOS_VALIDOS:
         raise HTTPException(
             status_code=400,
             detail="Estado inválido"
         )
 
-    ref = db.collection("pedidos").document(pedido_id)
-    doc = ref.get()
+    hora_colombia = datetime.utcnow() - timedelta(hours=5)
 
-    if not doc.exists:
+    try:
+        # update() lanza NotFound si no existe, así no hace falta un get() antes
+        db.collection("pedidos").document(pedido_id).update({
+            "estado": estado,
+            "actualizadoEn": hora_colombia.isoformat()
+        })
+    except NotFound:
         raise HTTPException(
             status_code=404,
             detail="Pedido no encontrado"
         )
-
-    hora_colombia = datetime.utcnow() - timedelta(hours=5)
-    ref.update({
-        "estado": estado,
-        "actualizadoEn": hora_colombia.isoformat()
-    })
 
     return {"ok": True}
