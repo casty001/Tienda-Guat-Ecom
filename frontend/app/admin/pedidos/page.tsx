@@ -151,7 +151,7 @@ const getEstado = (estado: string) => ESTADOS[estado] ?? ESTADOS.pendiente;
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-white">📦 Pedidos</h1>
                 <span className="bg-blue-500/20 text-blue-400 text-xs px-3 py-1 rounded-full border border-blue-500/30">
-                  🇪🇨 Ecuador
+                  🇬🇹Guatemala
                 </span>
               </div>
 
