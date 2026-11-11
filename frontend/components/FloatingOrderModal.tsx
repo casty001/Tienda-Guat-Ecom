@@ -4,36 +4,34 @@ import { useState } from "react";
 import Image from "next/image";
 
 const datosPais = {
-  nombre: "Ecuador",
-  moneda: "USD",
-  simbolo: "$",
+  nombre: "Guatemala",
+  moneda: "GTQ",
+  simbolo: "Q",
   regiones: [
-    "Azuay",
-    "Bolívar",
-    "Cañar",
-    "Carchi",
-    "Chimborazo",
-    "Cotopaxi",
-    "El Oro",
-    "Esmeraldas",
-    "Galápagos",
-    "Guayas",
-    "Imbabura",
-    "Loja",
-    "Los Ríos",
-    "Manabí",
-    "Morona Santiago",
-    "Napo",
-    "Orellana",
-    "Pastaza",
-    "Pichincha",
-    "Santa Elena",
-    "Santo Domingo de los Tsáchilas",
-    "Sucumbíos",
-    "Tungurahua",
-    "Zamora Chinchipe",
+    "Alta Verapaz",
+    "Baja Verapaz",
+    "Chimaltenango",
+    "Chiquimula",
+    "El Progreso",
+    "Escuintla",
+    "Guatemala",
+    "Huehuetenango",
+    "Izabal",
+    "Jalapa",
+    "Jutiapa",
+    "Petén",
+    "Quetzaltenango",
+    "Quiché",
+    "Retalhuleu",
+    "Sacatepéquez",
+    "San Marcos",
+    "Santa Rosa",
+    "Sololá",
+    "Suchitepéquez",
+    "Totonicapán",
+    "Zacapa",
   ],
-  costoEnvioPrioritario: 1.9,
+  costoEnvioPrioritario: 15.0,
   envioGratisTexto: "Gratis",
 };
 
@@ -68,7 +66,7 @@ export default function FloatingOrderModal({
     config?.mostrarTextoImportanteModal ?? true;
   const textoImportanteModal =
     config?.textoImportanteModal ??
-    "⚡IMPORTANTE⚡\n📲Confirmar tu pedido por WPP para poder enviarle\n📍Si prefieres retirar en Servientrega, solicita por WPP";
+    "⚡IMPORTANTE⚡\n📲Confirmar tu pedido por WPP para poder enviarlo\n📍Si prefieres retirar en agencia de envíos, solicítalo por WPP";
 
   const oferta1Precio = Number(producto.precio || 0);
   const oferta1PrecioAntes = Number(producto.precioAntes || 0);
@@ -82,7 +80,8 @@ export default function FloatingOrderModal({
     : 0;
   const precioTotal = precioBase + costoEnvioExtra;
 
-  const formatearPrecio = (precio: number) => `$${precio.toFixed(2)}`;
+  const formatearPrecio = (precio: number) =>
+    `${datosPais.simbolo}${precio.toFixed(2)}`;
 
   const limpiarError = (campo: string) => {
     setErrores((prev) => {
@@ -113,8 +112,8 @@ export default function FloatingOrderModal({
 
     if (!/^\d+$/.test(telefono)) {
       nuevosErrores.telefono = "Escribe solo números en tu teléfono";
-    } else if (telefono.replace(/\D/g, "").length < 9) {
-      nuevosErrores.telefono = "Revisa tu número de celular";
+    } else if (telefono.replace(/\D/g, "").length < 8) {
+      nuevosErrores.telefono = "Revisa tu número de teléfono (8 dígitos)";
     }
 
     if (!direccion || direccion.length < 5) {
@@ -126,11 +125,11 @@ export default function FloatingOrderModal({
     }
 
     if (!departamento) {
-      nuevosErrores.departamento = "Selecciona tu provincia";
+      nuevosErrores.departamento = "Selecciona tu departamento";
     }
 
     if (!ciudad || ciudad.length < 3 || /\d/.test(ciudad)) {
-      nuevosErrores.ciudad = "Escribe el nombre de tu ciudad";
+      nuevosErrores.ciudad = "Escribe el nombre de tu municipio / ciudad";
     }
 
     if (Object.keys(nuevosErrores).length > 0) {
@@ -141,7 +140,7 @@ export default function FloatingOrderModal({
     setErrores({});
 
     const datosExtras = {
-      pais: "EC",
+      pais: "GT",
       ofertaSeleccionada: ofertaSeleccionada,
       ofertaTitulo:
         ofertaSeleccionada === "1"
@@ -152,7 +151,7 @@ export default function FloatingOrderModal({
       precioBase: precioBase,
       envioPrioritario: envioPrioritario,
       costoEnvio: costoEnvioExtra,
-      moneda: "USD",
+      moneda: "GTQ",
     };
 
     onSubmit(e, datosExtras);
@@ -164,7 +163,7 @@ export default function FloatingOrderModal({
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <h2 className="font-bold text-lg text-gray-900">
-              🇪🇨 OFERTA DE TIEMPO LIMITADO 🔥
+              🇬🇹 OFERTA DE TIEMPO LIMITADO 🔥
             </h2>
           </div>
           <button
@@ -332,7 +331,7 @@ export default function FloatingOrderModal({
               </label>
               <input
                 name="nombre"
-                placeholder="Ej: Mateo Rodriguez Castaño"
+                placeholder="Ej: Carlos Morales Asturias"
                 onChange={() => limpiarError("nombre")}
                 className={`w-full p-3 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${
                   errores.nombre
@@ -351,7 +350,7 @@ export default function FloatingOrderModal({
               </label>
               <input
                 name="telefono"
-                placeholder="0991234567"
+                placeholder="55123456"
                 onChange={() => limpiarError("telefono")}
                 className={`w-full p-3 border rounded-lg text-gray-900 ${
                   errores.telefono ? "border-red-500" : "border-gray-300"
@@ -368,7 +367,7 @@ export default function FloatingOrderModal({
               </label>
               <input
                 name="direccion"
-                placeholder="Calle principal con intersección y # de casa"
+                placeholder="Ej: 5ta avenida 12-45 zona 10"
                 onChange={() => limpiarError("direccion")}
                 className={`w-full p-3 border rounded-lg text-gray-900 ${
                   errores.direccion ? "border-red-500" : "border-gray-300"
@@ -385,7 +384,7 @@ export default function FloatingOrderModal({
               </label>
               <input
                 name="referencia"
-                placeholder="Ej: Torre B, Apto 201"
+                placeholder="Ej: Frente a la farmacia, casa color blanco"
                 onChange={() => limpiarError("referencia")}
                 className={`w-full p-3 border rounded-lg text-gray-900 ${
                   errores.referencia ? "border-red-500" : "border-gray-300"
@@ -400,7 +399,7 @@ export default function FloatingOrderModal({
 
             <div>
               <label className="font-bold text-black mb-1 block">
-                Provincia <span className="text-red-500">*</span>
+                Departamento <span className="text-red-500">*</span>
               </label>
               <select
                 name="departamento"
@@ -409,7 +408,7 @@ export default function FloatingOrderModal({
                   errores.departamento ? "border-red-500" : "border-gray-300"
                 }`}
               >
-                <option value="">Selecciona una provincia</option>
+                <option value="">Selecciona un departamento</option>
                 {datosPais.regiones.map((region) => (
                   <option key={region} value={region}>
                     {region}
@@ -425,11 +424,11 @@ export default function FloatingOrderModal({
 
             <div>
               <label className="font-bold text-black mb-1 block">
-                Ciudad <span className="text-red-500">*</span>
+                Municipio / Ciudad <span className="text-red-500">*</span>
               </label>
               <input
                 name="ciudad"
-                placeholder="Ej: Quito"
+                placeholder="Ej: Quetzaltenango / Ciudad de Guatemala"
                 onChange={() => limpiarError("ciudad")}
                 className={`w-full p-3 border rounded-lg text-gray-900 ${
                   errores.ciudad ? "border-red-500" : "border-gray-300"
@@ -487,17 +486,17 @@ export default function FloatingOrderModal({
                 {errorBackend}
               </p>
             )}
-<button
-  type="submit"
-  disabled={enviando}
-  data-fbq-ignore="true"
-  className="text-white p-4 rounded-lg font-bold disabled:opacity-50 transition-colors"
-  style={{ backgroundColor: colorBoton }}
->
-  {enviando
-    ? "Enviando pedido..."
-    : `COMPLETA TU COMPRA - ${formatearPrecio(precioTotal)}`}
-</button>
+            <button
+              type="submit"
+              disabled={enviando}
+              data-fbq-ignore="true"
+              className="text-white p-4 rounded-lg font-bold disabled:opacity-50 transition-colors"
+              style={{ backgroundColor: colorBoton }}
+            >
+              {enviando
+                ? "Enviando pedido..."
+                : `COMPLETA TU COMPRA - ${formatearPrecio(precioTotal)}`}
+            </button>
           </form>
         </div>
       </div>

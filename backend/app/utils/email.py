@@ -1,36 +1,98 @@
-import resend
 import os
+import html
+import logging
+import requests
 
-RESEND_API_KEY2 = os.getenv("RESEND_API_KEY2")
+# 👇 IMPORTAMOS LA DB
+from app.firebase import db 
 
-resend.api_key = RESEND_API_KEY2
+MAIL_API_KEY = os.getenv("MAIL_API_KEY")
+
+logger = logging.getLogger(__name__)
+
 
 def enviar_correo_pedido(pedido: dict, pedido_id: str):
-    """Envía correo al admin cuando hay un nuevo pedido"""
-    
-    if not RESEND_API_KEY2:
-        #print("⚠️ RESEND_API_KEY no configurado")
+    """Envía correo al admin cuando hay un nuevo pedido."""
+
+    if not MAIL_API_KEY:
+        logger.error("MAIL_API_KEY no configurada")
         return False
-    
-    total = round(pedido.get('precio', 0), 2)
 
     try:
-        r = resend.Emails.send({
-            "from": "onboarding@resend.dev",
-            "to": ["jestebanyepesr@gmail.com"],  # ← lista
-            "subject": f"🛒 Nuevo pedido Lunio Store Ecuador - {pedido.get('productoNombre', 'Producto')}",
-            "html": f"""
-                <h1>🛒 Nuevo Pedido</h1>
-                <p><strong>ID:</strong> #{pedido_id[:8]}</p>
-                <p><strong>Cliente:</strong> {pedido.get('nombre', 'N/A')}</p>
-                <p><strong>Teléfono:</strong> {pedido.get('telefono', 'N/A')}</p>
-                <p><strong>Producto:</strong> {pedido.get('productoNombre', 'N/A')}</p>
-                <p><strong>Total:</strong> ${total}</p>
-                <p><strong>Dirección:</strong> {pedido.get('direccion', 'N/A')}</p>
-                <hr>
-                <p><a href="https://luniostore.netlify.app/admin/pedidos">Ver todos los pedidos</a></p>
-            """
-        })
-        return True
-    except Exception as e:
+        # 👇 NUEVO: Obtener correos dinámicos de Firestore
+        doc = db.collection("config").document("general").get()
+        correos_dinamicos = []
+        
+        if doc.exists:
+            correos_dinamicos = doc.to_dict().get("correos_notificacion") or []
+
+        # Si por alguna razón está vacío, usamos los por defecto
+        if not correos_dinamicos:
+            correos_dinamicos = [
+                "materedu.ecom@gmail.com", 
+                "bryansteven7000@gmail.com", 
+                "juane.yepesr@gmail.com"
+            ]
+
+        # Formatear para Brevo
+        lista_destinatarios = [{"email": c} for c in correos_dinamicos]
+
+        total = round(float(pedido.get("precio") or 0), 2)
+
+        def dato(campo):
+            return html.escape(
+                str(pedido.get(campo) or "N/A")
+            )
+
+        contenido = f"""
+            <h1>🛒 Nuevo Pedido Lunio Ecuador</h1>
+            <p><strong>ID:</strong> #{html.escape(str(pedido_id)[:8])}</p>
+            <p><strong>Cliente:</strong> {dato('nombre')}</p>
+            <p><strong>Teléfono:</strong> {dato('telefono')}</p>
+            <p><strong>Producto:</strong> {dato('productoNombre')}</p>
+            <p><strong>Total:</strong> ${total:.2f}</p>
+            <p><strong>Dirección:</strong> {dato('direccion')}</p>
+            <hr>
+            <p>
+                <a href="https://lunioecuador.com/admin/pedidos">
+                    Ver todos los pedidos
+                </a>
+            </p>
+        """
+
+        payload = {
+            "sender": {
+                "name": "Lunio Store Ecuador",
+                "email": "pedidos@lunioecuador.com"
+            },
+            # 👇 NUEVO: Usar la lista dinámica
+            "to": lista_destinatarios, 
+            "subject": (
+                "🛒 Nuevo pedido Lunio Store Ecuador - "
+                + str(pedido.get("productoNombre") or "Producto")
+            ),
+            "htmlContent": contenido
+        }
+
+        respuesta = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": MAIL_API_KEY,
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            json=payload,
+            timeout=15
+        )
+
+        respuesta.raise_for_status()
+
+        return respuesta.status_code == 201
+
+    except requests.exceptions.RequestException:
+        logger.exception("Error de comunicación con Brevo")
+        return False
+
+    except (ValueError, TypeError):
+        logger.exception("Error en los datos del pedido")
         return False
