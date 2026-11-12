@@ -1,13 +1,12 @@
-from fastapi import FastAPI,Response
+from fastapi import FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi.middleware.cors import (
-    CORSMiddleware
-)
 from app.routes import (
     productos,
     pedidos,
     upload,
-    blacklist
+    blacklist,
+    config,
 )
 
 app = FastAPI(
@@ -39,11 +38,19 @@ app.include_router(
     prefix="/upload",
     tags=["Upload"]
 )
+
 app.include_router(
     blacklist.router,
     prefix="/blacklist",
     tags=["Blacklist"]
 )
+
+app.include_router(
+    config.router,
+    prefix="/config",
+    tags=["Config"]
+)
+
 @app.get("/")
 def root():
     return {

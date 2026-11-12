@@ -1,6 +1,6 @@
 "use client";
 import { apiPublica } from "@/lib/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { ProductRenderer, construirPlantilla } from "@/lib/bloques";
 
@@ -68,7 +68,15 @@ function getOrCreateAnonId(): string {
   setCookie("_anon_id", id, 90);
   return id;
 }
+const PIXEL_A = "1499341829042883";
+const PIXEL_B = "0";
 
+function getPixelActual() {
+  if (typeof window === "undefined") return PIXEL_A;
+  const params = new URLSearchParams(window.location.search);
+  const px = params.get("px");
+  return px === PIXEL_B ? PIXEL_B : PIXEL_A;
+}
 // ═══════════════════════════════════════════════════════════════
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════
@@ -91,7 +99,22 @@ export default function ProductoClient({
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [opcionSeleccionadaObj, setOpcionSeleccionadaObj] = useState<any>(null);
   const [indiceOpcion, setIndiceOpcion] = useState(0);
+  // Detectar pantalla de escritorio
+  const [esDesktop, setEsDesktop] = useState(false);
+  const eventoDisparado = useRef(false);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
 
+    const actualizar = () => setEsDesktop(media.matches);
+
+    actualizar();
+
+    media.addEventListener("change", actualizar);
+
+    return () => {
+      media.removeEventListener("change", actualizar);
+    };
+  }, []);
   const plantilla = (() => {
     const p = producto.plantilla;
     const tieneSecciones = (p?.secciones?.length ?? 0) > 0;
@@ -106,6 +129,7 @@ export default function ProductoClient({
   useEffect(() => {
     if (previewMode) return;
     asegurarFbc();
+    if (eventoDisparado.current) return;
 
     async function trackViewContent() {
       if (typeof window !== "undefined" && producto) {
@@ -130,7 +154,15 @@ export default function ProductoClient({
         }
 
         if ((window as any).fbq) {
-          (window as any).fbq("track", "ViewContent", {
+          const pixel = getPixelActual();
+          // Inicializamos el píxel correcto y disparamos el PageView (solo una vez por visita)
+          if (!(window as any)._pixelInicializado) {
+            (window as any).fbq("init", pixel);
+            (window as any).fbq("trackSingle", pixel, "PageView");
+            (window as any)._pixelInicializado = true;
+          }
+
+          (window as any).fbq("trackSingle", pixel, "ViewContent", {
             content_ids: [producto.id],
             content_type: "product",
             content_name: producto.nombre,
@@ -173,7 +205,8 @@ export default function ProductoClient({
       }
 
       if ((window as any).fbq) {
-        (window as any).fbq("track", "InitiateCheckout", {
+        const pixel = getPixelActual();
+        (window as any).fbq("trackSingle", pixel, "InitiateCheckout", {
           content_ids: [producto.id],
           content_type: "product",
           content_name: producto.nombre,
@@ -224,6 +257,7 @@ export default function ProductoClient({
       ttclid: asegurarTtclid(),
       anonId: getOrCreateAnonId(),
       url: typeof window !== "undefined" ? window.location.href : "",
+      metaPixelId: getPixelActual(), // 👈 NUEVA LÍNEA
     };
 
     try {
@@ -236,19 +270,21 @@ export default function ProductoClient({
       const bloqueado = res?.data?.bloqueado === true;
 
       if (!bloqueado && typeof window !== "undefined") {
-// Normalizar teléfono a E.164 → "+593991234567"
-let tel = String(data.telefono || "").replace(/\D/g, "").replace(/^0+/, "");
-const telefonoE164 = tel.startsWith("593") ? `+${tel}` : `+593${tel}`;
+        // Normalizar teléfono a E.164 → "+593991234567"
+        let tel = String(data.telefono || "")
+          .replace(/\D/g, "")
+          .replace(/^0+/, "");
+        const telefonoE164 = tel.startsWith("593") ? `+${tel}` : `+593${tel}`;
 
-if ((window as any).ttq) {
-  const externalIdHash = await sha256Hex(getOrCreateAnonId());
-  const telefonoHash = await sha256Hex(telefonoE164);   // 👈 HASH del E.164
-  const ttclid = asegurarTtclid();
-  (window as any).ttq.identify({
-    phone_number: telefonoHash,   // ✅ hash SHA-256 de "+593991234567"
-    external_id: externalIdHash,
-    ...(ttclid && { ttclid }),
-  });
+        if ((window as any).ttq) {
+          const externalIdHash = await sha256Hex(getOrCreateAnonId());
+          const telefonoHash = await sha256Hex(telefonoE164); // 👈 HASH del E.164
+          const ttclid = asegurarTtclid();
+          (window as any).ttq.identify({
+            phone_number: telefonoHash, // ✅ hash SHA-256 de "+593991234567"
+            external_id: externalIdHash,
+            ...(ttclid && { ttclid }),
+          });
           (window as any).ttq.track(
             "Purchase",
             {
@@ -267,8 +303,10 @@ if ((window as any).ttq) {
         }
 
         if ((window as any).fbq) {
+          const pixel = getPixelActual();
           (window as any).fbq(
-            "track",
+            "trackSingle",
+            pixel,
             "Purchase",
             {
               content_ids: [producto.id],
@@ -301,7 +339,7 @@ if ((window as any).ttq) {
   return (
     <>
       <div className="hidden md:block">
-        <DesktopGenericLanding />
+        {esDesktop && <DesktopGenericLanding />}
       </div>
 
       <div className="block md:hidden">
@@ -335,16 +373,16 @@ if ((window as any).ttq) {
         {/* ─── MAIN ─── */}
         <main className="bg-[#121212]">
           <ProductRenderer
-  plantilla={plantilla}
-  producto={producto}
-  onComprar={irFormulario}
-  onMenuClick={() => setMenuAbierto(true)}
-  opcionSeleccionada={indiceOpcion}
-  onOpcionChange={setIndiceOpcion}
-  modo={editorMode ? "editor" : "ver"}
-  bloqueHover={bloqueHover}
-  seleccionado={seleccionado}
-/>
+            plantilla={plantilla}
+            producto={producto}
+            onComprar={irFormulario}
+            onMenuClick={() => setMenuAbierto(true)}
+            opcionSeleccionada={indiceOpcion}
+            onOpcionChange={setIndiceOpcion}
+            modo={editorMode ? "editor" : "ver"}
+            bloqueHover={bloqueHover}
+            seleccionado={seleccionado}
+          />
 
           <FloatingOrderModal
             open={modalOpen}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import AdminGuard from "@/components/AdminGuard"
 import { api } from "@/lib/api"
@@ -10,6 +10,8 @@ interface BlacklistItem {
   motivo?: string
   agregadoEn?: string
 }
+
+const PAGE_SIZE = 10
 
 function BlacklistContent() {
   const [items, setItems] = useState<BlacklistItem[]>([])
@@ -23,25 +25,73 @@ function BlacklistContent() {
   const [fechaDesde, setFechaDesde] = useState("")
   const [fechaHasta, setFechaHasta] = useState("")
   const [orden, setOrden] = useState<"reciente" | "antiguo">("reciente")
-  const [paginaActual, setPaginaActual] = useState(1)
-  const itemsPorPagina = 10
 
-  const cargar = async () => {
+  // ── Paginación con cursor ──
+  const [pagina, setPagina] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState<number | null>(null)
+  const [paginasConocidas, setPaginasConocidas] = useState(1)
+  const cursors = useRef<(string | null)[]>([null])
+  const cache = useRef<Map<number, { items: BlacklistItem[]; hasMore: boolean }>>(new Map())
+  const reqId = useRef(0)
+
+  const cargarPagina = async (p: number, force = false) => {
+    const cached = cache.current.get(p)
+    if (!force && cached) {
+      setItems(cached.items)
+      setHasMore(cached.hasMore)
+      setPagina(p)
+      return
+    }
+
+    const id = ++reqId.current
     setLoading(true)
     try {
-      const res = await api.get("/blacklist/")
-      setItems(res.data)
+      const params: Record<string, any> = { limit: PAGE_SIZE, orden }
+      const cur = cursors.current[p]
+      if (cur) params.cursor = cur
+      if (busqueda.trim()) params.q = busqueda.trim()
+      if (fechaDesde) params.desde = fechaDesde
+      if (fechaHasta) params.hasta = fechaHasta
+
+      const res = await api.get("/blacklist/", { params })
+      if (id !== reqId.current) return
+
+      const { items: nuevos, next_cursor, has_more, total: totalRes } = res.data
+      cache.current.set(p, { items: nuevos, hasMore: has_more })
+      if (has_more) {
+        cursors.current[p + 1] = next_cursor
+        setPaginasConocidas((prev) => Math.max(prev, p + 2))
+      }
+      if (totalRes !== null && totalRes !== undefined) setTotal(totalRes)
+
+      setItems(nuevos)
+      setHasMore(has_more)
+      setPagina(p)
+      setError("")
     } catch (e) {
+      if (id !== reqId.current) return
       console.error("Error cargando blacklist:", e)
       setError("No se pudo cargar la lista")
     } finally {
-      setLoading(false)
+      if (id === reqId.current) setLoading(false)
     }
   }
 
+  // Reinicia todo y carga la página 1
+  const cargar = () => {
+    cursors.current = [null]
+    cache.current.clear()
+    setPaginasConocidas(1)
+    return cargarPagina(0, true)
+  }
+
+  // Carga inicial y recarga cuando cambian los filtros (con pausa al escribir)
   useEffect(() => {
-    cargar()
-  }, [])
+    const t = setTimeout(() => cargar(), 500)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busqueda, fechaDesde, fechaHasta, orden])
 
   const agregar = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,7 +109,6 @@ function BlacklistContent() {
       })
       setNumero("")
       setMotivo("")
-      setPaginaActual(1)
       await cargar()
     } catch (e: any) {
       setError(e?.response?.data?.detail || "Error al agregar el número")
@@ -80,40 +129,9 @@ function BlacklistContent() {
     }
   }
 
-  // 👇 Filtro por número o motivo
-  const itemsFiltrados = items
-    .filter((item) => {
-      const q = busqueda.trim().toLowerCase()
-      if (!q) return true
-      return (
-        item.numero.toLowerCase().includes(q) ||
-        (item.motivo || "").toLowerCase().includes(q)
-      )
-    })
-    .filter((item) => {
-      if (!item.agregadoEn) return !fechaDesde && !fechaHasta
-      const fechaItem = item.agregadoEn.slice(0, 10) // YYYY-MM-DD
-      if (fechaDesde && fechaItem < fechaDesde) return false
-      if (fechaHasta && fechaItem > fechaHasta) return false
-      return true
-    })
-    .sort((a, b) => {
-      const fa = a.agregadoEn || ""
-      const fb = b.agregadoEn || ""
-      return orden === "reciente" ? fb.localeCompare(fa) : fa.localeCompare(fb)
-    })
-
-  // 👇 Paginación
-  const totalItems = itemsFiltrados.length
-  const totalPaginas = Math.max(1, Math.ceil(totalItems / itemsPorPagina))
-  const inicio = (paginaActual - 1) * itemsPorPagina
-  const fin = inicio + itemsPorPagina
-  const itemsPagina = itemsFiltrados.slice(inicio, fin)
-
-  const irPagina = (pagina: number) => {
-    if (pagina < 1 || pagina > totalPaginas) return
-    setPaginaActual(pagina)
-  }
+  const inicio = pagina * PAGE_SIZE + 1
+  const fin = pagina * PAGE_SIZE + items.length
+  const hayFiltros = !!(busqueda.trim() || fechaDesde || fechaHasta)
 
   return (
     <main className="min-h-screen bg-gray-900">
@@ -169,52 +187,37 @@ function BlacklistContent() {
         </form>
 
         {/* Buscador y filtros */}
-        {items.length > 0 && (
+        {(items.length > 0 || hayFiltros) && (
           <div className="mb-4 space-y-3">
             <input
               type="text"
-              placeholder="🔍 Buscar por número o motivo..."
+              placeholder="🔍 Buscar por número (desde el inicio)..."
               value={busqueda}
-              onChange={(e) => {
-                setBusqueda(e.target.value)
-                setPaginaActual(1)
-              }}
+              onChange={(e) => setBusqueda(e.target.value)}
               className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
             />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div>
-                <label className="text-xs text-gray-500 block mb-1">
-                  Desde
-                </label>
+                <label className="text-xs text-gray-500 block mb-1">Desde</label>
                 <input
                   type="date"
                   value={fechaDesde}
-                  onChange={(e) => {
-                    setFechaDesde(e.target.value)
-                    setPaginaActual(1)
-                  }}
+                  onChange={(e) => setFechaDesde(e.target.value)}
                   className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">
-                  Hasta
-                </label>
+                <label className="text-xs text-gray-500 block mb-1">Hasta</label>
                 <input
                   type="date"
                   value={fechaHasta}
-                  onChange={(e) => {
-                    setFechaHasta(e.target.value)
-                    setPaginaActual(1)
-                  }}
+                  onChange={(e) => setFechaHasta(e.target.value)}
                   className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                 />
               </div>
               <div className="col-span-2 md:col-span-1">
-                <label className="text-xs text-gray-500 block mb-1">
-                  Orden
-                </label>
+                <label className="text-xs text-gray-500 block mb-1">Orden</label>
                 <select
                   value={orden}
                   onChange={(e) => setOrden(e.target.value as "reciente" | "antiguo")}
@@ -224,14 +227,13 @@ function BlacklistContent() {
                   <option value="antiguo">Más antiguo</option>
                 </select>
               </div>
-              {(fechaDesde || fechaHasta || busqueda) && (
+              {hayFiltros && (
                 <div className="flex items-end">
                   <button
                     onClick={() => {
                       setBusqueda("")
                       setFechaDesde("")
                       setFechaHasta("")
-                      setPaginaActual(1)
                     }}
                     className="w-full p-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded-lg transition-colors"
                   >
@@ -249,21 +251,19 @@ function BlacklistContent() {
             <div className="inline-block w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mb-2"></div>
             <p>Cargando...</p>
           </div>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && !hayFiltros ? (
           <div className="text-center py-12 bg-gray-800 rounded-xl">
             <div className="text-5xl mb-3">✅</div>
             <p className="text-gray-400">No hay números bloqueados.</p>
           </div>
-        ) : itemsFiltrados.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="text-center py-12 bg-gray-800 rounded-xl">
             <div className="text-5xl mb-3">🔍</div>
-            <p className="text-gray-400">
-              Sin resultados para los filtros aplicados
-            </p>
+            <p className="text-gray-400">Sin resultados para los filtros aplicados</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {itemsPagina.map((item) => (
+            {items.map((item) => (
               <div
                 key={item.numero}
                 className="bg-gray-800 rounded-xl p-4 flex justify-between items-center"
@@ -301,40 +301,37 @@ function BlacklistContent() {
         )}
 
         {/* Paginación */}
-        {totalItems > itemsPorPagina && (
+        {items.length > 0 && (
           <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-400 text-sm">
             <div>
-              Mostrando {inicio + 1} - {Math.min(fin, totalItems)} de{" "}
-              {totalItems}
+              Mostrando {inicio} - {fin}
+              {total !== null ? ` de ${total}` : ""}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-center">
               <button
-                onClick={() => irPagina(paginaActual - 1)}
-                disabled={paginaActual === 1}
+                onClick={() => cargarPagina(pagina - 1)}
+                disabled={pagina === 0 || loading}
                 className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 ◀
               </button>
-              {[...Array(totalPaginas)].map((_, i) => {
-                const num = i + 1
-                const esActiva = num === paginaActual
-                return (
-                  <button
-                    key={num}
-                    onClick={() => irPagina(num)}
-                    className={`px-3 py-1 rounded transition ${
-                      esActiva
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                    }`}
-                  >
-                    {num}
-                  </button>
-                )
-              })}
+              {Array.from({ length: paginasConocidas }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => cargarPagina(i)}
+                  disabled={loading || !(cache.current.has(i) || cursors.current[i] !== undefined)}
+                  className={`px-3 py-1 rounded transition disabled:opacity-40 ${
+                    i === pagina
+                      ? "bg-purple-600 text-white"
+                      : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
               <button
-                onClick={() => irPagina(paginaActual + 1)}
-                disabled={paginaActual === totalPaginas}
+                onClick={() => cargarPagina(pagina + 1)}
+                disabled={!hasMore || loading}
                 className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 ▶
@@ -344,9 +341,7 @@ function BlacklistContent() {
         )}
 
         <div className="mt-4 text-center text-xs text-gray-500">
-          📊 Total: {items.length} números bloqueados
-          {(busqueda || fechaDesde || fechaHasta) &&
-            ` · ${itemsFiltrados.length} con los filtros aplicados`}
+          📊 Total: {total !== null ? total : items.length} números bloqueados
         </div>
       </div>
     </main>

@@ -1,9 +1,7 @@
 import re
-import time
 from app.firebase import db
 
-_cache = {"numeros": set(), "ts": 0}
-TTL = 300  # 5 minutos
+COLECCION = "blacklist_numeros"
 
 
 def normalizar_telefono(numero: str) -> str:
@@ -21,19 +19,19 @@ def normalizar_telefono(numero: str) -> str:
     return limpio
 
 
-def _cargar_blacklist() -> set:
-    docs = db.collection("blacklist_numeros").stream()
-    return {d.id for d in docs}
-
-
 def esta_en_blacklist(numero: str) -> bool:
-    now = time.time()
-    if now - _cache["ts"] > TTL:
-        _cache["numeros"] = _cargar_blacklist()
-        _cache["ts"] = now
-    return normalizar_telefono(numero) in _cache["numeros"]
+    tel = normalizar_telefono(numero)
+    if not tel:
+        return False
+    try:
+        # El id del documento es el número: 1 sola lectura
+        return db.collection(COLECCION).document(tel).get().exists
+    except Exception as e:
+        # Si Firestore falla, el pedido NO se pierde: se trata como no bloqueado
+        print(f"⚠️ Error consultando blacklist: {e}")
+        return False
 
 
 def invalidar_cache():
-    """Fuerza recarga en la siguiente consulta. Útil tras agregar/quitar un número."""
-    _cache["ts"] = 0
+    """Ya no hay caché. Se deja vacía para no romper imports en routes/blacklist.py."""
+    pass

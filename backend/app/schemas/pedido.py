@@ -12,11 +12,11 @@ class PedidoCreate(BaseModel):
     productoId: str
     productoNombre: str
     precio: float
-    precioBase: Optional[float] = None           # 👈 NUEVO
-    costoEnvio: Optional[float] = 0              # 👈 NUEVO
-    envioPrioritario: Optional[bool] = False     # 👈 NUEVO
-    opcionIndex: Optional[int] = Field(default=None, ge=0, le=10)  # 👈 NUEVO
-    opcionSeleccionadaTitulo: Optional[str] = "" # 👈 NUEVO
+    precioBase: Optional[float] = None          
+    costoEnvio: Optional[float] = 0              
+    envioPrioritario: Optional[bool] = False     
+    opcionIndex: Optional[int] = Field(default=None, ge=0, le=10)  
+    opcionSeleccionadaTitulo: Optional[str] = "" 
     imagen: Optional[str] = ""
     event_id: Optional[str] = None
     fbp: Optional[str] = None
@@ -24,6 +24,8 @@ class PedidoCreate(BaseModel):
     ttclid: Optional[str] = None
     anonId: Optional[str] = None
     url: Optional[str] = None
+    metaPixelId: Optional[str] = None  # 👈 ESTA ES LA LÍNEA NUEVA
+
 
     @field_validator("telefono")
     @classmethod
@@ -41,3 +43,17 @@ class PedidoCreate(BaseModel):
                 "Digita correctamente tu numero de telefono"
             )
         return v  # guarda el valor original tal como lo mandó el usuario
+
+class PedidoDespacho(BaseModel):
+    transportadora: str = Field(min_length=2, max_length=60)
+    numeroGuia: str = Field(min_length=4, max_length=80)
+
+    @field_validator("transportadora", "numeroGuia")
+    @classmethod
+    def limpiar_dato_logistico(cls, valor: str) -> str:
+        valor = valor.strip()
+
+        if not valor:
+            raise ValueError("El campo no puede estar vacío")
+
+        return valor

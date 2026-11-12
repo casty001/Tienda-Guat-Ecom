@@ -1,4 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+import re
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, Query
+from google.cloud.firestore_v1.field_path import FieldPath
 from datetime import datetime, timedelta
 
 from app.firebase import db
@@ -9,9 +12,59 @@ router = APIRouter()
 
 
 @router.get("/")
-def listar_blacklist(user=Depends(verificar_admin)):
-    docs = db.collection("blacklist_numeros").stream()
-    return [{"numero": d.id, **d.to_dict()} for d in docs]
+def listar_blacklist(
+    limit: int = Query(10, ge=1, le=10),
+    cursor: Optional[str] = None,   # id (número) del último item de la página anterior
+    q: Optional[str] = None,        # prefijo del número
+    desde: Optional[str] = None,    # YYYY-MM-DD
+    hasta: Optional[str] = None,    # YYYY-MM-DD
+    orden: str = Query("reciente"),
+    user=Depends(verificar_admin),
+):
+    base = db.collection("blacklist_numeros")
+    q = (q or "").strip()
+
+    if q:
+        # Búsqueda por prefijo del número (el número es el id del documento)
+        prefijo = re.sub(r"\D", "", q) or q
+        query = (
+            base.where(FieldPath.document_id(), ">=", base.document(prefijo))
+                .where(FieldPath.document_id(), "<=", base.document(prefijo + "\uf8ff"))
+                .order_by(FieldPath.document_id())
+        )
+    else:
+        direction = "DESCENDING" if orden == "reciente" else "ASCENDING"
+        query = base
+        if desde:
+            query = query.where("agregadoEn", ">=", desde)
+        if hasta:
+            query = query.where("agregadoEn", "<=", hasta + "\uf8ff")
+        query = query.order_by("agregadoEn", direction=direction)
+
+    # Conteo solo en la primera página (1 lectura por cada 1.000 docs)
+    total = None
+    if not cursor:
+        try:
+            total = query.count().get()[0][0].value
+        except Exception as e:
+            print(f"⚠️ No se pudo contar blacklist: {e}")
+
+    # Cursor = id del último documento (no se salta nada aunque haya fechas iguales)
+    if cursor:
+        snap = base.document(cursor).get()   # 1 lectura extra desde la página 2
+        if not snap.exists:
+            return {"items": [], "next_cursor": None, "has_more": False, "total": None}
+        query = query.start_after(snap)
+
+    docs = list(query.limit(limit + 1).stream())
+    has_more = len(docs) > limit
+    docs = docs[:limit]
+
+    # "numero" se arma con el id, porque el documento no tiene ese campo
+    items = [{"numero": d.id, **d.to_dict()} for d in docs]
+    next_cursor = docs[-1].id if (has_more and docs) else None
+
+    return {"items": items, "next_cursor": next_cursor, "has_more": has_more, "total": total}
 
 
 @router.post("/")
